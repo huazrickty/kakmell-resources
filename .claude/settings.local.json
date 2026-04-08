@@ -11,7 +11,10 @@
       "Bash(cp /c/Users/hgame/AppData/Local/Temp/kakmell-temp/tsconfig.json /e/PROJECT/kakmell-resources/)",
       "Bash(cp /c/Users/hgame/AppData/Local/Temp/kakmell-temp/postcss.config.mjs /e/PROJECT/kakmell-resources/)",
       "Bash(npm install:*)",
-      "Bash(npx shadcn@latest init --yes --defaults)"
+      "Bash(npx shadcn@latest init --yes --defaults)",
+      "Bash(npx shadcn@latest add card dialog input select table badge tabs toast --yes)",
+      "Bash(npx shadcn@latest add card dialog input select table badge tabs sonner --yes)",
+      "Bash(npx tsc:*)"
     ]
   }
 }
