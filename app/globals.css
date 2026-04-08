@@ -35,3 +35,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* iOS safe area for fixed bottom nav */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
