@@ -40,3 +40,10 @@
 .safe-area-pb {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* Print styles — hide UI chrome, show only content */
+@media print {
+  .no-print { display: none !important; }
+  .print-show { display: block !important; }
+  #print-content { padding: 0 !important; }
+}

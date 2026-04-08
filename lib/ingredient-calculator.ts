@@ -9,7 +9,7 @@ export type PaxBracket = typeof PAX_BRACKETS[number]
 export interface MenuSelection {
   nasi: 'nasi_briyani' | 'nasi_minyak' | 'nasi_jagung'
   ayam: 'ayam_masak_merah'
-  daging: 'daging_briyani' | 'daging_black_pepper' | 'daging_masak_hitam' | 'daging_kuzi' | 'daging_masak_lemak_hitam' | 'daging_masak_kurma'
+  daging: 'daging_briyani' | 'daging_black_pepper' | 'daging_masak_hitam' | 'daging_kuzi' | 'daging_masak_kurma'
   acar: 'paceri_nenas' | 'pencuk'
   bubur: 'bubur_pulut_hitam' | 'bubur_kacang_hijau' | 'bubur_jagung'
   kuih: string[]  // 2 items from kuih list

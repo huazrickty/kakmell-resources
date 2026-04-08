@@ -1,14 +1,11 @@
+// SERVER-ONLY — do not import this file in client components.
+// For client components, use @/lib/supabase-browser instead.
 import { createClient } from '@supabase/supabase-js'
-import { createBrowserClient, createServerClient } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-// Browser client (for client components)
-export function createSupabaseBrowserClient() {
-  return createBrowserClient(supabaseUrl, supabaseAnonKey)
-}
 
 // Server client (for server components, route handlers, server actions)
 export async function createSupabaseServerClient() {

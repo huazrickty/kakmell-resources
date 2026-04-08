@@ -28,11 +28,11 @@ export async function POST(request: Request) {
     }
   }
 
-  // Seed menu_options
+  // Seed menu_options — requires UNIQUE (category, name_ms) constraint on table
   for (const row of MENU_OPTIONS_SEED) {
     const { error } = await supabaseAdmin
       .from('menu_options')
-      .upsert(row, { onConflict: 'category,name_ms' } as never)
+      .upsert(row, { onConflict: 'category,name_ms' })
 
     if (error) {
       errors.push(`menu_options [${row.category}/${row.name_ms}]: ${error.message}`)

@@ -12,38 +12,50 @@ interface StatsRowProps {
 
 export function StatsRow({ totalEvents, totalRevenue, totalPending }: StatsRowProps) {
   return (
-    <div className="grid grid-cols-3 gap-3">
-      <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-        <div className="flex justify-center mb-1">
-          <CalendarDays size={18} className="text-blue-500" />
+    <div className="grid grid-cols-3 gap-3 lg:gap-5">
+      {/* Acara bulan ini */}
+      <div className="bg-white rounded-xl border border-gray-200 p-3 lg:p-5 text-center">
+        <div className="flex justify-center mb-1 lg:mb-2">
+          <CalendarDays size={18} className="text-blue-500 lg:hidden" />
+          <CalendarDays size={24} className="text-blue-500 hidden lg:block" />
         </div>
-        <p className="text-xl font-bold text-gray-900">{totalEvents}</p>
-        <p className="text-[11px] text-gray-500 leading-tight mt-0.5">
-          Acara<br />Bulan Ini
+        <p className="text-xl lg:text-3xl font-bold text-gray-900">{totalEvents}</p>
+        <p className="text-[11px] lg:text-sm text-gray-500 leading-tight mt-0.5 lg:mt-1">
+          Acara Bulan Ini
         </p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-        <div className="flex justify-center mb-1">
-          <TrendingUp size={18} className="text-green-500" />
+      {/* Hasil bulan ini */}
+      <div className="bg-white rounded-xl border border-gray-200 p-3 lg:p-5 text-center">
+        <div className="flex justify-center mb-1 lg:mb-2">
+          <TrendingUp size={18} className="text-green-500 lg:hidden" />
+          <TrendingUp size={24} className="text-green-500 hidden lg:block" />
         </div>
-        <p className="text-sm font-bold text-gray-900 leading-tight">
+        <p className="text-sm lg:text-xl font-bold text-gray-900 leading-tight">
           {formatRM(totalRevenue)}
         </p>
-        <p className="text-[11px] text-gray-500 leading-tight mt-0.5">
-          Hasil<br />Bulan Ini
+        <p className="text-[11px] lg:text-sm text-gray-500 leading-tight mt-0.5 lg:mt-1">
+          Hasil Bulan Ini
         </p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
-        <div className="flex justify-center mb-1">
-          <AlertCircle size={18} className={totalPending > 0 ? 'text-red-500' : 'text-gray-400'} />
+      {/* Baki belum bayar */}
+      <div className="bg-white rounded-xl border border-gray-200 p-3 lg:p-5 text-center">
+        <div className="flex justify-center mb-1 lg:mb-2">
+          <AlertCircle
+            size={18}
+            className={`lg:hidden ${totalPending > 0 ? 'text-red-500' : 'text-gray-400'}`}
+          />
+          <AlertCircle
+            size={24}
+            className={`hidden lg:block ${totalPending > 0 ? 'text-red-500' : 'text-gray-400'}`}
+          />
         </div>
-        <p className={`text-sm font-bold leading-tight ${totalPending > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+        <p className={`text-sm lg:text-xl font-bold leading-tight ${totalPending > 0 ? 'text-red-600' : 'text-gray-400'}`}>
           {formatRM(totalPending)}
         </p>
-        <p className="text-[11px] text-gray-500 leading-tight mt-0.5">
-          Baki<br />Belum Bayar
+        <p className="text-[11px] lg:text-sm text-gray-500 leading-tight mt-0.5 lg:mt-1">
+          Baki Belum Bayar
         </p>
       </div>
     </div>

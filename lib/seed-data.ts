@@ -162,7 +162,6 @@ export const MENU_OPTIONS_SEED = [
   { category: 'daging', name_ms: 'Daging Black Pepper', name_en: 'Black Pepper Beef' },
   { category: 'daging', name_ms: 'Daging Masak Hitam', name_en: 'Black Sauce Beef' },
   { category: 'daging', name_ms: 'Daging Kuzi', name_en: 'Beef Qouzi' },
-  { category: 'daging', name_ms: 'Daging Masak Lemak Hitam', name_en: 'Beef in Black Lemak Sauce' },
   { category: 'daging', name_ms: 'Daging Masak Kurma', name_en: 'Beef Korma' },
 
   // Acar

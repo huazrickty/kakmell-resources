@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { BookingCard } from '@/components/booking-card'
 import { StatsRow } from '@/components/stats-row'
 import { BottomNav } from '@/components/bottom-nav'
+import { SideNav } from '@/components/side-nav'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import type { Booking } from '@/lib/types'
@@ -55,59 +56,71 @@ export default async function DashboardPage() {
   const bookings = (upcomingBookings ?? []) as Booking[]
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="flex items-center justify-between px-4 py-3 max-w-2xl mx-auto">
-          <div>
-            <h1 className="text-base font-bold text-gray-900 tracking-wide">
-              KAKMELL RESOURCES
+    <>
+      <SideNav />
+
+      {/* Main content — shifts right on desktop to clear sidebar */}
+      <div className="min-h-screen bg-gray-50 pb-24 lg:pb-8 lg:pl-64">
+
+        {/* Header — mobile shows brand, desktop is content-only (brand is in sidebar) */}
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          <div className="flex items-center justify-between px-4 lg:px-8 py-3 max-w-5xl mx-auto">
+            {/* Brand — visible on mobile only */}
+            <div className="lg:hidden">
+              <h1 className="text-base font-bold text-gray-900 tracking-wide">
+                KAKMELL RESOURCES
+              </h1>
+              <p className="text-xs text-gray-400">Pengurusan Katering</p>
+            </div>
+            {/* Page title — visible on desktop only */}
+            <h1 className="hidden lg:block text-lg font-bold text-gray-900">
+              Dashboard
             </h1>
-            <p className="text-xs text-gray-400">Pengurusan Katering</p>
+            <Link href="/bookings/new">
+              <button className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-semibold px-4 rounded-lg text-sm min-h-[48px] transition-colors">
+                <Plus size={17} strokeWidth={2.5} />
+                Tambah Booking
+              </button>
+            </Link>
           </div>
-          <Link href="/bookings/new">
-            <button className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-semibold px-4 rounded-lg text-sm min-h-[48px] transition-colors">
-              <Plus size={17} strokeWidth={2.5} />
-              Tambah Booking
-            </button>
-          </Link>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-5 space-y-5">
-        {/* Quick stats */}
-        <StatsRow
-          totalEvents={totalEventsThisMonth}
-          totalRevenue={totalRevenueThisMonth}
-          totalPending={totalPending}
-        />
+        <main className="max-w-5xl mx-auto px-4 lg:px-8 py-5 lg:py-8 space-y-6">
+          {/* Quick stats */}
+          <StatsRow
+            totalEvents={totalEventsThisMonth}
+            totalRevenue={totalRevenueThisMonth}
+            totalPending={totalPending}
+          />
 
-        {/* Upcoming events */}
-        <section>
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
-            Acara Akan Datang
-          </h2>
+          {/* Upcoming events */}
+          <section>
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
+              Acara Akan Datang
+            </h2>
 
-          {bookings.length > 0 ? (
-            <div className="space-y-3">
-              {bookings.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} />
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl border border-gray-200 py-12 text-center">
-              <p className="text-gray-400 text-sm">Tiada acara akan datang</p>
-              <Link href="/bookings/new">
-                <button className="mt-4 text-green-600 text-sm font-medium underline underline-offset-2">
-                  Tambah booking baru
-                </button>
-              </Link>
-            </div>
-          )}
-        </section>
-      </main>
+            {bookings.length > 0 ? (
+              // 1 column on mobile, 2 columns on desktop
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {bookings.map((booking) => (
+                  <BookingCard key={booking.id} booking={booking} />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-200 py-16 text-center">
+                <p className="text-gray-400 text-sm">Tiada acara akan datang</p>
+                <Link href="/bookings/new">
+                  <button className="mt-4 text-green-600 text-sm font-medium underline underline-offset-2">
+                    Tambah booking baru
+                  </button>
+                </Link>
+              </div>
+            )}
+          </section>
+        </main>
+      </div>
 
       <BottomNav />
-    </div>
+    </>
   )
 }

@@ -120,12 +120,15 @@ created_at   timestamptz DEFAULT now()
 | 1000 | 3kg (CAP)  | 7kg     | 2 bag      | 7kg     | 3kg            | 2kg         |
 
 ### Bubur & Dessert Lookup:
-| Item           | 300  | 400 | 500 | 600 | 700 | 800 | 900 | 1000 |
-|----------------|------|-----|-----|-----|-----|-----|-----|------|
-| Pulut Hitam(kg)| 1.5  | 2   | 2   | 2   | 2   | 3   | 3   | 4    |
-| Santan (tin)   | 1    | 1   | 1   | 1   | 1   | 2   | 2   | 2    |
-| Kacang Hijau(kg)| 1.5 | 2   | 2   | 2   | 2   | 3   | 3   | 3    |
-| Bubur Jagung(kg)| 2   | 3   | 4   | 5   | 6   | 7   | 8   | 10   |
+| Item                  | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 1000 |
+|-----------------------|-----|-----|-----|-----|-----|-----|-----|------|
+| Pulut Hitam (kg)      | 2   | 2   | 2   | 2   | 2   | 2   | 2   | 2    |
+| Santan Pulut (tin)    | 1   | 1   | 1   | 1   | 1   | 1   | 1   | 1    |
+| Kacang Hijau (kg)     | 2   | 2   | 2   | 2   | 2   | 2   | 2   | 2    |
+| Santan Kacang (tin)   | 1   | 1   | 1   | 1   | 1   | 1   | 1   | 1    |
+| Bubur Jagung (beg)    | 2   | 2   | 2   | 2   | 2   | 2   | 2   | 2    |
+| — Jagung (kg)         | 4   | 4   | 4   | 4   | 4   | 4   | 4   | 4    |
+| Santan Jagung (kotak) | 2   | 2   | 2   | 2   | 2   | 2   | 2   | 2    |
 
 ### Acar & Paceri Lookup:
 | Item              | 300  | 400 | 500  | 600 | 700  | 800  | 1000 |
@@ -143,7 +146,7 @@ created_at   timestamptz DEFAULT now()
 - Ayam Masak Merah (default)
 
 ### Daging (pilih 1):
-- Daging Briyani / Daging Black Pepper / Daging Masak Hitam / Daging Kuzi / Daging Masak Lemak Hitam / Daging Masak Kurma
+- Daging Briyani / Daging Black Pepper / Daging Masak Hitam / Daging Kuzi / Daging Masak Kurma
 
 ### Acar (pilih 1):
 - Paceri Nenas / Pencuk

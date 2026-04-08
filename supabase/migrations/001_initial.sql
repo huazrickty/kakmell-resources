@@ -63,6 +63,9 @@ CREATE TABLE IF NOT EXISTS menu_options (
 
 CREATE INDEX IF NOT EXISTS idx_menu_options_category ON menu_options (category);
 
+ALTER TABLE menu_options ADD CONSTRAINT menu_options_category_name_unique
+  UNIQUE (category, name_ms);
+
 -- ============================================================
 -- TABLE: invoices
 -- ============================================================
