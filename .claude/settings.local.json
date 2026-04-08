@@ -14,7 +14,9 @@
       "Bash(npx shadcn@latest init --yes --defaults)",
       "Bash(npx shadcn@latest add card dialog input select table badge tabs toast --yes)",
       "Bash(npx shadcn@latest add card dialog input select table badge tabs sonner --yes)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(pkill -f \"next dev\")"
     ]
   }
 }
