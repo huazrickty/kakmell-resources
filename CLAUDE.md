@@ -2,51 +2,101 @@
 # Catering Business Management System
 
 ## 🎯 Project Overview
-A bilingual (Malay/English) web application for a catering business. Built for non-IT users — mak runs the business, bapak does the planning. The system must be simple, visual, and forgiving of mistakes.
+A bilingual (Malay/English) web application for KAKMELL RESOURCES catering business. Built for non-IT users — mak runs the business, bapak does the planning. The system must be simple, visual, and forgiving of mistakes.
+
+**IMPORTANT BUSINESS CONTEXT:**
+- KAKMELL RESOURCES (catering) dan ZB Group (wedding hall) adalah DUA bisnes berasingan
+- Mereka berkolaborasi — Kakmell sediakan katering, ZB Group sediakan dewan
+- Invoice mengalir DARI Kakmell Resources KEPADA ZB Group (bukan kepada pengantin)
+- Hall staff MESTI TIDAK BOLEH nampak kiraan bahan mentah atau data dalaman Kakmell
+- Kuih muih diuruskan sepenuhnya oleh ZB Group — BUKAN tanggungjawab Kakmell
 
 ## 🏗️ Tech Stack
 - **Framework**: Next.js 14 (App Router)
 - **Database**: Supabase (PostgreSQL)
-- **Auth**: Supabase Auth (email/password, single user family account)
+- **Auth**: Supabase Auth (email/password, role-based)
 - **UI**: Tailwind CSS + shadcn/ui
 - **PDF**: react-pdf or jsPDF (for invoice export)
 - **Language**: Bilingual Malay/English (toggle, default Malay)
 
+## 👥 Role System (KRITIKAL)
+
+| Role | Siapa | Boleh Akses |
+|------|-------|-------------|
+| `admin` | Mak / Bapak | Semua tanpa terkecuali |
+| `kitchen` | Kitchen staff Kakmell | Bahan mentah + menu per event je |
+| `hall_staff` | Staff ZB Group | Tentative + event details je — TIADA ingredient data |
+| `hall_owner` | Owner ZB Group | Sama macam hall_staff |
+
+**Pending Approval Flow:**
+1. Sesiapa register → status = `pending`
+2. Mereka nampak "Akaun dalam semakan" screen — ZERO access
+3. Admin login → approve + assign role → user dapat access
+
+**Data Visibility Rules (enforce via Supabase RLS):**
+- `ingredient_ratios` table → `admin` + `kitchen` SAHAJA
+- `bookings` ingredient/menu data → hidden dari `hall_staff` + `hall_owner`
+- Tentative/event flow → semua roles boleh tengok
+- Revenue/payment data → `admin` SAHAJA
+
+## 📦 Order Types
+
+```
+order_type dalam bookings table:
+├── 'kenduri'  — Katering kenduri (pax-based, ada ingredient calculator)
+└── 'custom'   — Custom order (masakan kampung, western dll — manual, track via invoice)
+```
+- Ingredient calculator HANYA untuk order_type = 'kenduri'
+- Custom orders: ingredient manual, boleh tambah nota, ada invoice
+- Custom orders flexible — ada pax atau tidak
+
 ## 📦 Modules (build in this order)
-1. **Booking Manager** — client info, event details, pax, hall, payment tracking
-2. **Ingredient Calculator** — auto-calculate raw materials based on pax + menu selection
-3. **Invoice Maker** — generate & export invoice PDF
-4. **Dashboard** — upcoming events, revenue stats, payment status
-5. **Menu & Recipe Manager** — admin page to update ingredient ratios (rarely used)
+1. **Booking Manager** — kenduri + custom orders, event details, pax, hall, payment tracking
+2. **Ingredient Calculator** — auto-calculate bahan mentah (kenduri only)
+3. **Invoice Maker** — Kakmell → ZB Group invoice, export PDF
+4. **Dashboard** — upcoming events, revenue stats, payment status (admin only)
+5. **Menu & Recipe Manager** — admin page to update ingredient ratios
+6. **Auth & Roles** — register, pending approval, role assignment, RLS
 
 ## 🗄️ Database Schema
+
+### Table: user_profiles
+```sql
+id           uuid PRIMARY KEY REFERENCES auth.users(id)
+full_name    text
+email        text
+role         text DEFAULT 'pending'  -- pending | admin | kitchen | hall_staff | hall_owner
+approved_at  timestamptz
+approved_by  uuid REFERENCES user_profiles(id)
+created_at   timestamptz DEFAULT now()
+```
 
 ### Table: bookings
 ```sql
 id               uuid PRIMARY KEY DEFAULT gen_random_uuid()
+order_type       text DEFAULT 'kenduri'  -- 'kenduri' | 'custom'
 client_name      text NOT NULL
 event_date       date NOT NULL
 hall_name        text
-pax              integer NOT NULL
+pax              integer  -- nullable untuk custom orders
 package_price    decimal(10,2)
 addons           jsonb DEFAULT '[]'
 total_amount     decimal(10,2)
 deposit_paid     decimal(10,2) DEFAULT 0
-payments         jsonb DEFAULT '[]'   -- array of {date, amount, note}
-balance          decimal(10,2) GENERATED ALWAYS AS (total_amount - deposit_paid) STORED
-status           text DEFAULT 'confirmed' -- confirmed | completed | cancelled
+payments         jsonb DEFAULT '[]'   -- [{date, amount, note}]
+status           text DEFAULT 'confirmed'  -- confirmed | completed | cancelled
 notes            text
-tentative        text  -- full event flow/tentative text
-menu_selection   jsonb  -- selected menu items per category
+tentative        text   -- event flow, visible to hall roles
+menu_selection   jsonb  -- HIDDEN from hall roles via RLS
 created_at       timestamptz DEFAULT now()
 ```
 
 ### Table: ingredient_ratios
 ```sql
 id           uuid PRIMARY KEY DEFAULT gen_random_uuid()
-category     text NOT NULL   -- 'main' | 'dalca' | 'bubur' | 'acar' | 'paceri'
+category     text NOT NULL
 item_name    text NOT NULL
-pax_300      jsonb  -- {qty, unit}
+pax_300      jsonb
 pax_400      jsonb
 pax_500      jsonb
 pax_600      jsonb
@@ -54,30 +104,36 @@ pax_700      jsonb
 pax_800      jsonb
 pax_900      jsonb
 pax_1000     jsonb
-notes        text   -- e.g. "cap at 1000", "trimming max 1 box"
+notes        text
+-- RLS: admin + kitchen ONLY
 ```
 
 ### Table: menu_options
 ```sql
 id           uuid PRIMARY KEY DEFAULT gen_random_uuid()
-category     text NOT NULL   -- 'nasi' | 'ayam' | 'daging' | 'acar' | 'dalca' | 'bubur' | 'buah' | 'air' | 'kuih'
-name_ms      text NOT NULL   -- Malay name
+category     text NOT NULL   -- 'nasi' | 'ayam' | 'daging' | 'acar' | 'dalca' | 'bubur' | 'buah' | 'air'
+-- NOTE: 'kuih' category REMOVED — handled by ZB Group, not Kakmell
+name_ms      text NOT NULL
 name_en      text
 is_active    boolean DEFAULT true
+UNIQUE (category, name_ms)
 ```
 
 ### Table: invoices
 ```sql
 id           uuid PRIMARY KEY DEFAULT gen_random_uuid()
 booking_id   uuid REFERENCES bookings(id)
-invoice_no   text UNIQUE  -- e.g. INV-2026-001
+invoice_no   text UNIQUE  -- INV-YYYY-NNN
 issued_date  date DEFAULT CURRENT_DATE
-items        jsonb   -- line items array
+-- Invoice is FROM Kakmell Resources TO ZB Group
+billed_to    text DEFAULT 'ZB Group'
+items        jsonb   -- line items
 subtotal     decimal(10,2)
 total        decimal(10,2)
 status       text DEFAULT 'draft'  -- draft | sent | paid
 pdf_url      text
 created_at   timestamptz DEFAULT now()
+-- RLS: admin ONLY
 ```
 
 ## 🧮 Ingredient Calculator Logic
@@ -160,22 +216,16 @@ created_at   timestamptz DEFAULT now()
 
 ### Air: Anggur/Kordial (standard) + Teh O/Kopi O (pilih 1)
 
-### Kuih (pilih 2):
-- Karipap / Kasui Gedik / Cara Lauk / Cara Manis / Seri Muka / Kole Kacang / Apam Gula Hangus / Koci
-
-## 📋 Hall List
-- Asmara Hall
-- Juwita Hall  
-- Elham Hall
-(boleh tambah dalam admin settings)
+### Kuih — BUKAN tanggungjawab Kakmell
+Kuih muih diuruskan oleh ZB Group sepenuhnya. Tiada dalam sistem Kakmell.
 
 ## 💰 Invoice Rules
-- Invoice number format: INV-YYYY-NNN (e.g. INV-2026-001)
-- Show: Package price + line items for addons
-- Show: Payment history (deposit + subsequent payments)
-- Show: Outstanding balance
-- Export to PDF
-- Bilingual header
+- Invoice FROM: KAKMELL RESOURCES
+- Invoice TO: ZB Group
+- Format nombor: INV-YYYY-NNN (cth: INV-2026-001)
+- Line items: harga pakej katering + add-ons Kakmell je
+- Tunjuk: payment history + outstanding balance
+- Export PDF, bilingual header
 
 ## 🎨 UI/UX Rules (CRITICAL for non-IT users)
 1. **No jargon** — label semua dalam Malay, simple words
