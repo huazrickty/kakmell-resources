@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export default function Register() {
-  const { t, toggleLang } = useLanguage()
+  const { t } = useLanguage()
   const navigate = useNavigate()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -45,13 +46,7 @@ export default function Register() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-[#FAFAF8] p-4">
-      <button
-        onClick={toggleLang}
-        className="absolute top-4 right-4 text-sm font-medium text-[#1B4332] hover:underline"
-        type="button"
-      >
-        {t('lang.toggle')}
-      </button>
+      <LanguageSwitcher className="absolute top-4 right-4" />
 
       <Card className="w-full max-w-md">
         <CardHeader className="text-center pb-0">
