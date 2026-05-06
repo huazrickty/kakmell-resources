@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "seed": "tsx scripts/seed.ts",
+    "seed:events": "tsx scripts/seed-events.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
