@@ -35,20 +35,23 @@ export default function BottomNav() {
   )
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-white border-t border-border flex items-stretch">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-white border-t border-gray-200 shadow-lg flex items-stretch">
       {visibleItems.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
           className={({ isActive }) =>
             cn(
-              'flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors',
-              isActive ? 'text-[#1B4332]' : 'text-muted-foreground'
+              'flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors relative',
+              isActive ? 'text-red-600' : 'text-gray-400'
             )
           }
         >
           {({ isActive }) => (
             <>
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full bg-red-600" />
+              )}
               <item.icon size={20} strokeWidth={isActive ? 2.2 : 1.6} />
               <span>{t(item.labelKey as Parameters<typeof t>[0])}</span>
             </>

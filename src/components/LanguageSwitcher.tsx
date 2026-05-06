@@ -1,3 +1,4 @@
+import { Globe } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import { cn } from '@/lib/utils'
 
@@ -6,17 +7,35 @@ interface Props {
 }
 
 export default function LanguageSwitcher({ className }: Props) {
-  const { t, toggleLang } = useLanguage()
+  const { lang, setLang } = useLanguage()
+
   return (
-    <button
-      onClick={toggleLang}
-      type="button"
-      className={cn(
-        'text-xs font-semibold px-2 py-1 rounded border border-[#1B4332]/30 text-[#1B4332] hover:bg-[#1B4332]/5 transition-colors select-none',
-        className
-      )}
-    >
-      {t('lang.toggle')}
-    </button>
+    <div className={cn('inline-flex items-center border border-gray-200 rounded-md overflow-hidden', className)}>
+      <Globe size={12} strokeWidth={1.8} className="ml-2 text-gray-400 shrink-0" />
+      <button
+        type="button"
+        onClick={() => setLang('en')}
+        className={cn(
+          'px-2.5 py-1 text-xs font-semibold transition-colors',
+          lang === 'en'
+            ? 'bg-red-600 text-white'
+            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+        )}
+      >
+        EN
+      </button>
+      <button
+        type="button"
+        onClick={() => setLang('ms')}
+        className={cn(
+          'px-2.5 py-1 text-xs font-semibold transition-colors',
+          lang === 'ms'
+            ? 'bg-red-600 text-white'
+            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+        )}
+      >
+        BM
+      </button>
+    </div>
   )
 }
