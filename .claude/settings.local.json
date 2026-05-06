@@ -9,7 +9,8 @@
       "Bash(npx tsc *)",
       "Bash(npx -y firebase-tools@latest deploy --only firestore:rules,storage --project kakmell-resources)",
       "Bash(pnpm seed *)",
-      "Bash(npx -y firebase-tools@latest deploy --only firestore:rules --project kakmell-resources)"
+      "Bash(npx -y firebase-tools@latest deploy --only firestore:rules --project kakmell-resources)",
+      "Bash(pnpm test *)"
     ]
   }
 }
