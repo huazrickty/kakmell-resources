@@ -1,0 +1,60 @@
+import { NavLink } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  CalendarDays,
+  Package,
+  CheckSquare,
+  Receipt,
+} from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
+import { cn } from '@/lib/utils'
+
+interface BottomNavItem {
+  to: string
+  icon: React.ElementType
+  labelKey: string
+  roles: ('admin' | 'kitchen')[]
+}
+
+const BOTTOM_NAV_ITEMS: BottomNavItem[] = [
+  { to: '/dashboard',   icon: LayoutDashboard, labelKey: 'nav.dashboard',  roles: ['admin', 'kitchen'] },
+  { to: '/events',      icon: CalendarDays,    labelKey: 'nav.events',      roles: ['admin'] },
+  { to: '/ingredients', icon: Package,          labelKey: 'nav.ingredients', roles: ['admin', 'kitchen'] },
+  { to: '/checklist',   icon: CheckSquare,      labelKey: 'nav.checklist',   roles: ['admin', 'kitchen'] },
+  { to: '/invoices',    icon: Receipt,          labelKey: 'nav.invoices',    roles: ['admin'] },
+]
+
+export default function BottomNav() {
+  const { userDoc } = useAuth()
+  const { t } = useLanguage()
+  const role = userDoc?.role ?? 'kitchen'
+
+  const visibleItems = BOTTOM_NAV_ITEMS.filter((item) =>
+    item.roles.includes(role as 'admin' | 'kitchen')
+  )
+
+  return (
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-white border-t border-border flex items-stretch">
+      {visibleItems.map((item) => (
+        <NavLink
+          key={item.to}
+          to={item.to}
+          className={({ isActive }) =>
+            cn(
+              'flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors',
+              isActive ? 'text-[#1B4332]' : 'text-muted-foreground'
+            )
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <item.icon size={20} strokeWidth={isActive ? 2.2 : 1.6} />
+              <span>{t(item.labelKey as Parameters<typeof t>[0])}</span>
+            </>
+          )}
+        </NavLink>
+      ))}
+    </nav>
+  )
+}
