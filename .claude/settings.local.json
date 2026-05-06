@@ -18,7 +18,8 @@
       "Bash(pnpm tsc *)",
       "Bash(pnpm dev *)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(pnpm list *)"
     ]
   }
 }
