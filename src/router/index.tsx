@@ -5,6 +5,11 @@ import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import Pending from '@/pages/Pending'
 import Dashboard from '@/pages/Dashboard'
+import Events from '@/pages/Events'
+import Ingredients from '@/pages/Ingredients'
+import Checklist from '@/pages/Checklist'
+import Invoices from '@/pages/Invoices'
+import Settings from '@/pages/Settings'
 
 function LoadingScreen() {
   return (
@@ -52,7 +57,12 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { index: true, element: <Navigate to="/dashboard" replace /> },
-          { path: '/dashboard', element: <Dashboard /> },
+          { path: '/dashboard',   element: <Dashboard /> },
+          { path: '/events',      element: <Events /> },
+          { path: '/ingredients', element: <Ingredients /> },
+          { path: '/checklist',   element: <Checklist /> },
+          { path: '/invoices',    element: <Invoices /> },
+          { path: '/settings',    element: <Settings /> },
         ],
       },
     ],
