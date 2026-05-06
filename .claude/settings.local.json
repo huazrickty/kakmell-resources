@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install *)",
+      "Bash(pnpm add *)",
+      "Bash(npx tailwindcss *)",
+      "Bash(pnpm dlx *)",
+      "Bash(timeout 30 pnpm dev)",
+      "Bash(npx tsc *)",
+      "Bash(npx -y firebase-tools@latest deploy --only firestore:rules,storage --project kakmell-resources)",
+      "Bash(pnpm seed *)",
+      "Bash(npx -y firebase-tools@latest deploy --only firestore:rules --project kakmell-resources)"
+    ]
+  }
+}
