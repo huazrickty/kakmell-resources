@@ -1,9 +1,19 @@
-function App() {
+import { RouterProvider } from 'react-router-dom'
+import { ThemeProvider } from 'next-themes'
+import { Toaster } from '@/components/ui/sonner'
+import { AuthProvider } from '@/context/AuthContext'
+import { LanguageProvider } from '@/context/LanguageContext'
+import { router } from '@/router/index'
+
+export default function App() {
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-      <p className="text-muted-foreground">KAKMELL RESOURCES — Phase 1 complete</p>
-    </div>
+    <ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
+      <AuthProvider>
+        <LanguageProvider>
+          <RouterProvider router={router} />
+          <Toaster />
+        </LanguageProvider>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
-
-export default App
