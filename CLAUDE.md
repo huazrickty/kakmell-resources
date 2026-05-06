@@ -93,15 +93,23 @@ updated_at: timestamp
 ```
 Note: Checklist synced real-time across all kitchen staff via Firestore
 
-### invoices/{invoiceId} — scaffold only, build later
+### invoices/{invoiceId}
 ```
 event_id: string
-invoice_no: string
-issued_date: timestamp
-billed_to: string     // ZB Group
-items: array
+invoice_no: string          // INV-YYYY-NNN, auto-increment
+invoice_date: timestamp
+billed_to: string           // "ZB GROUP SDN BHD" (fixed)
+line_items: array of {
+  description: string
+  qty: number
+  unit_price: number
+  total: number
+  is_deduction: boolean
+}
+subtotal: number
+gaji_pekerja: number        // stored as positive, displayed as deduction
 total: number
-status: string        // draft | sent | paid
+status: string              // draft | sent | paid
 created_at: timestamp
 ```
 
@@ -175,6 +183,80 @@ Round UP to: 300, 400, 500, 600, 700, 800, 900, 1000
 | Timun/Acar (kg)   | 10  | —   | 15  | —   | 20  | 25  | —   | 30   |
 | Nenas/Acar (biji) | 10  | —   | 10  | —   | 10  | 12  | —   | 20   |
 | Paceri Nenas(biji)| 20  | 25  | 35  | 40  | 45  | 50  | 60  | 70   |
+
+## 💰 Invoice Module
+
+### Business Rules
+- **FROM:** KAKMELL RESOURCES
+- **TO:** ZB GROUP SDN BHD
+- **Address:** NO 58, JALAN JAMBU 4, TAMAN KOTA MASAI, 81700 PASIR GUDANG, JOHOR
+- **Phone:** +6018-397 0769
+- **Tax:** 0% always
+- **Currency:** RM
+
+### Line Items Logic
+1. **Katering** — auto from event: `pax × RM10.00`
+2. **Makan Beradab** — optional, flat RM100
+3. **Berkat** — manual input (auto-suggest: ≤500 → RM100, 600–800 → RM200, ≥1000 → RM300)
+4. **Laksa Penang** — optional, `qty × RM3.50`
+5. **Custom add-ons** — admin adds manually (description + qty + unit price)
+
+### Gaji Pekerja Lookup (kawin events, round UP to nearest bracket)
+| Pax  | Gaji Pekerja |
+|------|-------------|
+| 300  | RM530       |
+| 400  | RM590       |
+| 500  | RM850       |
+| 650  | RM910       |
+| 700  | RM970       |
+| 800  | RM1,030     |
+| 1000 | RM1,150     |
+| 1300 | RM1,680     |
+| 1500 | RM2,000     |
+
+Admin can override the suggested amount.
+
+### Invoice PDF Layout (jsPDF, A4 portrait)
+
+**HEADER (left):**
+```
+KAKMELL RESOURCES  ← large, bold, green #1B4332
+NO 58, JALAN JAMBU 4, TAMAN KOTA MASAI,
+81700 PASIR GUDANG, JOHOR
+Phone: +6018-397 0769
+```
+
+**HEADER (right):**
+```
+INVOICE
+Date: DD/MM/YYYY
+Invoice #: INV-YYYY-NNN
+Customer ID: CUST-001
+```
+
+**BILL TO:**
+```
+ZB GROUP SDN BHD
+```
+
+**LINE ITEMS TABLE:**
+Columns: `ITEM# | DESCRIPTION | QTY | UNIT PRICE | TAX | TOTAL`
+
+**FOOTER:**
+```
+SUBTOTAL:        [amount]
+TAXABLE:         -
+TAX RATE:        0.000%
+TAX:             -
+S & H:           -
+GAJI PEKERJA:    ([amount])   ← shown in brackets as deduction
+TOTAL:           [amount]
+
+"Thank You For Your Business!"
+"If you have any questions about this invoice, please contact"
+"NORMILA (018-3970769)"
+"Make all checks payable to KAKMELL RESOURCES"
+```
 
 ## 🍽️ Menu Options (seed to Firestore)
 - nasi: Nasi Briyani, Nasi Minyak, Nasi Jagung
