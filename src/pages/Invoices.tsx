@@ -7,7 +7,7 @@ import {
   startOfMonth, endOfMonth,
   isWithinInterval,
 } from 'date-fns'
-import { FileText, Trash2 } from 'lucide-react'
+import { FileText, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
@@ -179,9 +179,20 @@ export default function Invoices() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">{t('invoice.title')}</h1>
-        <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
-          {invoices.length} invois
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
+            {invoices.length} invois
+          </span>
+          {isAdmin && (
+            <button
+              onClick={() => navigate('/invoices/custom/new')}
+              className="flex items-center gap-1.5 bg-[#1B4332] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#163828] transition-colors"
+            >
+              <Plus size={13} />
+              Tambah Invois Baru
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Stats row — reflects active filter */}
