@@ -31,7 +31,11 @@ export function useMenuOptions(ready: boolean): { options: MenuOptionsByCategory
             grouped[category as keyof MenuOptionsByCategory].push(name_ms)
           }
         })
-        setOptions(grouped)
+        const deduped = {} as MenuOptionsByCategory
+        for (const key of Object.keys(grouped) as (keyof MenuOptionsByCategory)[]) {
+          deduped[key] = [...new Set(grouped[key])]
+        }
+        setOptions(deduped)
         setLoading(false)
       })
       .catch((err) => {

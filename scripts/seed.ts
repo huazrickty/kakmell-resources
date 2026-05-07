@@ -37,30 +37,44 @@ initializeApp({ credential: getCredential(), projectId: PROJECT_ID })
 const db = getFirestore()
 
 async function seed() {
-  // Check if already seeded to avoid duplicates
-  const hallSnap = await db.collection('halls').limit(1).get()
-  if (!hallSnap.empty) {
-    console.log('⚠  halls collection already has data — skipping to avoid duplicates.')
-    console.log('   Delete the halls and menu_options collections first if you want to re-seed.')
+  const [hallSnap, menuSnap] = await Promise.all([
+    db.collection('halls').limit(1).get(),
+    db.collection('menu_options').limit(1).get(),
+  ])
+
+  const skipHalls = !hallSnap.empty
+  const skipMenu = !menuSnap.empty
+
+  if (skipHalls && skipMenu) {
+    console.log('⚠  Both halls and menu_options already have data — skipping to avoid duplicates.')
+    console.log('   Delete both collections first if you want to re-seed.')
     return
   }
 
   const batch = db.batch()
   let count = 0
 
-  for (const hall of halls) {
-    batch.set(db.collection('halls').doc(), hall)
-    count++
+  if (skipHalls) {
+    console.log('⚠  halls already seeded — skipping halls.')
+  } else {
+    for (const hall of halls) {
+      batch.set(db.collection('halls').doc(), hall)
+      count++
+    }
   }
 
-  for (const option of menuOptions) {
-    batch.set(db.collection('menu_options').doc(), option)
-    count++
+  if (skipMenu) {
+    console.log('⚠  menu_options already seeded — skipping menu_options.')
+  } else {
+    for (const option of menuOptions) {
+      batch.set(db.collection('menu_options').doc(), option)
+      count++
+    }
   }
 
   await batch.commit()
   console.log(
-    `✓ Seeded ${count} documents (${halls.length} halls, ${menuOptions.length} menu options)`
+    `✓ Seeded ${count} documents (${skipHalls ? 0 : halls.length} halls, ${skipMenu ? 0 : menuOptions.length} menu options)`
   )
 }
 
