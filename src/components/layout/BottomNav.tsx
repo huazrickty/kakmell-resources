@@ -2,9 +2,8 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
   CalendarDays,
-  Package,
   CheckSquare,
-  Receipt,
+  Settings,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -18,11 +17,10 @@ interface BottomNavItem {
 }
 
 const BOTTOM_NAV_ITEMS: BottomNavItem[] = [
-  { to: '/dashboard',   icon: LayoutDashboard, labelKey: 'nav.dashboard',  roles: ['admin', 'kitchen'] },
-  { to: '/events',      icon: CalendarDays,    labelKey: 'nav.events',      roles: ['admin'] },
-  { to: '/ingredients', icon: Package,          labelKey: 'nav.ingredients', roles: ['admin', 'kitchen'] },
-  { to: '/checklist',   icon: CheckSquare,      labelKey: 'nav.checklist',   roles: ['admin', 'kitchen'] },
-  { to: '/invoices',    icon: Receipt,          labelKey: 'nav.invoices',    roles: ['admin'] },
+  { to: '/dashboard', icon: LayoutDashboard, labelKey: 'nav.dashboard', roles: ['admin', 'kitchen'] },
+  { to: '/events',    icon: CalendarDays,    labelKey: 'nav.events',    roles: ['admin'] },
+  { to: '/checklist', icon: CheckSquare,     labelKey: 'nav.checklist', roles: ['admin', 'kitchen'] },
+  { to: '/settings',  icon: Settings,        labelKey: 'nav.settings',  roles: ['admin'] },
 ]
 
 export default function BottomNav() {

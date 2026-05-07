@@ -8,6 +8,7 @@ import { useEvents } from '@/hooks/useEvents'
 import EventSummaryCard from '@/components/EventSummaryCard'
 import { calculateIngredients } from '@/lib/ingredient-calculator'
 import { generateWeeklyPDF, fmtWeekRange, type WeeklyEventEntry } from '@/lib/weekly-export-pdf'
+import { getLogoBase64 } from '@/lib/invoice-pdf'
 
 function SkeletonCard() {
   return (
@@ -83,7 +84,7 @@ export default function Dashboard() {
     isWithinInterval(e.tarikh.toDate(), { start: exportStart, end: exportEnd })
   )
 
-  function handleExport() {
+  async function handleExport() {
     setExporting(true)
     try {
       const data: WeeklyEventEntry[] = exportEvents.map((e) => ({
@@ -97,7 +98,8 @@ export default function Dashboard() {
         },
         ingredients: calculateIngredients(e.pax),
       }))
-      generateWeeklyPDF(exportStart, exportEnd, data)
+      const logoBase64 = await getLogoBase64()
+      await generateWeeklyPDF(exportStart, exportEnd, data, logoBase64)
       toast.success('PDF berjaya dijana.')
     } catch {
       toast.error('Gagal menjana PDF. Cuba lagi.')

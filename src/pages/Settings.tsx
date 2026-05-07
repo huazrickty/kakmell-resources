@@ -4,7 +4,7 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { type StringKey } from '@/lib/i18n'
-import { ShieldOff } from 'lucide-react'
+import { ShieldOff, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import UsersSettings      from '@/pages/settings/UsersSettings'
 import MenuSettings       from '@/pages/settings/MenuSettings'
@@ -20,8 +20,22 @@ const TABS: { id: Tab; label: (t: (k: StringKey) => string) => string }[] = [
   { id: 'dev',   label: (t) => t('settings.devSettings') },
 ]
 
+function SignOutButton({ signOut }: { signOut: () => Promise<void> }) {
+  return (
+    <div className="mt-8 pt-6 border-t border-gray-100">
+      <button
+        onClick={signOut}
+        className="w-full flex items-center justify-center gap-2 border border-red-200 text-red-600 hover:bg-red-50 font-semibold rounded-xl py-3.5 text-sm transition-colors min-h-[48px]"
+      >
+        <LogOut size={16} />
+        Log Keluar / Sign Out
+      </button>
+    </div>
+  )
+}
+
 export default function Settings() {
-  const { userDoc } = useAuth()
+  const { userDoc, signOut } = useAuth()
   const { t } = useLanguage()
   const [tab, setTab]               = useState<Tab>('users')
   const [pendingCount, setPendingCount] = useState(0)
@@ -33,10 +47,13 @@ export default function Settings() {
 
   if (userDoc?.role !== 'admin') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-center px-6">
-        <ShieldOff size={36} className="text-gray-300" />
-        <p className="text-sm font-semibold text-gray-500">Admin access only</p>
-        <p className="text-xs text-gray-400">This section is restricted to administrators.</p>
+      <div className="p-4 md:p-6 max-w-3xl mx-auto">
+        <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3 text-center px-6">
+          <ShieldOff size={36} className="text-gray-300" />
+          <p className="text-sm font-semibold text-gray-500">Admin access only</p>
+          <p className="text-xs text-gray-400">This section is restricted to administrators.</p>
+        </div>
+        <SignOutButton signOut={signOut} />
       </div>
     )
   }
@@ -79,6 +96,8 @@ export default function Settings() {
       {tab === 'menu'  && <MenuSettings />}
       {tab === 'halls' && <HallsSettings />}
       {tab === 'dev'   && <DeveloperSettings />}
+
+      <SignOutButton signOut={signOut} />
     </div>
   )
 }

@@ -6,7 +6,7 @@ import { ArrowLeft, Download, Send, CheckCheck, Building2, Trash2 } from 'lucide
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
-import { generateInvoicePDF, fmtRM, tsToDate, type InvoiceDoc } from '@/lib/invoice-pdf'
+import { generateInvoicePDF, getLogoBase64, fmtRM, tsToDate, type InvoiceDoc } from '@/lib/invoice-pdf'
 import { cn } from '@/lib/utils'
 
 // ── Status styles ──────────────────────────────────────────────────────────
@@ -328,7 +328,7 @@ export default function InvoiceDetail() {
           {/* Right side actions */}
           <div className="flex flex-wrap gap-3 justify-end">
           <button
-            onClick={() => generateInvoicePDF(invoice, eventName)}
+            onClick={async () => { const logo = await getLogoBase64(); await generateInvoicePDF(invoice, eventName, logo) }}
             className="flex items-center gap-2 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors shadow-sm"
           >
             <Download size={14} />
