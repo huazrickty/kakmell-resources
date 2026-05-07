@@ -10,7 +10,7 @@ export interface InvoiceLineItem {
 
 export interface InvoiceDoc {
   id: string
-  event_id: string
+  event_id: string | null
   invoice_no: string
   invoice_date: any
   billed_to: string
@@ -20,6 +20,8 @@ export interface InvoiceDoc {
   total: number
   status: 'draft' | 'sent' | 'paid'
   created_at: any
+  type?: 'custom'
+  reference?: string
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -103,9 +105,12 @@ export async function generateInvoicePDF(
   reg(7); pdf.setTextColor(156, 163, 175)
   pdf.text('BILL TO:', M, y); y += 4.5
   bold(9); pdf.setTextColor(17, 24, 39)
-  pdf.text('ZB GROUP SDN BHD', M, y); y += 4.5
-  reg(7.5); pdf.setTextColor(107, 114, 128)
-  pdf.text(`Event: ${eventName}`, M, y); y += 9
+  pdf.text(invoice.billed_to, M, y); y += 4.5
+  if (eventName) {
+    reg(7.5); pdf.setTextColor(107, 114, 128)
+    pdf.text(`Event: ${eventName}`, M, y); y += 4.5
+  }
+  y += 4.5
 
   // ── Table header ──────────────────────────────────────────────────────────
   const ITEM_X = M
