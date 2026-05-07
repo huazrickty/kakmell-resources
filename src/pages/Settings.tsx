@@ -3,6 +3,7 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
+import { type StringKey } from '@/lib/i18n'
 import { ShieldOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import UsersSettings      from '@/pages/settings/UsersSettings'
@@ -12,7 +13,7 @@ import DeveloperSettings  from '@/pages/settings/DeveloperSettings'
 
 type Tab = 'users' | 'menu' | 'halls' | 'dev'
 
-const TABS: { id: Tab; label: (t: (k: string) => string) => string }[] = [
+const TABS: { id: Tab; label: (t: (k: StringKey) => string) => string }[] = [
   { id: 'users', label: (t) => t('settings.users') },
   { id: 'menu',  label: (t) => t('settings.menu') },
   { id: 'halls', label: (t) => t('settings.halls') },
