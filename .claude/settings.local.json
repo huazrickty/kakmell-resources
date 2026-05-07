@@ -21,7 +21,8 @@
       "Bash(git commit *)",
       "Bash(pnpm list *)",
       "Bash(pnpm seed:events)",
-      "PowerShell(New-Item *)"
+      "PowerShell(New-Item *)",
+      "Bash(node *)"
     ]
   }
 }
