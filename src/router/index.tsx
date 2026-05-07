@@ -6,6 +6,7 @@ import Register from '@/pages/Register'
 import Pending from '@/pages/Pending'
 import Dashboard from '@/pages/Dashboard'
 import Events from '@/pages/Events'
+import NewEvent from '@/pages/events/NewEvent'
 import Ingredients from '@/pages/Ingredients'
 import Checklist from '@/pages/Checklist'
 import Invoices from '@/pages/Invoices'
@@ -58,6 +59,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: '/dashboard',   element: <Dashboard /> },
+          { path: '/events/new',  element: <NewEvent /> },
           { path: '/events',      element: <Events /> },
           { path: '/ingredients', element: <Ingredients /> },
           { path: '/checklist',   element: <Checklist /> },
