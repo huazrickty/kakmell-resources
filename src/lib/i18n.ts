@@ -58,6 +58,10 @@ const strings = {
     'dashboard.noEvents': 'No upcoming events',
     'dashboard.totalEvents': 'Total Events',
     'dashboard.thisWeek': 'This Week',
+    'dashboard.weeklyExport': 'Weekly Export',
+    'dashboard.exportPdf': 'Export PDF',
+    'dashboard.currentWeek': 'Current week',
+    'dashboard.eventsCount': 'events',
     // ── Events ────────────────────────────────────────────────────────────
     'events.title': 'Events',
     'events.new': 'New Event',
@@ -211,6 +215,10 @@ const strings = {
     'dashboard.noEvents': 'Tiada acara akan datang',
     'dashboard.totalEvents': 'Jumlah Acara',
     'dashboard.thisWeek': 'Minggu Ini',
+    'dashboard.weeklyExport': 'Eksport Mingguan',
+    'dashboard.exportPdf': 'Eksport PDF',
+    'dashboard.currentWeek': 'Minggu semasa',
+    'dashboard.eventsCount': 'acara',
     // ── Events ────────────────────────────────────────────────────────────
     'events.title': 'Acara',
     'events.new': 'Acara Baru',
