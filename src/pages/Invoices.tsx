@@ -95,10 +95,10 @@ export default function Invoices() {
     setDeleting(true)
     try {
       await deleteDoc(doc(db, 'invoices', invId))
-      toast.success('Invois berjaya dipadam.')
+      toast.success(t('invoice.toast.deleted'))
       setConfirmDeleteId(null)
     } catch {
-      toast.error('Ralat. Cuba lagi.')
+      toast.error(t('invoice.toast.error'))
     } finally {
       setDeleting(false)
     }
@@ -151,12 +151,12 @@ export default function Invoices() {
     const n = filteredInvoices.length
     const now = new Date()
     switch (filter) {
-      case 'week':  return `${n} invois — ${t('invoice.filterWeek')}`
-      case 'month': return `${n} invois — ${format(now, 'MMMM yyyy')}`
-      case 'year':  return `${n} invois — ${now.getFullYear()}`
+      case 'week':  return `${n} ${t('invoice.countLabel')} — ${t('invoice.filterWeek')}`
+      case 'month': return `${n} ${t('invoice.countLabel')} — ${format(now, 'MMMM yyyy')}`
+      case 'year':  return `${n} ${t('invoice.countLabel')} — ${now.getFullYear()}`
       case 'range':
-        if (!appliedRange) return `${n} invois`
-        return `${n} invois — ${format(appliedRange.from, 'd MMM')} – ${format(appliedRange.to, 'd MMM yyyy')}`
+        if (!appliedRange) return `${n} ${t('invoice.countLabel')}`
+        return `${n} ${t('invoice.countLabel')} — ${format(appliedRange.from, 'd MMM')} – ${format(appliedRange.to, 'd MMM yyyy')}`
       default: return null
     }
   }, [filteredInvoices.length, filter, appliedRange, t])
@@ -181,7 +181,7 @@ export default function Invoices() {
         <h1 className="text-2xl font-bold text-gray-900">{t('invoice.title')}</h1>
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
-            {invoices.length} invois
+            {invoices.length} {t('invoice.countLabel')}
           </span>
           {isAdmin && (
             <button
@@ -189,7 +189,7 @@ export default function Invoices() {
               className="flex items-center gap-1.5 bg-[#1B4332] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#163828] transition-colors"
             >
               <Plus size={13} />
-              Tambah Invois Baru
+              {t('invoice.newCustom')}
             </button>
           )}
         </div>
@@ -198,7 +198,7 @@ export default function Invoices() {
       {/* Stats row — reflects active filter */}
       {!loading && invoices.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-          <StatCard label="Jumlah" value={String(filteredInvoices.length)} sub="invois" />
+          <StatCard label={t('invoice.count')} value={String(filteredInvoices.length)} sub={t('invoice.countLabel')} />
           <StatCard label={t('invoice.totalBilled')} value={fmtRM(totalBilled)} />
           <StatCard label={t('invoice.statusPaid')} value={fmtRM(paidTotal)} />
           <StatCard label={t('invoice.outstanding')} value={fmtRM(outstanding)} />
@@ -274,10 +274,10 @@ export default function Invoices() {
         <div className="bg-white rounded-xl border border-gray-100 px-6 py-16 text-center">
           <FileText size={32} className="mx-auto text-gray-200 mb-3" />
           <p className="text-sm text-gray-400">
-            {invoices.length === 0 ? t('invoice.noInvoices') : 'Tiada invois dalam tempoh ini.'}
+            {invoices.length === 0 ? t('invoice.noInvoices') : t('invoice.noInvoicesThisPeriod')}
           </p>
           {invoices.length === 0 && (
-            <p className="text-xs text-gray-300 mt-1">Buat invois dari halaman acara.</p>
+            <p className="text-xs text-gray-300 mt-1">{t('invoice.createFromEvent')}</p>
           )}
         </div>
       ) : (
@@ -333,13 +333,13 @@ export default function Invoices() {
                         disabled={deleting}
                         className="text-[11px] font-bold text-red-700 whitespace-nowrap disabled:opacity-50"
                       >
-                        {deleting ? '...' : 'Padam'}
+                        {deleting ? '...' : t('common.delete')}
                       </button>
                       <button
                         onClick={() => setConfirmDeleteId(null)}
                         className="text-[11px] text-gray-500 hover:text-gray-700"
                       >
-                        Batal
+                        {t('common.cancel')}
                       </button>
                     </div>
                   ) : (

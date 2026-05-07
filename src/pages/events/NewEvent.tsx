@@ -8,6 +8,7 @@ import { useLanguage } from '@/context/LanguageContext'
 import { useHalls } from '@/hooks/useHalls'
 import { useMenuOptions } from '@/hooks/useMenuOptions'
 import { cn } from '@/lib/utils'
+import { logActivity } from '@/lib/activity-logger'
 
 // ── Sub-components ──────────────────────────────────────────
 
@@ -73,6 +74,7 @@ function MenuPill({
 }
 
 function StepIndicator({ step }: { step: 1 | 2 }) {
+  const { t } = useLanguage()
   return (
     <div className="flex items-center mb-8">
       <div className="flex items-center gap-2 shrink-0">
@@ -80,7 +82,7 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
           1
         </div>
         <span className={cn('text-sm font-medium', step === 1 ? 'text-gray-900' : 'text-gray-400')}>
-          Event Details
+          {t('events.stepDetails')}
         </span>
       </div>
       <div className={cn('flex-1 h-px mx-4 transition-colors', step === 2 ? 'bg-red-600' : 'bg-gray-200')} />
@@ -94,7 +96,7 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
           2
         </div>
         <span className={cn('text-sm font-medium', step === 2 ? 'text-gray-900' : 'text-gray-400')}>
-          Menu Selection
+          {t('events.menuSelection')}
         </span>
       </div>
     </div>
@@ -105,7 +107,7 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
 
 export default function NewEvent() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, userDoc } = useAuth()
   const { t } = useLanguage()
   const { halls, loading: hallsLoading } = useHalls(!!user)
   const { options, loading: menuLoading } = useMenuOptions(!!user)
@@ -133,19 +135,19 @@ export default function NewEvent() {
 
   function handleNext() {
     if (!step1.nama_majlis.trim()) {
-      toast.error('Sila masukkan nama majlis.')
+      toast.error(t('events.validation.name'))
       return
     }
     if (!step1.hall_name) {
-      toast.error('Sila pilih dewan.')
+      toast.error(t('events.validation.hall'))
       return
     }
     if (!step1.tarikh) {
-      toast.error('Sila pilih tarikh.')
+      toast.error(t('events.validation.date'))
       return
     }
     if (!step1.pax || Number(step1.pax) < 1) {
-      toast.error('Sila masukkan bilangan pax.')
+      toast.error(t('events.validation.pax'))
       return
     }
     setStep(2)
@@ -155,7 +157,7 @@ export default function NewEvent() {
   async function handleSubmit() {
     setSubmitting(true)
     try {
-      await addDoc(collection(db, 'events'), {
+      const docRef = await addDoc(collection(db, 'events'), {
         nama_majlis: step1.nama_majlis.trim(),
         hall_name: step1.hall_name,
         tarikh: Timestamp.fromDate(new Date(step1.tarikh)),
@@ -167,10 +169,19 @@ export default function NewEvent() {
         created_by: user!.uid,
         created_at: serverTimestamp(),
       })
-      toast.success('Acara berjaya dicipta!')
+      logActivity({
+        action: 'event_created',
+        category: 'event',
+        description: `Acara baharu dicipta: ${step1.nama_majlis.trim()}`,
+        entity_id: docRef.id,
+        entity_name: step1.nama_majlis.trim(),
+        performed_by: user!.uid,
+        performed_by_name: userDoc?.full_name ?? user!.email ?? '',
+      })
+      toast.success(t('events.toast.created'))
       navigate('/events')
     } catch {
-      toast.error('Ralat. Cuba lagi.')
+      toast.error(t('common.error'))
       setSubmitting(false)
     }
   }
@@ -193,7 +204,7 @@ export default function NewEvent() {
               <TextInput
                 value={step1.nama_majlis}
                 onChange={(v) => setStep1((s) => ({ ...s, nama_majlis: v }))}
-                placeholder="cth: Majlis Perkahwinan Ahmad & Siti"
+                placeholder={t('events.namePlaceholder')}
                 required
               />
             </div>
@@ -208,7 +219,7 @@ export default function NewEvent() {
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-white"
               >
                 <option value="">
-                  {hallsLoading ? t('common.loading') : '— Pilih Dewan —'}
+                  {hallsLoading ? t('common.loading') : t('events.selectHall')}
                 </option>
                 {halls.map((h) => (
                   <option key={h} value={h}>
@@ -258,7 +269,7 @@ export default function NewEvent() {
                 type="number"
                 value={step1.pax}
                 onChange={(v) => setStep1((s) => ({ ...s, pax: v === '' ? '' : Number(v) }))}
-                placeholder="cth: 500"
+                placeholder={t('events.paxPlaceholder')}
                 min={1}
                 required
               />
@@ -271,7 +282,7 @@ export default function NewEvent() {
                 value={step1.remarks}
                 onChange={(e) => setStep1((s) => ({ ...s, remarks: e.target.value }))}
                 rows={3}
-                placeholder="Nota tambahan..."
+                placeholder={t('events.remarksPlaceholder')}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-white resize-none"
               />
             </div>
@@ -283,7 +294,7 @@ export default function NewEvent() {
                 onClick={handleNext}
                 className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors"
               >
-                Seterusnya →
+                {t('events.next')} →
               </button>
             </div>
           </div>
@@ -373,7 +384,7 @@ export default function NewEvent() {
 
                 {/* Air Panas */}
                 <div>
-                  <FieldLabel>Air Panas</FieldLabel>
+                  <FieldLabel>{t('events.airPanas')}</FieldLabel>
                   <div className="flex flex-wrap gap-2">
                     {(options.air.length > 0 ? options.air : ['Teh O', 'Kopi O']).map((opt) => (
                       <MenuPill
@@ -398,7 +409,7 @@ export default function NewEvent() {
                 }}
                 className="text-gray-500 hover:text-gray-700 font-medium px-4 py-2.5 transition-colors"
               >
-                ← Kembali
+                ← {t('common.back')}
               </button>
               <button
                 type="button"

@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { logActivity } from '@/lib/activity-logger'
 
 interface UserRecord {
   uid: string
@@ -24,7 +25,7 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 export default function UsersSettings() {
-  const { user } = useAuth()
+  const { user, userDoc } = useAuth()
   const { t } = useLanguage()
   const [users, setUsers]   = useState<UserRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,10 +46,20 @@ export default function UsersSettings() {
         approved_at: serverTimestamp(),
         approved_by: user!.uid,
       })
-      toast.success('User updated.')
+      const targetUser = users.find(u => u.uid === uid)
+      logActivity({
+        action: 'user_role_changed',
+        category: 'user',
+        description: `Peranan pengguna dikemaskini: ${targetUser?.full_name ?? uid} → ${role}`,
+        entity_id: uid,
+        entity_name: targetUser?.full_name ?? uid,
+        performed_by: user!.uid,
+        performed_by_name: userDoc?.full_name ?? '',
+      })
+      toast.success(t('settings.toast.userUpdated'))
     } catch (err) {
       console.error('approve error:', err)
-      toast.error('Failed to update user.')
+      toast.error(t('settings.toast.userUpdateFailed'))
     } finally {
       setBusy(null)
     }

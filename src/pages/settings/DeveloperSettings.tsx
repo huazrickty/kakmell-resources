@@ -56,15 +56,15 @@ export default function DeveloperSettings() {
     setBusy(uid)
     try {
       await httpsCallable(functions, 'changeUserRole')({ uid, newRole, devPassword: storedPw })
-      toast.success('Role updated.')
+      toast.success(t('settings.toast.roleUpdated'))
       setStaged((prev) => { const next = { ...prev }; delete next[uid]; return next })
       if (uid === user?.uid) {
-        toast.info('Signing out...')
+        toast.info(t('settings.toast.signingOut'))
         setTimeout(() => signOut(), 1200)
       }
     } catch (err: any) {
       const msg = err?.message ?? 'Failed.'
-      toast.error(msg.includes('password') ? 'Wrong password. Locked.' : msg)
+      toast.error(msg.includes('password') ? t('settings.toast.wrongPassword') : msg)
       setUnlocked(false)
       setStoredPw('')
       setStaged({})
@@ -122,7 +122,7 @@ export default function DeveloperSettings() {
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100">
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              All Users · {users.length}
+              {t('settings.developerAllUsers')} · {users.length}
             </span>
           </div>
           <div className="divide-y divide-gray-50">
@@ -137,7 +137,7 @@ export default function DeveloperSettings() {
                       <p className="text-sm font-semibold text-gray-900 truncate">{u.full_name}</p>
                       {u.uid === user?.uid && (
                         <span className="text-[9px] font-bold text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded-full tracking-wide">
-                          YOU
+                          {t('settings.you')}
                         </span>
                       )}
                     </div>
@@ -163,7 +163,7 @@ export default function DeveloperSettings() {
                         disabled={busy === u.uid}
                         className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#1B4332] text-white hover:bg-[#163828] transition-colors disabled:opacity-40"
                       >
-                        {busy === u.uid ? '...' : 'Apply'}
+                        {busy === u.uid ? '...' : t('settings.apply')}
                       </button>
                     )}
                   </div>

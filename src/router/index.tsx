@@ -15,6 +15,7 @@ import NewInvoice from '@/pages/invoices/NewInvoice'
 import NewCustomInvoice from '@/pages/invoices/NewCustomInvoice'
 import InvoiceDetail from '@/pages/invoices/InvoiceDetail'
 import Settings from '@/pages/Settings'
+import ActivityLog from '@/pages/settings/ActivityLog'
 
 function LoadingScreen() {
   return (
@@ -72,7 +73,8 @@ export const router = createBrowserRouter([
           { path: '/invoices/custom/new', element: <NewCustomInvoice /> },
           { path: '/invoices/:id',        element: <InvoiceDetail /> },
           { path: '/invoices',    element: <Invoices /> },
-          { path: '/settings',    element: <Settings /> },
+          { path: '/settings',            element: <Settings /> },
+          { path: '/settings/activity-log', element: <ActivityLog /> },
         ],
       },
     ],

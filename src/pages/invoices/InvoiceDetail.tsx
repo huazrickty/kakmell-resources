@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { generateInvoicePDF, buildInvoiceFilename, getLogoBase64, fmtRM, tsToDate, type InvoiceDoc } from '@/lib/invoice-pdf'
+import { logActivity } from '@/lib/activity-logger'
 import { cn } from '@/lib/utils'
 
 // ── Status styles ──────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ function fmtDate(d: Date): string {
 export default function InvoiceDetail() {
   const { id }      = useParams<{ id: string }>()
   const navigate    = useNavigate()
-  const { userDoc } = useAuth()
+  const { user, userDoc } = useAuth()
   const { t }       = useLanguage()
   const isAdmin     = userDoc?.role === 'admin'
 
@@ -79,11 +80,21 @@ export default function InvoiceDetail() {
     if (!id) return
     setDeleting(true)
     try {
+      const invoiceNo = invoice?.invoice_no ?? ''
       await deleteDoc(doc(db, 'invoices', id))
-      toast.success('Invois berjaya dipadam.')
+      logActivity({
+        action: 'invoice_deleted',
+        category: 'invoice',
+        description: `Invois dipadam: ${invoiceNo}`,
+        entity_id: id,
+        entity_name: invoiceNo,
+        performed_by: user?.uid ?? '',
+        performed_by_name: userDoc?.full_name ?? '',
+      })
+      toast.success(t('invoice.toast.deleted'))
       navigate('/invoices')
     } catch {
-      toast.error('Ralat. Cuba lagi.')
+      toast.error(t('common.error'))
       setDeleting(false)
     }
   }
@@ -93,9 +104,18 @@ export default function InvoiceDetail() {
     setBusy(true)
     try {
       await updateDoc(doc(db, 'invoices', id), { status })
-      toast.success('Status dikemaskini.')
+      logActivity({
+        action: 'invoice_status_changed',
+        category: 'invoice',
+        description: `Status invois ${invoice?.invoice_no ?? ''} ditukar ke '${status}'`,
+        entity_id: id,
+        entity_name: invoice?.invoice_no ?? '',
+        performed_by: user?.uid ?? '',
+        performed_by_name: userDoc?.full_name ?? '',
+      })
+      toast.success(t('invoice.toast.statusUpdated'))
     } catch {
-      toast.error('Ralat. Cuba lagi.')
+      toast.error(t('common.error'))
     } finally {
       setBusy(false)
     }
@@ -115,12 +135,12 @@ export default function InvoiceDetail() {
   if (!invoice) {
     return (
       <div className="p-6 text-center py-24">
-        <p className="text-sm text-gray-400">Invois tidak ditemui.</p>
+        <p className="text-sm text-gray-400">{t('invoice.notFound')}</p>
         <button
           onClick={() => navigate('/invoices')}
           className="mt-4 text-[#1B4332] text-sm font-medium hover:underline"
         >
-          ← Invois
+          ← {t('invoice.title')}
         </button>
       </div>
     )
@@ -147,7 +167,7 @@ export default function InvoiceDetail() {
           className="flex items-center gap-1.5 text-gray-500 hover:text-gray-800 text-sm font-medium transition-colors"
         >
           <ArrowLeft size={16} />
-          Invois
+          {t('invoice.title')}
         </button>
         <span className={cn('text-[11px] font-bold px-3 py-1.5 rounded-full border', STATUS_BADGE[statusKey])}>
           {statusLabel}
@@ -311,25 +331,25 @@ export default function InvoiceDetail() {
               className="flex items-center gap-2 text-red-600 hover:bg-red-50 border border-red-200 font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors"
             >
               <Trash2 size={14} />
-              Padam Invois
+              {t('invoice.delete')}
             </button>
           ) : (
             <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 flex-1">
               <span className="text-xs text-red-700 font-medium flex-1">
-                Padam invois ini? Tindakan ini tidak boleh dibatalkan.
+                {t('invoice.deleteConfirmText')}
               </span>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
                 className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 shrink-0"
               >
-                {deleting ? '...' : 'Ya, Padam'}
+                {deleting ? '...' : t('common.deleteConfirmAction')}
               </button>
               <button
                 onClick={() => setDeleteConfirm(false)}
                 className="text-xs font-medium text-gray-600 hover:text-gray-800 transition-colors shrink-0"
               >
-                Batal
+                {t('common.cancel')}
               </button>
             </div>
           )}

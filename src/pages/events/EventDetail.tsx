@@ -18,6 +18,7 @@ import { getIngredientOverrides, type OverrideMap } from '@/lib/ingredient-overr
 import { calculateIngredientsWithOverrides } from '@/lib/ingredient-calculator-dynamic'
 import { cn } from '@/lib/utils'
 import type { MenuSelection, EventDoc } from '@/hooks/useEvents'
+import { logActivity } from '@/lib/activity-logger'
 
 // ── Screen sub-components ───────────────────────────────────────────────────
 
@@ -204,11 +205,11 @@ ${bodyHTML}
 </html>`
 }
 
-function printIngredients(event: EventDoc, ingr: IngredientResult | null, menu: MenuSelection) {
+function printIngredients(event: EventDoc, ingr: IngredientResult | null, menu: MenuSelection, errorMsg: string) {
   const html = generatePrintHTML(event, ingr, menu)
   const w = window.open('', '_blank')
   if (!w) {
-    toast.error('Pop-up disekat. Sila benarkan pop-up untuk mencetak.')
+    toast.error(errorMsg)
     return
   }
   w.document.write(html)
@@ -279,10 +280,10 @@ export default function EventDetail() {
   }
 
   async function handleSave() {
-    if (!editForm.nama_majlis.trim()) { toast.error('Sila masukkan nama majlis.'); return }
-    if (!editForm.hall_name) { toast.error('Sila pilih dewan.'); return }
-    if (!editForm.tarikh) { toast.error('Sila pilih tarikh.'); return }
-    if (!editForm.pax || editForm.pax < 1) { toast.error('Sila masukkan bilangan pax.'); return }
+    if (!editForm.nama_majlis.trim()) { toast.error(t('events.validation.name')); return }
+    if (!editForm.hall_name) { toast.error(t('events.validation.hall')); return }
+    if (!editForm.tarikh) { toast.error(t('events.validation.date')); return }
+    if (!editForm.pax || editForm.pax < 1) { toast.error(t('events.validation.pax')); return }
     setSaving(true)
     try {
       await updateDoc(doc(db, 'events', id!), {
@@ -295,10 +296,19 @@ export default function EventDetail() {
         remarks: editForm.remarks.trim(),
         menu_selection: editForm.menu,
       })
-      toast.success('Acara dikemaskini.')
+      logActivity({
+        action: 'event_updated',
+        category: 'event',
+        description: `Acara dikemaskini: ${editForm.nama_majlis.trim()}`,
+        entity_id: id!,
+        entity_name: editForm.nama_majlis.trim(),
+        performed_by: user!.uid,
+        performed_by_name: userDoc?.full_name ?? '',
+      })
+      toast.success(t('events.toast.updated'))
       setIsEditing(false)
     } catch {
-      toast.error('Ralat. Cuba lagi.')
+      toast.error(t('common.error'))
     } finally {
       setSaving(false)
     }
@@ -307,11 +317,21 @@ export default function EventDetail() {
   async function handleDelete() {
     setDeleting(true)
     try {
+      const eventName = event?.nama_majlis ?? ''
       await deleteDoc(doc(db, 'events', id!))
-      toast.success('Acara dipadam.')
+      logActivity({
+        action: 'event_deleted',
+        category: 'event',
+        description: `Acara dipadam: ${eventName}`,
+        entity_id: id!,
+        entity_name: eventName,
+        performed_by: user!.uid,
+        performed_by_name: userDoc?.full_name ?? '',
+      })
+      toast.success(t('events.toast.deleted'))
       navigate('/events')
     } catch {
-      toast.error('Ralat. Cuba lagi.')
+      toast.error(t('common.error'))
       setDeleting(false)
     }
   }
@@ -319,9 +339,18 @@ export default function EventDetail() {
   async function handleStatusChange(status: 'upcoming' | 'completed' | 'cancelled') {
     try {
       await updateDoc(doc(db, 'events', id!), { status })
-      toast.success('Status dikemaskini.')
+      logActivity({
+        action: 'event_status_changed',
+        category: 'event',
+        description: `Status acara ditukar ke '${status}': ${event?.nama_majlis ?? ''}`,
+        entity_id: id!,
+        entity_name: event?.nama_majlis ?? '',
+        performed_by: user!.uid,
+        performed_by_name: userDoc?.full_name ?? '',
+      })
+      toast.success(t('events.toast.statusUpdated'))
     } catch {
-      toast.error('Ralat. Cuba lagi.')
+      toast.error(t('common.error'))
     }
   }
 
@@ -548,13 +577,13 @@ export default function EventDetail() {
                       </button>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">Pasti padam?</span>
+                        <span className="text-xs text-gray-500">{t('events.deleteConfirmPrompt')}</span>
                         <button
                           onClick={handleDelete}
                           disabled={deleting}
                           className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 transition-colors"
                         >
-                          {deleting ? '...' : 'Ya, Padam'}
+                          {deleting ? '...' : t('common.deleteConfirmAction')}
                         </button>
                         <button
                           onClick={() => setDeleteConfirm(false)}
@@ -593,7 +622,7 @@ export default function EventDetail() {
                   onChange={(e) => setEditForm((f) => ({ ...f, hall_name: e.target.value }))}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-white"
                 >
-                  <option value="">— Pilih Dewan —</option>
+                  <option value="">{t('events.selectHall')}</option>
                   {halls.map((h) => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
@@ -678,7 +707,7 @@ export default function EventDetail() {
 
               {/* Air Panas */}
               <div>
-                <FieldLabel>Air Panas</FieldLabel>
+                <FieldLabel>{t('events.airPanas')}</FieldLabel>
                 <div className="flex flex-wrap gap-2">
                   {(options.air.length > 0 ? options.air : ['Teh O', 'Kopi O']).map((opt) => (
                     <Pill
@@ -731,11 +760,11 @@ export default function EventDetail() {
           {/* Print action */}
           <div className="flex items-center justify-between mb-4">
             <p className="text-xs text-gray-400">
-              Dikira berdasarkan{' '}
+              {t('events.calculatedFrom')}{' '}
               <span className="font-semibold text-gray-600">{event.pax} pax</span>
             </p>
             <button
-              onClick={() => printIngredients(event, ingr, menu)}
+              onClick={() => printIngredients(event, ingr, menu, t('events.printPopupBlocked'))}
               className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
             >
               <Printer size={14} strokeWidth={2} />
@@ -758,7 +787,7 @@ export default function EventDetail() {
               </div>
 
               {/* Bahan Utama */}
-              <SectionHeader title="Bahan Utama" />
+              <SectionHeader title={t('ingredients.mainItems')} />
               <IngRow label="Beras" value={`${ingr.main.beras_bag} bag`} />
               <IngRow label="Ayam" value={`${ingr.main.ayam_ekor} ekor`} />
               <IngRow label="Daging" value={`${ingr.main.daging_kg} kg`} />
@@ -767,13 +796,13 @@ export default function EventDetail() {
               <IngRow label="Gula" value={`${ingr.main.gula_liter} L`} />
 
               {/* Kotak Daging */}
-              <SectionHeader title="Kotak Daging" />
+              <SectionHeader title={t('ingredients.dagingBox')} />
               <IngRow label="Slice (potong)" value={`${ingr.daging_box.slice_boxes} kotak`} />
               <IngRow label="Trim" value={`${ingr.daging_box.trim_boxes} kotak`} />
               <IngRow label="Lebihan" value={`${ingr.daging_box.variance_kg} kg`} />
 
               {/* Dalca */}
-              <SectionHeader title="Dalca" />
+              <SectionHeader title={t('ingredients.dalca')} />
               <IngRow label="Kacang Dall" value={ingr.dalca.kacang_dall} />
               <IngRow label="Terung" value={ingr.dalca.terung} />
               <IngRow label="Kentang" value={ingr.dalca.kentang} />
@@ -782,7 +811,7 @@ export default function EventDetail() {
               <IngRow label="Serbuk Kari" value={ingr.dalca.serbuk_kari} />
 
               {/* Bubur */}
-              <SectionHeader title="Bubur" />
+              <SectionHeader title={t('ingredients.bubur')} />
               <IngRow label="Pulut Hitam" value={`${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_tin} tin santan`} />
               <IngRow label="Kacang Hijau" value={`${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_tin} tin santan`} />
               <IngRow label="Bubur Jagung" value={`${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kotak} kotak santan`} />

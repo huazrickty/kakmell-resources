@@ -59,7 +59,7 @@ export default function HallsSettings() {
     try {
       await updateDoc(doc(db, 'halls', id), { is_active: !current })
     } catch {
-      toast.error('Gagal mengemas kini.')
+      toast.error(t('settings.toast.updateFailed'))
     } finally {
       setBusy(null)
     }
@@ -73,7 +73,7 @@ export default function HallsSettings() {
       await updateDoc(doc(db, 'halls', id), { name: trimmed })
       setEditingId(null)
     } catch {
-      toast.error('Gagal menyimpan.')
+      toast.error(t('settings.toast.saveFailed'))
     } finally {
       setBusy(null)
     }
@@ -86,9 +86,9 @@ export default function HallsSettings() {
     try {
       await addDoc(collection(db, 'halls'), { name: trimmed, is_active: true })
       setAddName('')
-      toast.success('Dewan ditambah.')
+      toast.success(t('settings.toast.hallAdded'))
     } catch {
-      toast.error('Gagal menambah dewan.')
+      toast.error(t('settings.toast.hallAddFailed'))
     } finally {
       setAdding(false)
     }
@@ -149,7 +149,7 @@ export default function HallsSettings() {
             value={addName}
             onChange={(e) => setAddName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addHall()}
-            placeholder="Nama dewan..."
+            placeholder={t('settings.hallPlaceholder')}
             className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[#1B4332] focus:ring-1 focus:ring-[#1B4332]/20 placeholder-gray-400"
           />
           <button
@@ -157,7 +157,7 @@ export default function HallsSettings() {
             disabled={adding || !addName.trim()}
             className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#1B4332] text-white hover:bg-[#163828] transition-colors disabled:opacity-40"
           >
-            {adding ? '...' : '+ Tambah'}
+            {adding ? '...' : t('settings.addButton')}
           </button>
         </div>
       </div>

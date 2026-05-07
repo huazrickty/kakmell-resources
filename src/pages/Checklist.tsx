@@ -155,7 +155,7 @@ function EventChecklist({ event, uid }: EventChecklistProps) {
               {/* Left: Bahan Utama */}
               <div>
                 <p className="text-[10px] font-bold text-[#1B4332] uppercase tracking-widest mb-1.5">
-                  Bahan Utama
+                  {t('ingredients.mainItems')}
                 </p>
                 <div className="space-y-1">
                   {([
@@ -177,7 +177,7 @@ function EventChecklist({ event, uid }: EventChecklistProps) {
               {/* Right: Dalca */}
               <div>
                 <p className="text-[10px] font-bold text-[#1B4332] uppercase tracking-widest mb-1.5">
-                  Dalca
+                  {t('ingredients.dalca')}
                 </p>
                 <div className="space-y-1">
                   {([

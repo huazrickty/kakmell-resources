@@ -60,7 +60,7 @@ export default function Events() {
           {past.length > 0 && (
             <section>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-                Lepas · {past.length}
+                {t('events.past')} · {past.length}
               </p>
               <div className="space-y-3">
                 {past.map((e) => (

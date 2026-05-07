@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { useEvent } from '@/hooks/useEvent'
 import { generateInvoicePDF, buildInvoiceFilename, getLogoBase64, fmtRM, type InvoiceDoc } from '@/lib/invoice-pdf'
+import { logActivity } from '@/lib/activity-logger'
 import { cn } from '@/lib/utils'
 
 // ── Lookup tables ──────────────────────────────────────────────────────────
@@ -182,11 +183,20 @@ export default function NewInvoice() {
         await generateInvoicePDF(inv, event.nama_majlis, logoBase64, filename)
       }
 
-      toast.success('Invois disimpan.')
+      logActivity({
+        action: 'invoice_created',
+        category: 'invoice',
+        description: `Invois baharu ${invoiceNo} dicipta untuk ${event.nama_majlis}`,
+        entity_id: docRef.id,
+        entity_name: invoiceNo,
+        performed_by: user!.uid,
+        performed_by_name: userDoc?.full_name ?? '',
+      })
+      toast.success(t('invoice.toast.saved'))
       navigate(`/invoices/${docRef.id}`)
     } catch (err) {
       console.error(err)
-      toast.error('Ralat. Cuba lagi.')
+      toast.error(t('common.error'))
       setSaving(false)
     }
   }
@@ -205,9 +215,9 @@ export default function NewInvoice() {
   if (!event) {
     return (
       <div className="p-6 text-center py-24">
-        <p className="text-sm text-gray-400">Acara tidak ditemui.</p>
+        <p className="text-sm text-gray-400">{t('invoice.eventNotFound')}</p>
         <button onClick={() => navigate('/invoices')} className="mt-4 text-[#1B4332] text-sm font-medium hover:underline">
-          ← Invois
+          ← {t('invoice.title')}
         </button>
       </div>
     )
@@ -245,9 +255,9 @@ export default function NewInvoice() {
         <div className="grid items-center bg-gray-50 border-b border-gray-100 px-4 py-2.5"
           style={{ gridTemplateColumns: '24px 1fr 72px 96px 28px' }}>
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">#</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Penerangan</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Qty</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right pr-2">Harga (RM)</span>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('invoice.description')}</span>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">{t('invoice.qty')}</span>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right pr-2">{t('invoice.unitPrice')}</span>
           <span />
         </div>
 
@@ -295,7 +305,7 @@ export default function NewInvoice() {
                   value={li.description}
                   onChange={(e) => updateItem(li.id, 'description', e.target.value)}
                   disabled={li.protected}
-                  placeholder="Penerangan item"
+                  placeholder={t('invoice.itemPlaceholder')}
                   className="text-sm text-gray-800 py-1 px-1.5 rounded border border-transparent focus:border-gray-200 focus:outline-none disabled:bg-transparent disabled:cursor-default w-full"
                 />
 
@@ -359,7 +369,7 @@ export default function NewInvoice() {
           {t('invoice.gajiPerkerja')} <span className="text-gray-300 font-normal">(tolakan)</span>
         </p>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-sm text-gray-500">Jumlah gaji pekerja (ditolak dari jumlah)</span>
+          <span className="text-sm text-gray-500">{t('invoice.staffWagesHint')}</span>
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-sm text-gray-500">RM</span>
             <input
@@ -386,7 +396,7 @@ export default function NewInvoice() {
           </div>
           <div className="h-px bg-gray-100" />
           <div className="flex items-center justify-between">
-            <span className="font-bold text-gray-900 text-base">JUMLAH</span>
+            <span className="font-bold text-gray-900 text-base">{t('invoice.totalLabel')}</span>
             <span className="font-black text-xl text-[#1B4332] tabular-nums">{fmtRM(total)}</span>
           </div>
         </div>
@@ -414,7 +424,7 @@ export default function NewInvoice() {
           className="flex items-center gap-2 bg-[#1B4332] hover:bg-[#163828] text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50"
         >
           <FileDown size={14} />
-          {saving ? 'Menyimpan...' : t('invoice.downloadPdf')}
+          {saving ? t('invoice.saving') : t('invoice.downloadPdf')}
         </button>
       </div>
     </div>

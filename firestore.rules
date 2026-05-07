@@ -97,7 +97,7 @@ service cloud.firestore {
     // ── activity_log ──────────────────────────────────────────────────────────
     match /activity_log/{logId} {
       allow read: if isAdmin();
-      allow create: if isAdmin();
+      allow create: if isApproved();
       allow update, delete: if false;
     }
   }

@@ -5,7 +5,9 @@ import { toast } from 'sonner'
 import { ArrowLeft, Trash2, Plus, FileDown, Save } from 'lucide-react'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { generateInvoicePDF, buildInvoiceFilename, getLogoBase64, fmtRM, type InvoiceDoc } from '@/lib/invoice-pdf'
+import { logActivity } from '@/lib/activity-logger'
 import { cn } from '@/lib/utils'
 
 async function nextInvoiceNo(): Promise<string> {
@@ -24,6 +26,7 @@ interface FormItem {
 export default function NewCustomInvoice() {
   const navigate          = useNavigate()
   const { user, userDoc } = useAuth()
+  const { t }             = useLanguage()
   const isAdmin           = userDoc?.role === 'admin'
 
   const [billedTo, setBilledTo]     = useState('')
@@ -60,9 +63,9 @@ export default function NewCustomInvoice() {
 
   async function save(andDownload = false) {
     if (!user) return
-    if (!billedTo.trim()) { toast.error('Sila masukkan nama penerima invois.'); return }
+    if (!billedTo.trim()) { toast.error(t('invoice.validation.billedTo')); return }
     const activeItems = items.filter(li => li.description.trim() && parseFloat(li.unit_price) > 0)
-    if (activeItems.length === 0) { toast.error('Sila masukkan sekurang-kurangnya 1 item dengan harga.'); return }
+    if (activeItems.length === 0) { toast.error(t('invoice.validation.items')); return }
 
     setSaving(true)
     try {
@@ -116,11 +119,20 @@ export default function NewCustomInvoice() {
         await generateInvoicePDF(inv, reference.trim(), logoBase64, filename)
       }
 
-      toast.success('Invois disimpan.')
+      logActivity({
+        action: 'invoice_created',
+        category: 'invoice',
+        description: `Invois custom ${invoiceNo} dicipta untuk ${billedTo.trim()}`,
+        entity_id: docRef.id,
+        entity_name: invoiceNo,
+        performed_by: user!.uid,
+        performed_by_name: userDoc?.full_name ?? '',
+      })
+      toast.success(t('invoice.toast.saved'))
       navigate(`/invoices/${docRef.id}`)
     } catch (err) {
       console.error(err)
-      toast.error('Ralat. Cuba lagi.')
+      toast.error(t('common.error'))
       setSaving(false)
     }
   }
@@ -139,14 +151,14 @@ export default function NewCustomInvoice() {
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Invois Tersuai</h1>
-          <p className="text-sm text-gray-500">Invois bebas tanpa acara</p>
+          <h1 className="text-xl font-bold text-gray-900">{t('invoice.customTitle')}</h1>
+          <p className="text-sm text-gray-500">{t('invoice.customSubtitle')}</p>
         </div>
       </div>
 
       {/* FROM — read-only */}
       <div className="bg-[#1B4332] rounded-xl px-5 py-4 mb-5">
-        <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mb-1.5">Dari</p>
+        <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mb-1.5">{t('invoice.from')}</p>
         <p className="text-white font-bold text-sm">KAKMELL RESOURCES</p>
         <p className="text-white/60 text-xs mt-0.5">
           NO 58, JALAN JAMBU 4, TAMAN KOTA MASAI, 81700 PASIR GUDANG, JOHOR
@@ -158,26 +170,26 @@ export default function NewCustomInvoice() {
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-4 mb-4 space-y-3">
         <div>
           <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
-            Kepada (Bill To)
+            {t('invoice.billedTo')}
           </label>
           <input
             type="text"
             value={billedTo}
             onChange={e => setBilledTo(e.target.value)}
-            placeholder="ZB GROUP SDN BHD atau nama lain"
+            placeholder={t('invoice.billToPlaceholder')}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold text-gray-900 focus:outline-none focus:border-[#1B4332] focus:ring-1 focus:ring-[#1B4332] placeholder:font-normal placeholder:text-gray-400"
           />
         </div>
         <div>
           <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
-            Rujukan / Reference{' '}
-            <span className="text-gray-300 font-normal normal-case">(pilihan)</span>
+            {t('invoice.referenceLabel')}{' '}
+            <span className="text-gray-300 font-normal normal-case">{t('invoice.optional')}</span>
           </label>
           <input
             type="text"
             value={reference}
             onChange={e => setReference(e.target.value)}
-            placeholder="cth. Majlis Ali & Siti — 9 Mei 2026"
+            placeholder={t('invoice.referencePlaceholder')}
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[#1B4332] focus:ring-1 focus:ring-[#1B4332] placeholder:text-gray-400"
           />
         </div>
@@ -190,9 +202,9 @@ export default function NewCustomInvoice() {
           style={{ gridTemplateColumns: '24px 1fr 72px 96px 28px' }}
         >
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">#</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Penerangan</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Qty</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right pr-2">Harga (RM)</span>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('invoice.description')}</span>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">{t('invoice.qty')}</span>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right pr-2">{t('invoice.unitPrice')}</span>
           <span />
         </div>
 
@@ -213,7 +225,7 @@ export default function NewCustomInvoice() {
                   type="text"
                   value={li.description}
                   onChange={e => updateItem(li.id, 'description', e.target.value)}
-                  placeholder="Penerangan item"
+                  placeholder={t('invoice.itemPlaceholder')}
                   className="text-sm text-gray-800 py-1 px-1.5 rounded border border-transparent focus:border-gray-200 focus:outline-none w-full"
                 />
 
@@ -260,7 +272,7 @@ export default function NewCustomInvoice() {
             className="flex items-center gap-1.5 text-xs font-semibold text-[#1B4332] hover:text-[#163828] transition-colors"
           >
             <Plus size={13} />
-            Tambah Item
+            {t('invoice.addItem')}
           </button>
         </div>
       </div>
@@ -288,12 +300,12 @@ export default function NewCustomInvoice() {
               </svg>
             )}
           </button>
-          <span className="text-sm text-gray-700 font-medium">Tambah Potongan Gaji Pekerja</span>
+          <span className="text-sm text-gray-700 font-medium">{t('invoice.addStaffWages')}</span>
         </div>
 
         {gajiToggle && (
           <div className="flex items-center justify-between gap-3 mt-3">
-            <span className="text-sm text-gray-500">Jumlah gaji pekerja (ditolak dari jumlah)</span>
+            <span className="text-sm text-gray-500">{t('invoice.staffWagesHint')}</span>
             <div className="flex items-center gap-2 shrink-0">
               <span className="text-sm text-gray-500">RM</span>
               <input
@@ -318,13 +330,13 @@ export default function NewCustomInvoice() {
           </div>
           {gajiToggle && gajiNum > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Gaji Pekerja</span>
+              <span className="text-gray-500">{t('invoice.gajiPerkerja')}</span>
               <span className="font-semibold text-red-600 tabular-nums">({fmtRM(gajiNum)})</span>
             </div>
           )}
           <div className="h-px bg-gray-100" />
           <div className="flex items-center justify-between">
-            <span className="font-bold text-gray-900 text-base">JUMLAH</span>
+            <span className="font-bold text-gray-900 text-base">{t('invoice.totalLabel')}</span>
             <span className="font-black text-xl text-[#1B4332] tabular-nums">{fmtRM(total)}</span>
           </div>
         </div>
@@ -336,7 +348,7 @@ export default function NewCustomInvoice() {
           onClick={() => navigate(-1)}
           className="text-gray-500 hover:text-gray-700 font-medium px-4 py-2.5 text-sm transition-colors"
         >
-          Batal
+          {t('common.cancel')}
         </button>
         <button
           onClick={() => save(false)}
@@ -344,7 +356,7 @@ export default function NewCustomInvoice() {
           className="flex items-center gap-2 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 shadow-sm"
         >
           <Save size={14} />
-          Simpan Draf
+          {t('invoice.saveDraft')}
         </button>
         <button
           onClick={() => save(true)}
@@ -352,7 +364,7 @@ export default function NewCustomInvoice() {
           className="flex items-center gap-2 bg-[#1B4332] hover:bg-[#163828] text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50"
         >
           <FileDown size={14} />
-          {saving ? 'Menyimpan...' : 'Jana & Muat Turun PDF'}
+          {saving ? t('invoice.saving') : t('invoice.saveDownload')}
         </button>
       </div>
     </div>

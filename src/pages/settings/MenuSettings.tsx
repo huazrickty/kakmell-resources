@@ -68,7 +68,7 @@ export default function MenuSettings() {
     try {
       await updateDoc(doc(db, 'menu_options', id), { is_active: !current })
     } catch {
-      toast.error('Gagal mengemas kini.')
+      toast.error(t('settings.toast.updateFailed'))
     } finally {
       setBusy(null)
     }
@@ -82,7 +82,7 @@ export default function MenuSettings() {
       await updateDoc(doc(db, 'menu_options', id), { name_ms: trimmed })
       setEditingId(null)
     } catch {
-      toast.error('Gagal menyimpan.')
+      toast.error(t('settings.toast.saveFailed'))
     } finally {
       setBusy(null)
     }
@@ -99,9 +99,9 @@ export default function MenuSettings() {
         is_active: true,
       })
       setAddName('')
-      toast.success('Item ditambah.')
+      toast.success(t('settings.toast.menuItemAdded'))
     } catch {
-      toast.error('Gagal menambah item.')
+      toast.error(t('settings.toast.menuItemAddFailed'))
     } finally {
       setAdding(false)
     }
@@ -214,7 +214,7 @@ export default function MenuSettings() {
             value={addName}
             onChange={(e) => setAddName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addOption()}
-            placeholder="Nama item..."
+            placeholder={t('settings.itemPlaceholder')}
             className="flex-1 min-w-[160px] text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[#1B4332] focus:ring-1 focus:ring-[#1B4332]/20 placeholder-gray-400"
           />
           <button
@@ -222,7 +222,7 @@ export default function MenuSettings() {
             disabled={adding || !addName.trim()}
             className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#1B4332] text-white hover:bg-[#163828] transition-colors disabled:opacity-40"
           >
-            {adding ? '...' : '+ Tambah'}
+            {adding ? '...' : t('settings.addButton')}
           </button>
         </div>
       </div>

@@ -90,7 +90,7 @@ export default function Dashboard() {
       : exportEvents
 
     if (mode === 'upcoming' && source.length === 0) {
-      toast('Tiada acara akan datang minggu ini.')
+      toast(t('dashboard.noUpcomingThisWeek'))
       return
     }
 
@@ -112,9 +112,9 @@ export default function Dashboard() {
         ? 'LAPORAN MINGGUAN — AKAN DATANG'
         : 'LAPORAN MINGGUAN — SEMUA ACARA'
       await generateWeeklyPDF(exportStart, exportEnd, data, logoBase64, title)
-      toast.success('PDF berjaya dijana.')
+      toast.success(t('dashboard.pdfGenerated'))
     } catch {
-      toast.error('Gagal menjana PDF. Cuba lagi.')
+      toast.error(t('dashboard.pdfError'))
     } finally {
       setExporting(null)
     }
@@ -231,12 +231,12 @@ export default function Dashboard() {
                     </p>
                   ))}
                   {exportEvents.length > 3 && (
-                    <p className="text-xs text-gray-400">+{exportEvents.length - 3} lagi</p>
+                    <p className="text-xs text-gray-400">+{exportEvents.length - 3} {t('common.more')}</p>
                   )}
                 </div>
               ) : (
                 <p className="flex-1 text-xs text-gray-400 italic">
-                  Tiada acara minggu ini.
+                  {t('dashboard.noEventsThisWeek')}
                 </p>
               )}
 
@@ -247,7 +247,7 @@ export default function Dashboard() {
                   className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold text-sm px-3 py-2.5 rounded-lg transition-colors disabled:opacity-50"
                 >
                   <FileDown size={13} />
-                  {exporting === 'all' ? 'Menjana...' : 'Semua'}
+                  {exporting === 'all' ? t('common.generating') : t('dashboard.exportAll')}
                 </button>
                 <button
                   onClick={() => handleExport('upcoming')}
@@ -255,7 +255,7 @@ export default function Dashboard() {
                   className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm px-3 py-2.5 rounded-lg transition-colors disabled:opacity-50"
                 >
                   <FileDown size={13} />
-                  {exporting === 'upcoming' ? 'Menjana...' : 'Akan Datang'}
+                  {exporting === 'upcoming' ? t('common.generating') : t('dashboard.exportUpcoming')}
                 </button>
               </div>
             </div>

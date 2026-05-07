@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { type StringKey } from '@/lib/i18n'
-import { ShieldOff, LogOut } from 'lucide-react'
+import { ShieldOff, LogOut, ClipboardList, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import UsersSettings      from '@/pages/settings/UsersSettings'
 import MenuSettings       from '@/pages/settings/MenuSettings'
@@ -18,11 +19,12 @@ const TABS: { id: Tab; label: (t: (k: StringKey) => string) => string }[] = [
   { id: 'users',       label: (t) => t('settings.users') },
   { id: 'menu',        label: (t) => t('settings.menu') },
   { id: 'halls',       label: (t) => t('settings.halls') },
-  { id: 'ingredients', label: () => 'Bahan Mentah' },
+  { id: 'ingredients', label: (t) => t('settings.ingredients') },
   { id: 'dev',         label: (t) => t('settings.devSettings') },
 ]
 
 function SignOutButton({ signOut }: { signOut: () => Promise<void> }) {
+  const { t } = useLanguage()
   return (
     <div className="mt-8 pt-6 border-t border-gray-100">
       <button
@@ -30,7 +32,7 @@ function SignOutButton({ signOut }: { signOut: () => Promise<void> }) {
         className="w-full flex items-center justify-center gap-2 border border-red-200 text-red-600 hover:bg-red-50 font-semibold rounded-xl py-3.5 text-sm transition-colors min-h-[48px]"
       >
         <LogOut size={16} />
-        Log Keluar / Sign Out
+        {t('settings.signOut')}
       </button>
     </div>
   )
@@ -39,6 +41,7 @@ function SignOutButton({ signOut }: { signOut: () => Promise<void> }) {
 export default function Settings() {
   const { userDoc, signOut } = useAuth()
   const { t } = useLanguage()
+  const navigate = useNavigate()
   const [tab, setTab]               = useState<Tab>('users')
   const [pendingCount, setPendingCount] = useState(0)
 
@@ -52,8 +55,8 @@ export default function Settings() {
       <div className="p-4 md:p-6 max-w-3xl mx-auto">
         <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3 text-center px-6">
           <ShieldOff size={36} className="text-gray-300" />
-          <p className="text-sm font-semibold text-gray-500">Admin access only</p>
-          <p className="text-xs text-gray-400">This section is restricted to administrators.</p>
+          <p className="text-sm font-semibold text-gray-500">{t('settings.adminOnly')}</p>
+          <p className="text-xs text-gray-400">{t('settings.adminOnlyDesc')}</p>
         </div>
         <SignOutButton signOut={signOut} />
       </div>
@@ -99,6 +102,23 @@ export default function Settings() {
       {tab === 'halls'       && <HallsSettings />}
       {tab === 'ingredients' && <IngredientsSettings />}
       {tab === 'dev'         && <DeveloperSettings />}
+
+      {/* ── Log Aktiviti card ───────────────────────────────────────────── */}
+      <div className="mt-5">
+        <button
+          onClick={() => navigate('/settings/activity-log')}
+          className="w-full flex items-center gap-3 px-4 py-3.5 bg-white rounded-xl border border-gray-100 shadow-sm hover:bg-gray-50 transition-colors text-left min-h-[48px]"
+        >
+          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+            <ClipboardList size={16} className="text-blue-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-gray-900">{t('settings.activityLog')}</p>
+            <p className="text-xs text-gray-400">{t('activityLog.title')}</p>
+          </div>
+          <ChevronRight size={16} className="text-gray-400 shrink-0" />
+        </button>
+      </div>
 
       <SignOutButton signOut={signOut} />
     </div>

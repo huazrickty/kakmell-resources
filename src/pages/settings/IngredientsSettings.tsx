@@ -5,6 +5,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import {
   getMainIngredients, getDalca, getAcar, BUBUR, BRACKETS,
   type Bracket,
@@ -143,6 +144,7 @@ function BracketTable({
   items, overrides, editKey, editVals, saving,
   onEdit, onEditValChange, onSave, onCancel, onReset, getCellDefault,
 }: BracketTableProps) {
+  const { t } = useLanguage()
   return (
     <div className="overflow-x-auto -mx-4 px-4">
       <table className="w-full text-xs min-w-[680px]">
@@ -231,7 +233,7 @@ function BracketTable({
                         className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-[#1B4332] text-white text-[11px] font-semibold hover:bg-[#1B4332]/90 disabled:opacity-50 transition-colors"
                       >
                         <Check size={11} />
-                        Simpan
+                        {t('common.save')}
                       </button>
                       <button
                         onClick={onCancel}
@@ -289,9 +291,10 @@ function BuburTable({
   items, overrides, editKey, editFlat, saving,
   onEdit, onEditFlatChange, onSave, onCancel, onReset,
 }: BuburTableProps) {
+  const { t } = useLanguage()
   return (
     <div className="space-y-1.5">
-      <p className="text-[10px] text-gray-400 mb-3">Bubur adalah flat — sama untuk semua pax.</p>
+      <p className="text-[10px] text-gray-400 mb-3">{t('settings.buburFlat')}</p>
       {items.map((item) => {
         const ov = overrides[item.key]
         const hasOv = !!ov
@@ -333,7 +336,7 @@ function BuburTable({
                   className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-[#1B4332] text-white text-[11px] font-semibold hover:bg-[#1B4332]/90 disabled:opacity-50 transition-colors"
                 >
                   <Check size={11} />
-                  Simpan
+                  {t('common.save')}
                 </button>
                 <button onClick={onCancel} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 transition-colors">
                   <X size={13} />
@@ -376,6 +379,7 @@ function BuburTable({
 
 export default function IngredientsSettings() {
   const { user, userDoc } = useAuth()
+  const { t } = useLanguage()
   const [tab, setTab]             = useState<CategoryTab>('main')
   const [overrides, setOverrides] = useState<OverrideMap>({})
   const [loading, setLoading]     = useState(true)
@@ -472,9 +476,9 @@ export default function IngredientsSettings() {
       })
       await refresh()
       setEditKey(null)
-      toast.success('Override disimpan')
+      toast.success(t('settings.toast.overrideSaved'))
     } catch {
-      toast.error('Gagal menyimpan override')
+      toast.error(t('settings.toast.overrideSaveFailed'))
     } finally {
       setSaving(false)
     }
@@ -510,9 +514,9 @@ export default function IngredientsSettings() {
       })
       await refresh()
       setEditKey(null)
-      toast.success('Override disimpan')
+      toast.success(t('settings.toast.overrideSaved'))
     } catch {
-      toast.error('Gagal menyimpan override')
+      toast.error(t('settings.toast.overrideSaveFailed'))
     } finally {
       setSaving(false)
     }
@@ -536,9 +540,9 @@ export default function IngredientsSettings() {
       })
       await refresh()
       if (editKey === key) setEditKey(null)
-      toast.success('Dikembalikan ke default')
+      toast.success(t('settings.toast.overrideReset'))
     } catch {
-      toast.error('Gagal memadam override')
+      toast.error(t('settings.toast.overrideResetFailed'))
     }
   }
 
@@ -559,18 +563,18 @@ export default function IngredientsSettings() {
       })
       await refresh()
       setEditKey(null)
-      toast.success('Semua override dipadam')
+      toast.success(t('settings.toast.allOverridesReset'))
     } catch {
-      toast.error('Gagal memadam semua override')
+      toast.error(t('settings.toast.allOverridesResetFailed'))
     }
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const TABS: { id: CategoryTab; label: string }[] = [
-    { id: 'main',  label: 'Bahan Utama' },
-    { id: 'dalca', label: 'Dalca' },
-    { id: 'bubur', label: 'Bubur' },
+    { id: 'main',  label: t('ingredients.mainItems') },
+    { id: 'dalca', label: t('ingredients.dalca') },
+    { id: 'bubur', label: t('ingredients.bubur') },
     { id: 'acar',  label: 'Acar & Paceri' },
   ]
 
@@ -590,9 +594,7 @@ export default function IngredientsSettings() {
     <div className="space-y-4">
       {/* Info banner */}
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 leading-relaxed">
-        Nilai default diambil dari jadual rujukan. Override akan menggantikan nilai default untuk semua kiraan baru.{' '}
-        <span className="font-semibold text-gray-600">Kelabu</span> = default ·{' '}
-        <span className="font-semibold text-red-600">Merah</span> = override aktif.
+        {t('settings.ingredientInfoBanner')}
       </div>
 
       {/* Reset All */}
@@ -603,7 +605,7 @@ export default function IngredientsSettings() {
             className="flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700 border border-red-200 rounded-lg px-3 py-2 hover:bg-red-50 transition-colors"
           >
             <RotateCcw size={13} />
-            Reset Semua
+            {t('settings.resetAll')}
           </button>
         </div>
       )}
@@ -611,19 +613,19 @@ export default function IngredientsSettings() {
         <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
           <AlertTriangle size={16} className="text-red-500 shrink-0" />
           <p className="flex-1 text-xs text-red-700 font-medium">
-            Padam semua override? Ini akan kembalikan semua nilai ke default asal.
+            {t('settings.resetAllConfirm')}
           </p>
           <button
             onClick={resetAll}
             className="text-xs font-bold text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg border border-red-300 hover:bg-red-100 transition-colors whitespace-nowrap"
           >
-            Ya, Padam
+            {t('common.deleteConfirmAction')}
           </button>
           <button
             onClick={() => setConfirmResetAll(false)}
             className="text-xs font-semibold text-gray-500 hover:text-gray-700"
           >
-            Batal
+            {t('common.cancel')}
           </button>
         </div>
       )}
@@ -648,7 +650,7 @@ export default function IngredientsSettings() {
       </div>
 
       {loading && (
-        <div className="py-12 text-center text-sm text-gray-400">Memuatkan...</div>
+        <div className="py-12 text-center text-sm text-gray-400">{t('common.loading')}</div>
       )}
 
       {!loading && tab === 'main' && (
