@@ -22,7 +22,8 @@
       "Bash(pnpm list *)",
       "Bash(pnpm seed:events)",
       "PowerShell(New-Item *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(pnpm build *)"
     ]
   }
 }
