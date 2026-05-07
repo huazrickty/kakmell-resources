@@ -13,7 +13,9 @@ import { useLanguage } from '@/context/LanguageContext'
 import { useEvent } from '@/hooks/useEvent'
 import { useHalls } from '@/hooks/useHalls'
 import { useMenuOptions } from '@/hooks/useMenuOptions'
-import { calculateIngredients, type IngredientResult } from '@/lib/ingredient-calculator'
+import { type IngredientResult } from '@/lib/ingredient-calculator'
+import { getIngredientOverrides, type OverrideMap } from '@/lib/ingredient-overrides'
+import { calculateIngredientsWithOverrides } from '@/lib/ingredient-calculator-dynamic'
 import { cn } from '@/lib/utils'
 import type { MenuSelection, EventDoc } from '@/hooks/useEvents'
 
@@ -232,6 +234,7 @@ export default function EventDetail() {
   const { options } = useMenuOptions(!!user)
 
   const [existingInvoiceId, setExistingInvoiceId] = useState<string | null>(null)
+  const [overrides, setOverrides] = useState<OverrideMap>({})
 
   useEffect(() => {
     if (!id || !isAdmin) return
@@ -239,6 +242,10 @@ export default function EventDetail() {
       if (!snap.empty) setExistingInvoiceId(snap.docs[0].id)
     })
   }, [id, isAdmin])
+
+  useEffect(() => {
+    getIngredientOverrides().then(setOverrides).catch(() => {})
+  }, [])
 
   const [tab, setTab] = useState<'details' | 'ingredients'>('details')
   const [isEditing, setIsEditing] = useState(false)
@@ -343,7 +350,7 @@ export default function EventDetail() {
     )
   }
 
-  const ingr = calculateIngredients(event.pax)
+  const ingr = calculateIngredientsWithOverrides(event.pax, overrides)
   const menu = event.menu_selection ?? EMPTY_MENU
 
   const statusLabel = t(
