@@ -290,7 +290,7 @@ export default function Invoices() {
               paid:  t('invoice.statusPaid'),
             }[statusKey]
             const date   = tsToDate(inv.invoice_date)
-            const evName = eventNameMap[inv.event_id] ?? '—'
+            const evName = inv.event_id ? (eventNameMap[inv.event_id] ?? '—') : (inv.reference || inv.billed_to || '—')
 
             return (
               <div
