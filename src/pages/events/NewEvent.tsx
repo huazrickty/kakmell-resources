@@ -107,8 +107,8 @@ export default function NewEvent() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { t } = useLanguage()
-  const { halls, loading: hallsLoading } = useHalls()
-  const { options, loading: menuLoading } = useMenuOptions()
+  const { halls, loading: hallsLoading } = useHalls(!!user)
+  const { options, loading: menuLoading } = useMenuOptions(!!user)
 
   const [step, setStep] = useState<1 | 2>(1)
   const [submitting, setSubmitting] = useState(false)
