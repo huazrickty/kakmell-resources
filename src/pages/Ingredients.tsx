@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Sun, Moon, MapPin, ChevronDown, Users, ExternalLink } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -6,13 +6,14 @@ import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { useEvents } from '@/hooks/useEvents'
 import {
-  calculateIngredients,
   type IngredientResult,
   type MainIngredients,
   type DagingBox,
   type DalcaIngredients,
   type AcarIngredients,
 } from '@/lib/ingredient-calculator'
+import { getIngredientOverrides, type OverrideMap } from '@/lib/ingredient-overrides'
+import { calculateIngredientsWithOverrides } from '@/lib/ingredient-calculator-dynamic'
 import { cn } from '@/lib/utils'
 
 // ── Ingredient row helpers ─────────────────────────────────────────────────
@@ -112,9 +113,15 @@ export default function Ingredients() {
   const [openId, setOpenId] = useState<string | null>(null)
   const isAdmin = userDoc?.role === 'admin'
 
+  const [overrides, setOverrides] = useState<OverrideMap>({})
+
+  useEffect(() => {
+    getIngredientOverrides().then(setOverrides).catch(() => {})
+  }, [])
+
   const upcoming = events
     .filter((e) => e.status === 'upcoming')
-    .map((e) => ({ event: e, ingr: calculateIngredients(e.pax) }))
+    .map((e) => ({ event: e, ingr: calculateIngredientsWithOverrides(e.pax, overrides) }))
 
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto">
