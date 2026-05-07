@@ -13,9 +13,9 @@ import { useLanguage } from '@/context/LanguageContext'
 import { useEvent } from '@/hooks/useEvent'
 import { useHalls } from '@/hooks/useHalls'
 import { useMenuOptions } from '@/hooks/useMenuOptions'
-import { calculateIngredients } from '@/lib/ingredient-calculator'
+import { calculateIngredients, type IngredientResult } from '@/lib/ingredient-calculator'
 import { cn } from '@/lib/utils'
-import type { MenuSelection } from '@/hooks/useEvents'
+import type { MenuSelection, EventDoc } from '@/hooks/useEvents'
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
@@ -77,6 +77,156 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
       {children}
     </label>
+  )
+}
+
+// ── Print layout ───────────────────────────────────────────────────────────
+
+const PRINT_PAGE_CSS = `
+  @page { size: A4; margin: 12mm; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .print-no-break { page-break-inside: avoid; }
+  }
+`
+
+const PS = {
+  sectionHeader: {
+    fontSize: '7.5pt',
+    fontWeight: 800 as const,
+    color: '#dc2626',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.1em',
+    marginTop: '8pt',
+    marginBottom: '1.5pt',
+    borderBottom: '0.75pt solid #fca5a5',
+    paddingBottom: '1.5pt',
+  },
+  row: {
+    display: 'flex' as const,
+    alignItems: 'baseline' as const,
+    padding: '1.5pt 0',
+    fontSize: '9.5pt',
+    lineHeight: '1.3',
+    borderBottom: '0.5pt dotted #e5e7eb',
+  },
+}
+
+function PSectionHeader({ children }: { children: React.ReactNode }) {
+  return <div style={PS.sectionHeader}>{children}</div>
+}
+
+function PRow({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) return null
+  return (
+    <div style={PS.row}>
+      <span style={{ color: '#374151' }}>{label}</span>
+      <span style={{ flex: 1 }} />
+      <span style={{ fontWeight: 700, color: '#111827', whiteSpace: 'nowrap' }}>{value}</span>
+    </div>
+  )
+}
+
+function PrintView({
+  event,
+  ingr,
+  menu,
+}: {
+  event: EventDoc
+  ingr: IngredientResult | null
+  menu: MenuSelection
+}) {
+  const buburRow = (() => {
+    if (!ingr) return null
+    const b = menu.bubur
+    if (b === 'Bubur Pulut Hitam')
+      return { label: 'Pulut Hitam', value: `${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_tin} tin santan` }
+    if (b === 'Bubur Kacang Hijau')
+      return { label: 'Kacang Hijau', value: `${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_tin} tin santan` }
+    if (b === 'Bubur Jagung')
+      return { label: 'Bubur Jagung', value: `${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kotak} kota stn` }
+    return null
+  })()
+
+  return (
+    <div className="hidden print:block" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
+      <style>{PRINT_PAGE_CSS}</style>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', borderBottom: '1.5pt solid #dc2626', paddingBottom: '6pt', marginBottom: '8pt' }}>
+        <img src="/logo.png" alt="" style={{ height: '30pt', objectFit: 'contain', marginRight: '8pt' }} />
+        <div>
+          <div style={{ fontSize: '13pt', fontWeight: 800, color: '#111827', lineHeight: 1.2 }}>
+            KAKMELL RESOURCES
+          </div>
+          <div style={{ fontSize: '9.5pt', color: '#374151', marginTop: '1pt', lineHeight: 1.35 }}>
+            {event.nama_majlis} — {event.hall_name}
+          </div>
+          <div style={{ fontSize: '8.5pt', color: '#6b7280', marginTop: '1pt', lineHeight: 1.35 }}>
+            {format(event.tarikh.toDate(), 'd MMMM yyyy')} | {event.sesi === 'siang' ? 'Siang' : 'Malam'} | {event.pax} pax{ingr ? ` (Bracket ${ingr.bracket})` : ''}
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      {!ingr ? (
+        <div style={{ fontSize: '10pt', color: '#6b7280', textAlign: 'center', padding: '20pt 0' }}>
+          Pax melebihi 1,000 — kuantiti tersuai. Hubungi pengurusan.
+        </div>
+      ) : (
+        <div className="print-no-break" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16pt' }}>
+
+          {/* Left: Bahan Utama + Kotak Daging */}
+          <div>
+            <PSectionHeader>Bahan Utama</PSectionHeader>
+            <PRow label="Beras" value={`${ingr.main.beras_bag} bag`} />
+            <PRow label="Ayam" value={`${ingr.main.ayam_ekor} ekor`} />
+            <PRow label="Daging" value={`${ingr.main.daging_kg} kg`} />
+            <PRow label="Paceri Nenas" value={`${ingr.main.paceri_nenas_biji} biji`} />
+            <PRow label="Oren" value={`${ingr.main.oren_biji} biji`} />
+            <PRow label="Gula" value={`${ingr.main.gula_liter} L`} />
+
+            <PSectionHeader>Kotak Daging</PSectionHeader>
+            <PRow label="Slice (potong)" value={`${ingr.daging_box.slice_boxes} kotak`} />
+            <PRow label="Trim" value={`${ingr.daging_box.trim_boxes} kotak`} />
+            <PRow label="Lebihan" value={`${ingr.daging_box.variance_kg} kg`} />
+          </div>
+
+          {/* Right: Dalca + Bubur + Acar */}
+          <div>
+            <PSectionHeader>Dalca</PSectionHeader>
+            <PRow label="Kacang Dall" value={ingr.dalca.kacang_dall} />
+            <PRow label="Terung" value={ingr.dalca.terung} />
+            <PRow label="Kentang" value={ingr.dalca.kentang} />
+            <PRow label="Karot" value={ingr.dalca.karot} />
+            <PRow label="Kacang Panjang" value={ingr.dalca.kacang_panjang} />
+            <PRow label="Serbuk Kari" value={ingr.dalca.serbuk_kari} />
+
+            <PSectionHeader>Bubur</PSectionHeader>
+            {buburRow ? (
+              <PRow label={buburRow.label} value={buburRow.value} />
+            ) : (
+              <>
+                <PRow label="Pulut Hitam" value={`${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_tin} tin santan`} />
+                <PRow label="Kacang Hijau" value={`${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_tin} tin santan`} />
+                <PRow label="Jagung" value={`${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kotak} kotak stn`} />
+              </>
+            )}
+
+            <PSectionHeader>Acar</PSectionHeader>
+            <PRow label="Timun" value={ingr.acar.timun_kg !== null ? `${ingr.acar.timun_kg} kg` : null} />
+            <PRow label="Nenas" value={ingr.acar.nenas_biji !== null ? `${ingr.acar.nenas_biji} biji` : null} />
+            <PRow label="Paceri Nenas" value={`${ingr.acar.paceri_nenas_biji} biji`} />
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{ marginTop: '10pt', borderTop: '0.5pt solid #e5e7eb', paddingTop: '4pt', display: 'flex', justifyContent: 'space-between', fontSize: '7.5pt', color: '#9ca3af' }}>
+        <span>Dijana: {format(new Date(), 'd MMM yyyy, HH:mm')}</span>
+        <span>KAKMELL RESOURCES</span>
+      </div>
+    </div>
   )
 }
 
@@ -590,11 +740,11 @@ export default function EventDetail() {
           </div>
 
           {!ingr ? (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center print:hidden">
               <p className="text-sm text-gray-400">{t('events.customPax')}</p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6 print:hidden">
               {/* Bracket */}
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-gray-400">{t('ingredients.bracket')}</span>
@@ -654,6 +804,8 @@ export default function EventDetail() {
               />
             </div>
           )}
+
+          <PrintView event={event} ingr={ingr} menu={menu} />
         </div>
       )}
     </div>
