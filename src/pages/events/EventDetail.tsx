@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore'
+import { doc, updateDoc, deleteDoc, Timestamp, getDocs, query, collection, where } from 'firebase/firestore'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import {
@@ -230,6 +230,15 @@ export default function EventDetail() {
   const { event, loading } = useEvent(id!)
   const { halls } = useHalls(!!user)
   const { options } = useMenuOptions(!!user)
+
+  const [existingInvoiceId, setExistingInvoiceId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!id || !isAdmin) return
+    getDocs(query(collection(db, 'invoices'), where('event_id', '==', id))).then((snap) => {
+      if (!snap.empty) setExistingInvoiceId(snap.docs[0].id)
+    })
+  }, [id, isAdmin])
 
   const [tab, setTab] = useState<'details' | 'ingredients'>('details')
   const [isEditing, setIsEditing] = useState(false)
@@ -499,6 +508,19 @@ export default function EventDetail() {
                       {t('events.reopen')}
                     </button>
                   )}
+
+                  {/* Invoice button */}
+                  <div>
+                    <button
+                      onClick={() => navigate(existingInvoiceId
+                        ? `/invoices/${existingInvoiceId}`
+                        : `/invoices/new?eventId=${id}`
+                      )}
+                      className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-[#1B4332] text-white hover:bg-[#163828] transition-colors w-full justify-center"
+                    >
+                      {existingInvoiceId ? t('invoice.viewInvoice') : t('invoice.createInvoice')}
+                    </button>
+                  </div>
 
                   {/* Edit + Delete row */}
                   <div className="flex items-center justify-between flex-wrap gap-2">

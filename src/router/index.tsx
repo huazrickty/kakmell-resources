@@ -11,6 +11,8 @@ import EventDetail from '@/pages/events/EventDetail'
 import Ingredients from '@/pages/Ingredients'
 import Checklist from '@/pages/Checklist'
 import Invoices from '@/pages/Invoices'
+import NewInvoice from '@/pages/invoices/NewInvoice'
+import InvoiceDetail from '@/pages/invoices/InvoiceDetail'
 import Settings from '@/pages/Settings'
 
 function LoadingScreen() {
@@ -65,6 +67,8 @@ export const router = createBrowserRouter([
           { path: '/events',      element: <Events /> },
           { path: '/ingredients', element: <Ingredients /> },
           { path: '/checklist',   element: <Checklist /> },
+          { path: '/invoices/new', element: <NewInvoice /> },
+          { path: '/invoices/:id', element: <InvoiceDetail /> },
           { path: '/invoices',    element: <Invoices /> },
           { path: '/settings',    element: <Settings /> },
         ],
