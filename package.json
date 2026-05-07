@@ -12,7 +12,10 @@
     "seed:events": "tsx scripts/seed-events.ts",
     "seed:historical": "tsx scripts/run-seed-historical.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "fix:aisyah": "tsx scripts/fix-aisyah-acar.ts",
+    "add:airsirap": "tsx scripts/add-air-sirap.ts",
+    "fix:events": "tsx scripts/fix-this-week-events.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",

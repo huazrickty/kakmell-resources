@@ -50,9 +50,8 @@ function dalcaRows(d: DalcaIngredients): [string, string][] {
 
 function acarRows(a: AcarIngredients): [string, string][] {
   const rows: [string, string][] = []
-  if (a.timun_kg !== null)   rows.push(['Timun',       `${a.timun_kg} kg`])
-  if (a.nenas_biji !== null) rows.push(['Nenas Acar',  `${a.nenas_biji} biji`])
-  rows.push(['Paceri Nenas', `${a.paceri_nenas_biji} biji`])
+  if (a.timun_kg !== null) rows.push(['Timun', `${a.timun_kg} kg`])
+  rows.push(['Nenas', `${a.nenas_biji} biji`])
   return rows
 }
 
@@ -76,13 +75,14 @@ function IngSection({ label, rows }: { label: string; rows: [string, string][] }
 
 // ── IngredientDisplay ─────────────────────────────────────────────────────
 
-function IngredientDisplay({ ingr }: { ingr: IngredientResult }) {
+function IngredientDisplay({ ingr, acarType }: { ingr: IngredientResult; acarType?: string }) {
+  const acarLabel = acarType === 'Pencuk' ? 'Pencuk (Acar Jelatah)' : 'Paceri Nenas'
   return (
     <div className="border-t border-gray-100 px-4 py-4 grid grid-cols-2 gap-x-6 gap-y-4">
-      <IngSection label="Bahan Utama"   rows={mainRows(ingr.main)} />
-      <IngSection label="Dalca"         rows={dalcaRows(ingr.dalca)} />
-      <IngSection label="Kotak Daging"  rows={dagingRows(ingr.daging_box)} />
-      <IngSection label="Acar & Paceri" rows={acarRows(ingr.acar)} />
+      <IngSection label="Bahan Utama"  rows={mainRows(ingr.main)} />
+      <IngSection label="Dalca"        rows={dalcaRows(ingr.dalca)} />
+      <IngSection label="Kotak Daging" rows={dagingRows(ingr.daging_box)} />
+      <IngSection label={acarLabel}    rows={acarRows(ingr.acar)} />
     </div>
   )
 }
@@ -121,7 +121,7 @@ export default function Ingredients() {
 
   const upcoming = events
     .filter((e) => e.status === 'upcoming')
-    .map((e) => ({ event: e, ingr: calculateIngredientsWithOverrides(e.pax, overrides) }))
+    .map((e) => ({ event: e, ingr: calculateIngredientsWithOverrides(e.pax, overrides, e.menu_selection.acar) }))
 
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto">
@@ -216,7 +216,7 @@ export default function Ingredients() {
                 {/* Ingredient panel */}
                 {isOpen && (
                   ingr
-                    ? <IngredientDisplay ingr={ingr} />
+                    ? <IngredientDisplay ingr={ingr} acarType={event.menu_selection.acar} />
                     : (
                       <div className="border-t border-gray-100 px-4 py-4 text-sm text-gray-400 text-center">
                         {t('events.customPax')}

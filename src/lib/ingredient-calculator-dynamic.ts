@@ -3,6 +3,7 @@ import {
   getMainIngredients,
   getDalca,
   getAcar,
+  getPencuk,
   getDagingBox,
   BUBUR,
   type Bracket,
@@ -90,13 +91,7 @@ function applyAcarOverride(
 
   const nenasOv = ov['acar/nenas']
   if (nenasOv && !nenasOv.is_flat && nenasOv.brackets[bracket]) {
-    const bv = nenasOv.brackets[bracket]!
-    r.nenas_biji = bv.qty === 0 ? null : bv.qty
-  }
-
-  const paceriOv = ov['acar/paceri_nenas']
-  if (paceriOv && !paceriOv.is_flat && paceriOv.brackets[bracket]) {
-    r.paceri_nenas_biji = paceriOv.brackets[bracket]!.qty
+    r.nenas_biji = nenasOv.brackets[bracket]!.qty
   }
 
   return r
@@ -138,12 +133,14 @@ function applyBuburOverride(
 export function calculateIngredientsWithOverrides(
   pax: number,
   overrides: OverrideMap,
+  acarType?: string,
 ): IngredientResult | null {
   const bracket = getBracket(pax)
   if (bracket === -1) return null
   const b = bracket as Bracket
 
-  const main = applyMainOverride(getMainIngredients(pax), b, overrides)
+  const main    = applyMainOverride(getMainIngredients(pax), b, overrides)
+  const baseAcar = acarType === 'Pencuk' ? getPencuk(pax) : getAcar(pax)
 
   return {
     bracket,
@@ -151,6 +148,6 @@ export function calculateIngredientsWithOverrides(
     daging_box: getDagingBox(main.daging_kg),
     dalca:      applyDalcaOverride(getDalca(pax), b, overrides),
     bubur:      applyBuburOverride(BUBUR, overrides),
-    acar:       applyAcarOverride(getAcar(pax), b, overrides),
+    acar:       applyAcarOverride(baseAcar, b, overrides),
   }
 }

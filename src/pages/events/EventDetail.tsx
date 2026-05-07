@@ -156,10 +156,9 @@ function generatePrintHTML(
           ${pRow('Serbuk Kari', ingr.dalca.serbuk_kari)}
           ${pSection('Bubur')}
           ${buburHTML}
-          ${pSection('Acar')}
+          ${pSection(menu.acar === 'Pencuk' ? 'Pencuk (Acar Jelatah)' : 'Paceri Nenas')}
           ${ingr.acar.timun_kg !== null ? pRow('Timun', `${ingr.acar.timun_kg} kg`) : ''}
-          ${ingr.acar.nenas_biji !== null ? pRow('Nenas', `${ingr.acar.nenas_biji} biji`) : ''}
-          ${pRow('Paceri Nenas', `${ingr.acar.paceri_nenas_biji} biji`)}
+          ${pRow('Nenas', `${ingr.acar.nenas_biji} biji`)}
         </div>
       </div>`
 
@@ -350,8 +349,8 @@ export default function EventDetail() {
     )
   }
 
-  const ingr = calculateIngredientsWithOverrides(event.pax, overrides)
   const menu = event.menu_selection ?? EMPTY_MENU
+  const ingr = calculateIngredientsWithOverrides(event.pax, overrides, menu.acar)
 
   const statusLabel = t(
     `events.status${event.status.charAt(0).toUpperCase() + event.status.slice(1)}` as Parameters<typeof t>[0]
@@ -789,9 +788,9 @@ export default function EventDetail() {
               <IngRow label="Bubur Jagung" value={`${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kotak} kotak santan`} />
 
               {/* Acar */}
-              <SectionHeader title="Acar" />
+              <SectionHeader title={menu.acar === 'Pencuk' ? 'Pencuk (Acar Jelatah)' : 'Paceri Nenas'} />
               <IngRow label="Timun" value={ingr.acar.timun_kg !== null ? `${ingr.acar.timun_kg} kg` : null} />
-              <IngRow label="Nenas" value={ingr.acar.nenas_biji !== null ? `${ingr.acar.nenas_biji} biji` : null} />
+              <IngRow label="Nenas" value={`${ingr.acar.nenas_biji} biji`} />
             </div>
           )}
         </div>

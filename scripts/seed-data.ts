@@ -33,4 +33,5 @@ export const menuOptions = [
   { category: 'air', name_ms: 'Kopi O', is_active: true },
   { category: 'air', name_ms: 'Air Anggur', is_active: true },
   { category: 'air', name_ms: 'Air Kordial', is_active: true },
+  { category: 'air', name_ms: 'Air Sirap', is_active: true },
 ]

@@ -272,11 +272,11 @@ export async function generateWeeklyPDF(
       }
 
       // ── RIGHT: ACAR & PACERI ───────────────────────────────────────────
+      const acarMenuType = event.menu_selection['acar'] ?? ''
       rY += SEC_GAP
-      rY = sectionHead('ACAR & PACERI', COL2, rY)
-      if (acar.timun_kg !== null)   rY = ingRow('Timun',      `${acar.timun_kg} kg`,    COL2, COL2V, rY)
-      if (acar.nenas_biji !== null) rY = ingRow('Nenas Acar', `${acar.nenas_biji} biji`, COL2, COL2V, rY)
-      rY = ingRow('Paceri Nenas', `${acar.paceri_nenas_biji} biji`, COL2, COL2V, rY)
+      rY = sectionHead(acarMenuType === 'Pencuk' ? 'PENCUK (ACAR JELATAH)' : 'PACERI NENAS', COL2, rY)
+      if (acar.timun_kg !== null) rY = ingRow('Timun', `${acar.timun_kg} kg`,  COL2, COL2V, rY)
+      rY = ingRow('Nenas', `${acar.nenas_biji} biji`, COL2, COL2V, rY)
 
       // Vertical column divider
       const colBottom = Math.max(lY, rY) + 2

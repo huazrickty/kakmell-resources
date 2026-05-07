@@ -105,7 +105,7 @@ export default function Dashboard() {
           pax:            e.pax,
           menu_selection: e.menu_selection as unknown as Record<string, string>,
         },
-        ingredients: calculateIngredients(e.pax),
+        ingredients: calculateIngredients(e.pax, e.menu_selection.acar),
       }))
       const logoBase64 = await getLogoBase64()
       const title = mode === 'upcoming'

@@ -6,6 +6,7 @@ import {
   getDagingBox,
   getDalca,
   getAcar,
+  getPencuk,
   calculateIngredients,
 } from './ingredient-calculator'
 
@@ -175,44 +176,74 @@ describe('BUBUR (flat — same all pax)', () => {
   })
 })
 
-// ── getAcar ────────────────────────────────────────────────────────────────
+// ── getAcar (Paceri Nenas) ─────────────────────────────────────────────────
 
 describe('getAcar', () => {
-  it('bracket 300: timun 10kg, nenas 10 biji, paceri 20 biji', () => {
-    expect(getAcar(300)).toEqual({ timun_kg: 10, nenas_biji: 10, paceri_nenas_biji: 20 })
+  it('always returns timun_kg: null for Paceri Nenas type', () => {
+    expect(getAcar(300).timun_kg).toBeNull()
+    expect(getAcar(500).timun_kg).toBeNull()
+    expect(getAcar(1000).timun_kg).toBeNull()
   })
 
-  it('bracket 400: timun and nenas are null, paceri present', () => {
-    expect(getAcar(400)).toEqual({ timun_kg: null, nenas_biji: null, paceri_nenas_biji: 20 })
+  it('bracket 300: nenas 20 biji', () => {
+    expect(getAcar(300)).toEqual({ timun_kg: null, nenas_biji: 20 })
   })
 
-  it('bracket 500: timun 15kg, nenas 10 biji, paceri 30 biji', () => {
-    expect(getAcar(500)).toEqual({ timun_kg: 15, nenas_biji: 10, paceri_nenas_biji: 30 })
+  it('bracket 400: nenas 20 biji', () => {
+    expect(getAcar(400)).toEqual({ timun_kg: null, nenas_biji: 20 })
   })
 
-  it('bracket 600: timun and nenas null', () => {
-    const a = getAcar(600)
-    expect(a.timun_kg).toBeNull()
-    expect(a.nenas_biji).toBeNull()
-    expect(a.paceri_nenas_biji).toBe(35)
+  it('bracket 500: nenas 30 biji', () => {
+    expect(getAcar(500)).toEqual({ timun_kg: null, nenas_biji: 30 })
   })
 
-  it('bracket 800: timun 25kg, nenas 12 biji, paceri 45 biji', () => {
-    expect(getAcar(800)).toEqual({ timun_kg: 25, nenas_biji: 12, paceri_nenas_biji: 45 })
+  it('bracket 600: nenas 35 biji', () => {
+    expect(getAcar(600)).toEqual({ timun_kg: null, nenas_biji: 35 })
   })
 
-  it('bracket 900: timun and nenas null, paceri 55', () => {
-    const a = getAcar(900)
-    expect(a.timun_kg).toBeNull()
-    expect(a.paceri_nenas_biji).toBe(55)
+  it('bracket 800: nenas 45 biji', () => {
+    expect(getAcar(800)).toEqual({ timun_kg: null, nenas_biji: 45 })
   })
 
-  it('bracket 1000: timun 30kg, nenas 20 biji, paceri 65 biji', () => {
-    expect(getAcar(1000)).toEqual({ timun_kg: 30, nenas_biji: 20, paceri_nenas_biji: 65 })
+  it('bracket 900: nenas 55 biji', () => {
+    expect(getAcar(900)).toEqual({ timun_kg: null, nenas_biji: 55 })
+  })
+
+  it('bracket 1000: nenas 65 biji', () => {
+    expect(getAcar(1000)).toEqual({ timun_kg: null, nenas_biji: 65 })
   })
 
   it('non-exact pax — 850 resolves to 900', () => {
     expect(getAcar(850)).toEqual(getAcar(900))
+  })
+})
+
+// ── getPencuk ──────────────────────────────────────────────────────────────
+
+describe('getPencuk', () => {
+  it('bracket 500: timun 15kg, nenas 10 biji', () => {
+    expect(getPencuk(500)).toEqual({ timun_kg: 15, nenas_biji: 10 })
+  })
+
+  it('bracket 1000: timun 30kg, nenas 20 biji', () => {
+    expect(getPencuk(1000)).toEqual({ timun_kg: 30, nenas_biji: 20 })
+  })
+
+  it('bracket 300: timun 3kg, nenas 2 biji', () => {
+    expect(getPencuk(300)).toEqual({ timun_kg: 3, nenas_biji: 2 })
+  })
+
+  it('bracket 900: timun 25kg, nenas 15 biji', () => {
+    expect(getPencuk(900)).toEqual({ timun_kg: 25, nenas_biji: 15 })
+  })
+
+  it('non-exact pax — 850 resolves to 900: timun 25kg, nenas 15 biji', () => {
+    expect(getPencuk(850)).toEqual({ timun_kg: 25, nenas_biji: 15 })
+  })
+
+  it('always has timun_kg (never null)', () => {
+    expect(getPencuk(300).timun_kg).not.toBeNull()
+    expect(getPencuk(800).timun_kg).not.toBeNull()
   })
 })
 
@@ -233,8 +264,8 @@ describe('calculateIngredients', () => {
     expect(r.daging_box.variance_kg).toBe(16)
     expect(r.dalca.kacang_dall).toBe('1kg')
     expect(r.dalca.karot).toBe('10 biji')
-    expect(r.acar.timun_kg).toBe(10)
-    expect(r.acar.paceri_nenas_biji).toBe(20)
+    expect(r.acar.timun_kg).toBeNull()
+    expect(r.acar.nenas_biji).toBe(20)
     expect(r.bubur.pulut_hitam.beras_pulut_kg).toBe(2)
   })
 
@@ -243,6 +274,7 @@ describe('calculateIngredients', () => {
     expect(r.bracket).toBe(400)
     expect(r.main.beras_bag).toBe(3)
     expect(r.acar.timun_kg).toBeNull()
+    expect(r.acar.nenas_biji).toBe(20)
   })
 
   it('bracket 1000: full result spot-check', () => {
@@ -252,8 +284,25 @@ describe('calculateIngredients', () => {
     expect(r.daging_box.slice_boxes).toBe(4)
     expect(r.daging_box.variance_kg).toBe(8)
     expect(r.dalca.kacang_dall).toBe('3kg')
+    expect(r.acar.timun_kg).toBeNull()
+    expect(r.acar.nenas_biji).toBe(65)
+  })
+
+  it('acarType Pencuk uses Pencuk table, not Paceri table', () => {
+    const r = calculateIngredients(500, 'Pencuk')!
+    expect(r.acar).toEqual({ timun_kg: 15, nenas_biji: 10 })
+  })
+
+  it('acarType Pencuk at 1000 pax: timun 30kg, nenas 20 biji', () => {
+    const r = calculateIngredients(1000, 'Pencuk')!
     expect(r.acar.timun_kg).toBe(30)
-    expect(r.acar.paceri_nenas_biji).toBe(65)
+    expect(r.acar.nenas_biji).toBe(20)
+  })
+
+  it('default (no acarType) uses Paceri Nenas: timun null, nenas from PACERI_TABLE', () => {
+    const r = calculateIngredients(500)!
+    expect(r.acar.timun_kg).toBeNull()
+    expect(r.acar.nenas_biji).toBe(30)
   })
 
   it('bubur is always flat regardless of bracket', () => {

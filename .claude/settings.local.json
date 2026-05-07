@@ -24,7 +24,10 @@
       "PowerShell(New-Item *)",
       "Bash(node *)",
       "Bash(pnpm build *)",
-      "Bash(pnpm seed:historical *)"
+      "Bash(pnpm seed:historical *)",
+      "Bash(pnpm fix:aisyah *)",
+      "Bash(pnpm add:airsirap)",
+      "Bash(pnpm fix:events)"
     ]
   }
 }

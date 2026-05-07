@@ -57,9 +57,8 @@ const DALCA_ITEMS: BracketItem[] = [
 ]
 
 const ACAR_ITEMS: BracketItem[] = [
-  { key: 'acar/timun',        label: 'Timun',        unit: 'kg',   isNullable: true },
-  { key: 'acar/nenas',        label: 'Nenas Acar',   unit: 'biji', isNullable: true },
-  { key: 'acar/paceri_nenas', label: 'Paceri Nenas', unit: 'biji' },
+  { key: 'acar/timun',  label: 'Timun',     unit: 'kg',   isNullable: true },
+  { key: 'acar/nenas',  label: 'Nenas',     unit: 'biji' },
 ]
 
 const BUBUR_ITEMS: FlatItem[] = [
@@ -103,9 +102,8 @@ function getDefaultDalcaStr(key: string, b: Bracket): string | null {
 function getDefaultAcarQty(key: string, b: Bracket): number | null {
   const a = getAcar(b)
   const map: Record<string, number | null> = {
-    'acar/timun':        a.timun_kg,
-    'acar/nenas':        a.nenas_biji,
-    'acar/paceri_nenas': a.paceri_nenas_biji,
+    'acar/timun':  a.timun_kg,
+    'acar/nenas':  a.nenas_biji,
   }
   return map[key] ?? null
 }

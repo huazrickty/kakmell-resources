@@ -29,9 +29,8 @@ export interface BuburIngredients {
 }
 
 export interface AcarIngredients {
-  timun_kg: number | null
-  nenas_biji: number | null
-  paceri_nenas_biji: number
+  timun_kg: number | null  // Pencuk only; null for Paceri Nenas
+  nenas_biji: number       // always present for both types
 }
 
 export interface IngredientResult {
@@ -113,28 +112,40 @@ export const BUBUR: BuburIngredients = {
   jagung:       { beg: 2, beras_kg: 4, santan_kotak: 2 },
 }
 
-// ── Acar & Paceri lookup ───────────────────────────────────────────────────
+// ── Paceri Nenas lookup (nenas biji count only) ────────────────────────────
 
-const ACAR_TABLE: Record<Bracket, AcarIngredients> = {
-  300:  { timun_kg: 10,   nenas_biji: 10,   paceri_nenas_biji: 20 },
-  400:  { timun_kg: null, nenas_biji: null,  paceri_nenas_biji: 20 },
-  500:  { timun_kg: 15,   nenas_biji: 10,   paceri_nenas_biji: 30 },
-  600:  { timun_kg: null, nenas_biji: null,  paceri_nenas_biji: 35 },
-  700:  { timun_kg: 20,   nenas_biji: 10,   paceri_nenas_biji: 40 },
-  800:  { timun_kg: 25,   nenas_biji: 12,   paceri_nenas_biji: 45 },
-  900:  { timun_kg: null, nenas_biji: null,  paceri_nenas_biji: 55 },
-  1000: { timun_kg: 30,   nenas_biji: 20,   paceri_nenas_biji: 65 },
+const PACERI_TABLE: Record<Bracket, number> = {
+  300: 20, 400: 20, 500: 30, 600: 35, 700: 40, 800: 45, 900: 55, 1000: 65,
 }
 
 export function getAcar(pax: number): AcarIngredients {
   const bracket = getBracket(pax)
   if (bracket === -1) throw new Error(`pax ${pax} exceeds 1000`)
-  return ACAR_TABLE[bracket as Bracket]
+  return { timun_kg: null, nenas_biji: PACERI_TABLE[bracket as Bracket] }
+}
+
+// ── Pencuk (Acar Jelata) lookup ────────────────────────────────────────────
+
+const PENCUK_TABLE: Record<Bracket, { timun_kg: number; nenas_biji: number }> = {
+  300:  { timun_kg: 3,  nenas_biji: 2  },
+  400:  { timun_kg: 10, nenas_biji: 10 },
+  500:  { timun_kg: 15, nenas_biji: 10 },
+  600:  { timun_kg: 15, nenas_biji: 10 },
+  700:  { timun_kg: 20, nenas_biji: 10 },
+  800:  { timun_kg: 25, nenas_biji: 12 },
+  900:  { timun_kg: 25, nenas_biji: 15 },
+  1000: { timun_kg: 30, nenas_biji: 20 },
+}
+
+export function getPencuk(pax: number): AcarIngredients {
+  const bracket = getBracket(pax)
+  if (bracket === -1) throw new Error(`pax ${pax} exceeds 1000`)
+  return PENCUK_TABLE[bracket as Bracket]
 }
 
 // ── calculateIngredients ───────────────────────────────────────────────────
 
-export function calculateIngredients(pax: number): IngredientResult | null {
+export function calculateIngredients(pax: number, acarType?: string): IngredientResult | null {
   const bracket = getBracket(pax)
   if (bracket === -1) return null
   const b = bracket as Bracket
@@ -145,6 +156,6 @@ export function calculateIngredients(pax: number): IngredientResult | null {
     daging_box: getDagingBox(main.daging_kg),
     dalca: DALCA_TABLE[b],
     bubur: BUBUR,
-    acar: ACAR_TABLE[b],
+    acar: acarType === 'Pencuk' ? getPencuk(pax) : getAcar(pax),
   }
 }
