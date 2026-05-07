@@ -75,7 +75,7 @@ export default function Dashboard() {
 
   // ── Weekly export state ────────────────────────────────────────────────────
   const [weekOffset, setWeekOffset] = useState(0)
-  const [exporting, setExporting]   = useState(false)
+  const [exporting, setExporting]   = useState<'all' | 'upcoming' | null>(null)
 
   const refWeek       = addWeeks(now, weekOffset)
   const exportStart   = startOfWeek(refWeek, { weekStartsOn: 1 })
@@ -84,10 +84,19 @@ export default function Dashboard() {
     isWithinInterval(e.tarikh.toDate(), { start: exportStart, end: exportEnd })
   )
 
-  async function handleExport() {
-    setExporting(true)
+  async function handleExport(mode: 'all' | 'upcoming') {
+    const source = mode === 'upcoming'
+      ? exportEvents.filter(e => e.status === 'upcoming')
+      : exportEvents
+
+    if (mode === 'upcoming' && source.length === 0) {
+      toast('Tiada acara akan datang minggu ini.')
+      return
+    }
+
+    setExporting(mode)
     try {
-      const data: WeeklyEventEntry[] = exportEvents.map((e) => ({
+      const data: WeeklyEventEntry[] = source.map((e) => ({
         event: {
           nama_majlis:    e.nama_majlis,
           hall_name:      e.hall_name,
@@ -99,12 +108,15 @@ export default function Dashboard() {
         ingredients: calculateIngredients(e.pax),
       }))
       const logoBase64 = await getLogoBase64()
-      await generateWeeklyPDF(exportStart, exportEnd, data, logoBase64)
+      const title = mode === 'upcoming'
+        ? 'LAPORAN MINGGUAN — AKAN DATANG'
+        : 'LAPORAN MINGGUAN — SEMUA ACARA'
+      await generateWeeklyPDF(exportStart, exportEnd, data, logoBase64, title)
       toast.success('PDF berjaya dijana.')
     } catch {
       toast.error('Gagal menjana PDF. Cuba lagi.')
     } finally {
-      setExporting(false)
+      setExporting(null)
     }
   }
 
@@ -228,14 +240,24 @@ export default function Dashboard() {
                 </p>
               )}
 
-              <button
-                onClick={handleExport}
-                disabled={exporting}
-                className="shrink-0 flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50"
-              >
-                <FileDown size={14} />
-                {exporting ? 'Menjana...' : t('dashboard.exportPdf')}
-              </button>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => handleExport('all')}
+                  disabled={exporting !== null}
+                  className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold text-sm px-3 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <FileDown size={13} />
+                  {exporting === 'all' ? 'Menjana...' : 'Semua'}
+                </button>
+                <button
+                  onClick={() => handleExport('upcoming')}
+                  disabled={exporting !== null}
+                  className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm px-3 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <FileDown size={13} />
+                  {exporting === 'upcoming' ? 'Menjana...' : 'Akan Datang'}
+                </button>
+              </div>
             </div>
           </div>
         </section>

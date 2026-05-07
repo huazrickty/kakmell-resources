@@ -1,7 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { collection, onSnapshot, orderBy, query, doc, deleteDoc } from 'firebase/firestore'
-import { format } from 'date-fns'
+import {
+  format,
+  startOfWeek, endOfWeek,
+  startOfMonth, endOfMonth,
+  isWithinInterval,
+} from 'date-fns'
 import { FileText, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { db } from '@/lib/firebase'
@@ -10,6 +15,10 @@ import { useLanguage } from '@/context/LanguageContext'
 import { useEvents } from '@/hooks/useEvents'
 import { fmtRM, tsToDate, type InvoiceDoc } from '@/lib/invoice-pdf'
 import { cn } from '@/lib/utils'
+
+// ── Types ──────────────────────────────────────────────────────────────────
+
+type FilterType = 'all' | 'week' | 'month' | 'year' | 'range'
 
 // ── Status styles ──────────────────────────────────────────────────────────
 
@@ -61,12 +70,17 @@ export default function Invoices() {
   const isAdmin     = userDoc?.role === 'admin'
   const { events }  = useEvents()
 
-  const [invoices, setInvoices]         = useState<InvoiceDoc[]>([])
-  const [loading, setLoading]           = useState(true)
+  const [invoices, setInvoices]               = useState<InvoiceDoc[]>([])
+  const [loading, setLoading]                 = useState(true)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
-  const [deleting, setDeleting]         = useState(false)
+  const [deleting, setDeleting]               = useState(false)
 
-  // Event id → name map for display
+  // Filter state
+  const [filter, setFilter]         = useState<FilterType>('week')
+  const [rangeFrom, setRangeFrom]   = useState('')
+  const [rangeTo, setRangeTo]       = useState('')
+  const [appliedRange, setAppliedRange] = useState<{ from: Date; to: Date } | null>(null)
+
   const eventNameMap = Object.fromEntries(events.map(e => [e.id, e.nama_majlis]))
 
   useEffect(() => {
@@ -90,13 +104,73 @@ export default function Invoices() {
     }
   }
 
-  // Stats
-  const totalBilled   = invoices.reduce((s, inv) => s + (inv.total || 0), 0)
-  const paidTotal     = invoices.filter(inv => inv.status === 'paid').reduce((s, inv) => s + (inv.total || 0), 0)
-  const outstanding   = invoices.filter(inv => inv.status !== 'paid').reduce((s, inv) => s + (inv.total || 0), 0)
+  function applyRange() {
+    if (!rangeFrom || !rangeTo) return
+    const from = new Date(rangeFrom)
+    const to   = new Date(rangeTo)
+    to.setHours(23, 59, 59, 999)
+    setAppliedRange({ from, to })
+  }
+
+  // ── Filter logic ───────────────────────────────────────────────────────────
+  const filteredInvoices = useMemo(() => {
+    const now = new Date()
+    switch (filter) {
+      case 'week': {
+        const start = startOfWeek(now, { weekStartsOn: 1 })
+        const end   = endOfWeek(now, { weekStartsOn: 1 })
+        return invoices.filter(inv => isWithinInterval(tsToDate(inv.invoice_date), { start, end }))
+      }
+      case 'month': {
+        const start = startOfMonth(now)
+        const end   = endOfMonth(now)
+        return invoices.filter(inv => isWithinInterval(tsToDate(inv.invoice_date), { start, end }))
+      }
+      case 'year': {
+        const start = new Date(now.getFullYear(), 0, 1)
+        const end   = new Date(now.getFullYear(), 11, 31, 23, 59, 59)
+        return invoices.filter(inv => isWithinInterval(tsToDate(inv.invoice_date), { start, end }))
+      }
+      case 'range':
+        if (!appliedRange) return invoices
+        return invoices.filter(inv =>
+          isWithinInterval(tsToDate(inv.invoice_date), { start: appliedRange.from, end: appliedRange.to })
+        )
+      default:
+        return invoices
+    }
+  }, [invoices, filter, appliedRange])
+
+  // ── Stats (filtered) ────────────────────────────────────────────────────────
+  const totalBilled = filteredInvoices.reduce((s, inv) => s + (inv.total || 0), 0)
+  const paidTotal   = filteredInvoices.filter(inv => inv.status === 'paid').reduce((s, inv) => s + (inv.total || 0), 0)
+  const outstanding = filteredInvoices.filter(inv => inv.status !== 'paid').reduce((s, inv) => s + (inv.total || 0), 0)
+
+  // ── Filter summary label ────────────────────────────────────────────────────
+  const filterSummary = useMemo(() => {
+    const n = filteredInvoices.length
+    const now = new Date()
+    switch (filter) {
+      case 'week':  return `${n} invois — ${t('invoice.filterWeek')}`
+      case 'month': return `${n} invois — ${format(now, 'MMMM yyyy')}`
+      case 'year':  return `${n} invois — ${now.getFullYear()}`
+      case 'range':
+        if (!appliedRange) return `${n} invois`
+        return `${n} invois — ${format(appliedRange.from, 'd MMM')} – ${format(appliedRange.to, 'd MMM yyyy')}`
+      default: return null
+    }
+  }, [filteredInvoices.length, filter, appliedRange, t])
 
   // ── Guard ──────────────────────────────────────────────────────────────────
   if (!isAdmin) return <Navigate to="/dashboard" replace />
+
+  const FILTER_PILLS: { key: FilterType; label: string }[] = [
+    { key: 'week',  label: t('invoice.filterWeek') },
+    { key: 'month', label: t('invoice.filterMonth') },
+    { key: 'year',  label: t('invoice.filterYear') },
+    { key: 'range', label: t('invoice.filterRange') },
+    { key: 'all',   label: t('invoice.filterAll') },
+  ]
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -110,13 +184,73 @@ export default function Invoices() {
         </span>
       </div>
 
-      {/* Stats row */}
+      {/* Stats row — reflects active filter */}
       {!loading && invoices.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <StatCard label="Jumlah" value={String(invoices.length)} sub="invois" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+          <StatCard label="Jumlah" value={String(filteredInvoices.length)} sub="invois" />
           <StatCard label={t('invoice.totalBilled')} value={fmtRM(totalBilled)} />
           <StatCard label={t('invoice.statusPaid')} value={fmtRM(paidTotal)} />
           <StatCard label={t('invoice.outstanding')} value={fmtRM(outstanding)} />
+        </div>
+      )}
+
+      {/* Filter bar */}
+      {!loading && invoices.length > 0 && (
+        <div className="mb-4">
+          {/* Pills */}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {FILTER_PILLS.map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className={cn(
+                  'shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors whitespace-nowrap',
+                  filter === key
+                    ? 'bg-red-600 text-white border-red-600'
+                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Date range inputs */}
+          {filter === 'range' && (
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-500 shrink-0">{t('invoice.filterFrom')}</span>
+                <input
+                  type="date"
+                  value={rangeFrom}
+                  onChange={e => setRangeFrom(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-400"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-gray-500 shrink-0">{t('invoice.filterTo')}</span>
+                <input
+                  type="date"
+                  value={rangeTo}
+                  onChange={e => setRangeTo(e.target.value)}
+                  min={rangeFrom}
+                  className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-400"
+                />
+              </div>
+              <button
+                onClick={applyRange}
+                disabled={!rangeFrom || !rangeTo}
+                className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors disabled:opacity-40"
+              >
+                {t('invoice.filterApply')}
+              </button>
+            </div>
+          )}
+
+          {/* Summary */}
+          {filterSummary && (
+            <p className="text-xs text-gray-400 mt-2">{filterSummary}</p>
+          )}
         </div>
       )}
 
@@ -125,15 +259,19 @@ export default function Invoices() {
         <div className="space-y-2.5">
           {[1, 2, 3].map(i => <Skeleton key={i} />)}
         </div>
-      ) : invoices.length === 0 ? (
+      ) : filteredInvoices.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-100 px-6 py-16 text-center">
           <FileText size={32} className="mx-auto text-gray-200 mb-3" />
-          <p className="text-sm text-gray-400">{t('invoice.noInvoices')}</p>
-          <p className="text-xs text-gray-300 mt-1">Buat invois dari halaman acara.</p>
+          <p className="text-sm text-gray-400">
+            {invoices.length === 0 ? t('invoice.noInvoices') : 'Tiada invois dalam tempoh ini.'}
+          </p>
+          {invoices.length === 0 && (
+            <p className="text-xs text-gray-300 mt-1">Buat invois dari halaman acara.</p>
+          )}
         </div>
       ) : (
         <div className="space-y-2.5">
-          {invoices.map((inv) => {
+          {filteredInvoices.map((inv) => {
             const statusKey   = inv.status as 'draft' | 'sent' | 'paid'
             const statusLabel = {
               draft: t('invoice.statusDraft'),
