@@ -59,6 +59,7 @@ export async function generateWeeklyPDF(
   data: WeeklyEventEntry[],
   logoBase64: string,
   reportTitle = 'LAPORAN MINGGUAN',
+  exportType: 'all' | 'upcoming' | 'selected' = 'all',
 ): Promise<void> {
   const pdf = new jsPDF('p', 'mm', 'a4')
   const W   = 210
@@ -138,8 +139,8 @@ export async function generateWeeklyPDF(
     return
   }
 
-  // ── Cover page (when >1 event) ───────────────────────────────────────────
-  if (data.length > 1) {
+  // ── Cover page (only for 'all' exports with 2+ events) ──────────────────
+  if (exportType === 'all' && data.length >= 2) {
     let y = drawHeader()
 
     y += 12
