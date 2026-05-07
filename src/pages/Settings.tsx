@@ -10,14 +10,16 @@ import UsersSettings      from '@/pages/settings/UsersSettings'
 import MenuSettings       from '@/pages/settings/MenuSettings'
 import HallsSettings      from '@/pages/settings/HallsSettings'
 import DeveloperSettings  from '@/pages/settings/DeveloperSettings'
+import IngredientsSettings from '@/pages/settings/IngredientsSettings'
 
-type Tab = 'users' | 'menu' | 'halls' | 'dev'
+type Tab = 'users' | 'menu' | 'halls' | 'ingredients' | 'dev'
 
 const TABS: { id: Tab; label: (t: (k: StringKey) => string) => string }[] = [
-  { id: 'users', label: (t) => t('settings.users') },
-  { id: 'menu',  label: (t) => t('settings.menu') },
-  { id: 'halls', label: (t) => t('settings.halls') },
-  { id: 'dev',   label: (t) => t('settings.devSettings') },
+  { id: 'users',       label: (t) => t('settings.users') },
+  { id: 'menu',        label: (t) => t('settings.menu') },
+  { id: 'halls',       label: (t) => t('settings.halls') },
+  { id: 'ingredients', label: () => 'Bahan Mentah' },
+  { id: 'dev',         label: (t) => t('settings.devSettings') },
 ]
 
 function SignOutButton({ signOut }: { signOut: () => Promise<void> }) {
@@ -94,8 +96,9 @@ export default function Settings() {
       {/* ── Tab content ─────────────────────────────────────────────────── */}
       {tab === 'users' && <UsersSettings />}
       {tab === 'menu'  && <MenuSettings />}
-      {tab === 'halls' && <HallsSettings />}
-      {tab === 'dev'   && <DeveloperSettings />}
+      {tab === 'halls'       && <HallsSettings />}
+      {tab === 'ingredients' && <IngredientsSettings />}
+      {tab === 'dev'         && <DeveloperSettings />}
 
       <SignOutButton signOut={signOut} />
     </div>
