@@ -6,7 +6,7 @@ import { ArrowLeft, Download, Send, CheckCheck, Building2, Trash2 } from 'lucide
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
-import { generateInvoicePDF, getLogoBase64, fmtRM, tsToDate, type InvoiceDoc } from '@/lib/invoice-pdf'
+import { generateInvoicePDF, buildInvoiceFilename, getLogoBase64, fmtRM, tsToDate, type InvoiceDoc } from '@/lib/invoice-pdf'
 import { cn } from '@/lib/utils'
 
 // ── Status styles ──────────────────────────────────────────────────────────
@@ -41,9 +41,12 @@ export default function InvoiceDetail() {
   const { t }       = useLanguage()
   const isAdmin     = userDoc?.role === 'admin'
 
-  const [invoice, setInvoice]     = useState<InvoiceDoc | null>(null)
-  const [eventName, setEventName] = useState('')
-  const [loading, setLoading]     = useState(true)
+  const [invoice, setInvoice]       = useState<InvoiceDoc | null>(null)
+  const [eventName, setEventName]   = useState('')
+  const [eventHallName, setEventHallName] = useState('')
+  const [eventTarikh, setEventTarikh]     = useState<Date | null>(null)
+  const [eventSesi, setEventSesi]         = useState('')
+  const [loading, setLoading]       = useState(true)
   const [busy, setBusy]           = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [deleting, setDeleting]   = useState(false)
@@ -56,7 +59,13 @@ export default function InvoiceDetail() {
         setInvoice(data)
         if (data.event_id) {
           const evSnap = await getDoc(doc(db, 'events', data.event_id))
-          if (evSnap.exists()) setEventName(evSnap.data().nama_majlis ?? '')
+          if (evSnap.exists()) {
+            const ev = evSnap.data()
+            setEventName(ev.nama_majlis ?? '')
+            setEventHallName(ev.hall_name ?? '')
+            setEventSesi(ev.sesi ?? '')
+            if (ev.tarikh?.toDate) setEventTarikh(ev.tarikh.toDate())
+          }
         }
       } else {
         setInvoice(null)
@@ -328,7 +337,14 @@ export default function InvoiceDetail() {
           {/* Right side actions */}
           <div className="flex flex-wrap gap-3 justify-end">
           <button
-            onClick={async () => { const logo = await getLogoBase64(); await generateInvoicePDF(invoice, eventName, logo) }}
+            onClick={async () => {
+              const logo = await getLogoBase64()
+              const invDate = tsToDate(invoice.invoice_date)
+              const filename = invoice.type === 'custom'
+                ? buildInvoiceFilename({ type: 'custom', billedTo: invoice.billed_to, reference: invoice.reference, date: invDate })
+                : buildInvoiceFilename({ type: 'regular', hallName: eventHallName, eventDate: eventTarikh ?? invDate, sesi: eventSesi, eventName })
+              await generateInvoicePDF(invoice, eventName, logo, filename)
+            }}
             className="flex items-center gap-2 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors shadow-sm"
           >
             <Download size={14} />

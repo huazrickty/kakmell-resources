@@ -8,7 +8,7 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { useEvent } from '@/hooks/useEvent'
-import { generateInvoicePDF, getLogoBase64, fmtRM, type InvoiceDoc } from '@/lib/invoice-pdf'
+import { generateInvoicePDF, buildInvoiceFilename, getLogoBase64, fmtRM, type InvoiceDoc } from '@/lib/invoice-pdf'
 import { cn } from '@/lib/utils'
 
 // ── Lookup tables ──────────────────────────────────────────────────────────
@@ -172,7 +172,14 @@ export default function NewInvoice() {
           status: 'draft', created_at: new Date(),
         }
         const logoBase64 = await getLogoBase64()
-        await generateInvoicePDF(inv, event.nama_majlis, logoBase64)
+        const filename = buildInvoiceFilename({
+          type: 'regular',
+          hallName: event.hall_name,
+          eventDate: event.tarikh.toDate(),
+          sesi: event.sesi,
+          eventName: event.nama_majlis,
+        })
+        await generateInvoicePDF(inv, event.nama_majlis, logoBase64, filename)
       }
 
       toast.success('Invois disimpan.')

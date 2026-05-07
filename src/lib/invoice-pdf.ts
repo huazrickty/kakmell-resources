@@ -41,6 +41,48 @@ function fmtDate(d: Date): string {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
 }
 
+function fmtFilenameDate(d: Date): string {
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  return `${dd}${mm}${d.getFullYear()}`
+}
+
+function sanitizePart(s: string): string {
+  return s
+    .replace(/^Majlis\s+/i, '')
+    .replace(/\s+&\s+/g, '-')
+    .replace(/\s+dan\s+/gi, '-')
+    .replace(/\s+/g, '')
+    .replace(/[^a-zA-Z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+export function buildInvoiceFilename(
+  params:
+    | { type: 'regular'; hallName: string; eventDate: Date; sesi: string; eventName: string }
+    | { type: 'custom';  billedTo?: string; reference?: string; date: Date }
+): string {
+  let name: string
+  if (params.type === 'regular') {
+    const hall    = sanitizePart(params.hallName.replace(/\bHall\b/gi, '').trim())
+    const date    = fmtFilenameDate(params.eventDate)
+    const session = params.sesi.toUpperCase()
+    const event   = sanitizePart(params.eventName)
+    name = `INV-${hall}_${date}_${session}_${event}`
+  } else if (params.reference?.trim()) {
+    const date = fmtFilenameDate(params.date)
+    const ref  = sanitizePart(params.reference)
+    name = `INV-${date}_${ref}`
+  } else {
+    const date   = fmtFilenameDate(params.date)
+    const billed = sanitizePart(params.billedTo ?? '')
+    name = `INV-${billed}_${date}`
+  }
+  if (name.length > 80) name = name.slice(0, 80).replace(/[_-]+$/, '')
+  return `${name}.pdf`
+}
+
 export function getLogoBase64(): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -64,6 +106,7 @@ export async function generateInvoicePDF(
   invoice: InvoiceDoc,
   eventName: string,
   logoBase64: string,
+  filename?: string,
 ): Promise<void> {
   const pdf = new jsPDF('p', 'mm', 'a4')
   const W = 210
@@ -200,5 +243,5 @@ export async function generateInvoicePDF(
   reg(6.5); pdf.setTextColor(156, 163, 175)
   pdf.text('Page 1 of 1', W - M, footY + 5, { align: 'right' })
 
-  pdf.save(`${invoice.invoice_no}.pdf`)
+  pdf.save(filename ?? `${invoice.invoice_no}.pdf`)
 }

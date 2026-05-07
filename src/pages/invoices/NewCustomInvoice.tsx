@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { ArrowLeft, Trash2, Plus, FileDown, Save } from 'lucide-react'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
-import { generateInvoicePDF, getLogoBase64, fmtRM, type InvoiceDoc } from '@/lib/invoice-pdf'
+import { generateInvoicePDF, buildInvoiceFilename, getLogoBase64, fmtRM, type InvoiceDoc } from '@/lib/invoice-pdf'
 import { cn } from '@/lib/utils'
 
 async function nextInvoiceNo(): Promise<string> {
@@ -107,7 +107,13 @@ export default function NewCustomInvoice() {
           created_at:   new Date(),
         }
         const logoBase64 = await getLogoBase64()
-        await generateInvoicePDF(inv, reference.trim(), logoBase64)
+        const filename = buildInvoiceFilename({
+          type: 'custom',
+          billedTo: billedTo.trim(),
+          reference: reference.trim(),
+          date: new Date(),
+        })
+        await generateInvoicePDF(inv, reference.trim(), logoBase64, filename)
       }
 
       toast.success('Invois disimpan.')

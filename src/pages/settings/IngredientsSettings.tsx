@@ -592,7 +592,7 @@ export default function IngredientsSettings() {
     <div className="space-y-4">
       {/* Info banner */}
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 leading-relaxed">
-        Nilai default diambil dari jadual bapak. Override akan menggantikan nilai default untuk semua kiraan baru.{' '}
+        Nilai default diambil dari jadual rujukan. Override akan menggantikan nilai default untuk semua kiraan baru.{' '}
         <span className="font-semibold text-gray-600">Kelabu</span> = default ·{' '}
         <span className="font-semibold text-red-600">Merah</span> = override aktif.
       </div>
