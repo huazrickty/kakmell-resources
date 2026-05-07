@@ -17,7 +17,7 @@ import { calculateIngredients, type IngredientResult } from '@/lib/ingredient-ca
 import { cn } from '@/lib/utils'
 import type { MenuSelection, EventDoc } from '@/hooks/useEvents'
 
-// ── Sub-components ──────────────────────────────────────────────────────────
+// ── Screen sub-components ───────────────────────────────────────────────────
 
 function InfoCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -80,154 +80,140 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-// ── Print layout ───────────────────────────────────────────────────────────
+// ── Print: window.open HTML generation ─────────────────────────────────────
 
-const PRINT_PAGE_CSS = `
-  @page { size: A4; margin: 12mm; }
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .print-no-break { page-break-inside: avoid; }
-  }
-`
-
-const PS = {
-  sectionHeader: {
-    fontSize: '7.5pt',
-    fontWeight: 800 as const,
-    color: '#dc2626',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.1em',
-    marginTop: '8pt',
-    marginBottom: '1.5pt',
-    borderBottom: '0.75pt solid #fca5a5',
-    paddingBottom: '1.5pt',
-  },
-  row: {
-    display: 'flex' as const,
-    alignItems: 'baseline' as const,
-    padding: '1.5pt 0',
-    fontSize: '9.5pt',
-    lineHeight: '1.3',
-    borderBottom: '0.5pt dotted #e5e7eb',
-  },
+function esc(s: string | null | undefined): string {
+  if (!s) return ''
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
-function PSectionHeader({ children }: { children: React.ReactNode }) {
-  return <div style={PS.sectionHeader}>{children}</div>
+function pRow(label: string, value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return ''
+  return `<div class="row"><span class="rl">${esc(label)}</span><span class="rs"></span><span class="rq">${esc(String(value))}</span></div>`
 }
 
-function PRow({ label, value }: { label: string; value: string | null | undefined }) {
-  if (!value) return null
-  return (
-    <div style={PS.row}>
-      <span style={{ color: '#374151' }}>{label}</span>
-      <span style={{ flex: 1 }} />
-      <span style={{ fontWeight: 700, color: '#111827', whiteSpace: 'nowrap' }}>{value}</span>
-    </div>
-  )
+function pSection(title: string): string {
+  return `<div class="sh">${esc(title)}</div>`
 }
 
-function PrintView({
-  event,
-  ingr,
-  menu,
-}: {
-  event: EventDoc
-  ingr: IngredientResult | null
-  menu: MenuSelection
-}) {
-  const buburRow = (() => {
-    if (!ingr) return null
+function generatePrintHTML(
+  event: EventDoc,
+  ingr: IngredientResult | null,
+  menu: MenuSelection,
+): string {
+  const logoUrl = `${window.location.origin}/logo.png`
+  const dateStr = format(event.tarikh.toDate(), 'd MMMM yyyy')
+  const sesi = event.sesi === 'siang' ? 'Siang' : 'Malam'
+  const bracketStr = ingr ? ` (Bracket ${ingr.bracket})` : ''
+  const printTime = format(new Date(), 'd MMM yyyy, HH:mm')
+
+  let buburHTML = ''
+  if (ingr) {
     const b = menu.bubur
-    if (b === 'Bubur Pulut Hitam')
-      return { label: 'Pulut Hitam', value: `${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_tin} tin santan` }
-    if (b === 'Bubur Kacang Hijau')
-      return { label: 'Kacang Hijau', value: `${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_tin} tin santan` }
-    if (b === 'Bubur Jagung')
-      return { label: 'Bubur Jagung', value: `${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kotak} kota stn` }
-    return null
-  })()
+    if (b === 'Bubur Pulut Hitam') {
+      buburHTML = pRow('Pulut Hitam', `${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_tin} tin santan`)
+    } else if (b === 'Bubur Kacang Hijau') {
+      buburHTML = pRow('Kacang Hijau', `${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_tin} tin santan`)
+    } else if (b === 'Bubur Jagung') {
+      buburHTML = pRow('Bubur Jagung', `${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kotak} kotak stn`)
+    } else {
+      buburHTML =
+        pRow('Pulut Hitam', `${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_tin} tin santan`) +
+        pRow('Kacang Hijau', `${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_tin} tin santan`) +
+        pRow('Jagung', `${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kotak} kotak stn`)
+    }
+  }
 
-  return (
-    <div className="hidden print:block" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
-      <style>{PRINT_PAGE_CSS}</style>
-
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', borderBottom: '1.5pt solid #dc2626', paddingBottom: '6pt', marginBottom: '8pt' }}>
-        <img src="/logo.png" alt="" style={{ height: '30pt', objectFit: 'contain', marginRight: '8pt' }} />
+  const bodyHTML = !ingr
+    ? `<div class="custom-pax">Pax melebihi 1,000 — kuantiti tersuai. Hubungi pengurusan.</div>`
+    : `<div class="grid">
         <div>
-          <div style={{ fontSize: '13pt', fontWeight: 800, color: '#111827', lineHeight: 1.2 }}>
-            KAKMELL RESOURCES
-          </div>
-          <div style={{ fontSize: '9.5pt', color: '#374151', marginTop: '1pt', lineHeight: 1.35 }}>
-            {event.nama_majlis} — {event.hall_name}
-          </div>
-          <div style={{ fontSize: '8.5pt', color: '#6b7280', marginTop: '1pt', lineHeight: 1.35 }}>
-            {format(event.tarikh.toDate(), 'd MMMM yyyy')} | {event.sesi === 'siang' ? 'Siang' : 'Malam'} | {event.pax} pax{ingr ? ` (Bracket ${ingr.bracket})` : ''}
-          </div>
+          ${pSection('Bahan Utama')}
+          ${pRow('Beras', `${ingr.main.beras_bag} bag`)}
+          ${pRow('Ayam', `${ingr.main.ayam_ekor} ekor`)}
+          ${pRow('Daging', `${ingr.main.daging_kg} kg`)}
+          ${pRow('Paceri Nenas', `${ingr.main.paceri_nenas_biji} biji`)}
+          ${pRow('Oren', `${ingr.main.oren_biji} biji`)}
+          ${pRow('Gula', `${ingr.main.gula_liter} L`)}
+          ${pSection('Kotak Daging')}
+          ${pRow('Slice (potong)', `${ingr.daging_box.slice_boxes} kotak`)}
+          ${pRow('Trim', `${ingr.daging_box.trim_boxes} kotak`)}
+          ${pRow('Lebihan', `${ingr.daging_box.variance_kg} kg`)}
         </div>
-      </div>
-
-      {/* Body */}
-      {!ingr ? (
-        <div style={{ fontSize: '10pt', color: '#6b7280', textAlign: 'center', padding: '20pt 0' }}>
-          Pax melebihi 1,000 — kuantiti tersuai. Hubungi pengurusan.
+        <div>
+          ${pSection('Dalca')}
+          ${pRow('Kacang Dall', ingr.dalca.kacang_dall)}
+          ${pRow('Terung', ingr.dalca.terung)}
+          ${pRow('Kentang', ingr.dalca.kentang)}
+          ${pRow('Karot', ingr.dalca.karot)}
+          ${pRow('Kacang Panjang', ingr.dalca.kacang_panjang)}
+          ${pRow('Serbuk Kari', ingr.dalca.serbuk_kari)}
+          ${pSection('Bubur')}
+          ${buburHTML}
+          ${pSection('Acar')}
+          ${ingr.acar.timun_kg !== null ? pRow('Timun', `${ingr.acar.timun_kg} kg`) : ''}
+          ${ingr.acar.nenas_biji !== null ? pRow('Nenas', `${ingr.acar.nenas_biji} biji`) : ''}
+          ${pRow('Paceri Nenas', `${ingr.acar.paceri_nenas_biji} biji`)}
         </div>
-      ) : (
-        <div className="print-no-break" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16pt' }}>
+      </div>`
 
-          {/* Left: Bahan Utama + Kotak Daging */}
-          <div>
-            <PSectionHeader>Bahan Utama</PSectionHeader>
-            <PRow label="Beras" value={`${ingr.main.beras_bag} bag`} />
-            <PRow label="Ayam" value={`${ingr.main.ayam_ekor} ekor`} />
-            <PRow label="Daging" value={`${ingr.main.daging_kg} kg`} />
-            <PRow label="Paceri Nenas" value={`${ingr.main.paceri_nenas_biji} biji`} />
-            <PRow label="Oren" value={`${ingr.main.oren_biji} biji`} />
-            <PRow label="Gula" value={`${ingr.main.gula_liter} L`} />
+  return `<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<title>Bahan-bahan — ${esc(event.nama_majlis)}</title>
+<style>
+@page { size: A4 portrait; margin: 12mm; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; line-height: 1.3; color: #374151; }
+.header { display: flex; align-items: flex-start; border-bottom: 1.5pt solid #dc2626; padding-bottom: 6pt; margin-bottom: 8pt; }
+.logo { height: 30pt; object-fit: contain; margin-right: 8pt; }
+.brand { font-size: 13pt; font-weight: 800; color: #111827; line-height: 1.2; }
+.ev-sub { font-size: 9.5pt; color: #374151; margin-top: 1pt; }
+.ev-meta { font-size: 8.5pt; color: #6b7280; margin-top: 1pt; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16pt; }
+.sh { font-size: 7.5pt; font-weight: 800; color: #dc2626; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 8pt; margin-bottom: 1.5pt; border-bottom: 0.75pt solid #fca5a5; padding-bottom: 1.5pt; }
+.row { display: flex; align-items: baseline; padding: 1.5pt 0; border-bottom: 0.5pt dotted #e5e7eb; }
+.rl { color: #374151; }
+.rs { flex: 1; }
+.rq { font-weight: 700; color: #111827; white-space: nowrap; }
+.footer { margin-top: 10pt; border-top: 0.5pt solid #e5e7eb; padding-top: 4pt; display: flex; justify-content: space-between; font-size: 7.5pt; color: #9ca3af; }
+.custom-pax { font-size: 10pt; color: #6b7280; text-align: center; padding: 20pt 0; }
+</style>
+</head>
+<body>
+<div class="header">
+  <img class="logo" src="${logoUrl}" alt="">
+  <div>
+    <div class="brand">KAKMELL RESOURCES</div>
+    <div class="ev-sub">${esc(event.nama_majlis)} — ${esc(event.hall_name)}</div>
+    <div class="ev-meta">${esc(dateStr)} | ${sesi} | ${event.pax} pax${bracketStr}</div>
+  </div>
+</div>
+${bodyHTML}
+<div class="footer">
+  <span>Dijana: ${esc(printTime)}</span>
+  <span>KAKMELL RESOURCES</span>
+</div>
+</body>
+</html>`
+}
 
-            <PSectionHeader>Kotak Daging</PSectionHeader>
-            <PRow label="Slice (potong)" value={`${ingr.daging_box.slice_boxes} kotak`} />
-            <PRow label="Trim" value={`${ingr.daging_box.trim_boxes} kotak`} />
-            <PRow label="Lebihan" value={`${ingr.daging_box.variance_kg} kg`} />
-          </div>
-
-          {/* Right: Dalca + Bubur + Acar */}
-          <div>
-            <PSectionHeader>Dalca</PSectionHeader>
-            <PRow label="Kacang Dall" value={ingr.dalca.kacang_dall} />
-            <PRow label="Terung" value={ingr.dalca.terung} />
-            <PRow label="Kentang" value={ingr.dalca.kentang} />
-            <PRow label="Karot" value={ingr.dalca.karot} />
-            <PRow label="Kacang Panjang" value={ingr.dalca.kacang_panjang} />
-            <PRow label="Serbuk Kari" value={ingr.dalca.serbuk_kari} />
-
-            <PSectionHeader>Bubur</PSectionHeader>
-            {buburRow ? (
-              <PRow label={buburRow.label} value={buburRow.value} />
-            ) : (
-              <>
-                <PRow label="Pulut Hitam" value={`${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_tin} tin santan`} />
-                <PRow label="Kacang Hijau" value={`${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_tin} tin santan`} />
-                <PRow label="Jagung" value={`${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kotak} kotak stn`} />
-              </>
-            )}
-
-            <PSectionHeader>Acar</PSectionHeader>
-            <PRow label="Timun" value={ingr.acar.timun_kg !== null ? `${ingr.acar.timun_kg} kg` : null} />
-            <PRow label="Nenas" value={ingr.acar.nenas_biji !== null ? `${ingr.acar.nenas_biji} biji` : null} />
-            <PRow label="Paceri Nenas" value={`${ingr.acar.paceri_nenas_biji} biji`} />
-          </div>
-        </div>
-      )}
-
-      {/* Footer */}
-      <div style={{ marginTop: '10pt', borderTop: '0.5pt solid #e5e7eb', paddingTop: '4pt', display: 'flex', justifyContent: 'space-between', fontSize: '7.5pt', color: '#9ca3af' }}>
-        <span>Dijana: {format(new Date(), 'd MMM yyyy, HH:mm')}</span>
-        <span>KAKMELL RESOURCES</span>
-      </div>
-    </div>
-  )
+function printIngredients(event: EventDoc, ingr: IngredientResult | null, menu: MenuSelection) {
+  const html = generatePrintHTML(event, ingr, menu)
+  const w = window.open('', '_blank')
+  if (!w) {
+    toast.error('Pop-up disekat. Sila benarkan pop-up untuk mencetak.')
+    return
+  }
+  w.document.write(html)
+  w.document.close()
+  w.focus()
+  setTimeout(() => { w.print(); w.close() }, 300)
 }
 
 // ── Main component ──────────────────────────────────────────────────────────
@@ -324,7 +310,7 @@ export default function EventDetail() {
     }
   }
 
-  // ── Loading / not found ─────────────────────────────────────────────────
+  // ── Loading / not found ───────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -355,13 +341,13 @@ export default function EventDetail() {
     `events.status${event.status.charAt(0).toUpperCase() + event.status.slice(1)}` as Parameters<typeof t>[0]
   )
 
-  // ── Render ──────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto">
 
-      {/* ── Screen header ── */}
-      <div className="flex items-start gap-3 mb-5 print:hidden">
+      {/* Header */}
+      <div className="flex items-start gap-3 mb-5">
         <button
           onClick={() => navigate('/events')}
           className="mt-1 text-gray-400 hover:text-gray-700 transition-colors shrink-0"
@@ -385,18 +371,8 @@ export default function EventDetail() {
         </span>
       </div>
 
-      {/* ── Print header (only visible when printing) ── */}
-      <div className="hidden print:block mb-6 border-b border-gray-200 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900">{event.nama_majlis}</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          {format(event.tarikh.toDate(), 'd MMMM yyyy')} ·{' '}
-          {event.sesi === 'siang' ? 'Siang' : 'Malam'} · {event.pax} pax ·{' '}
-          {event.hall_name}
-        </p>
-      </div>
-
-      {/* ── Tab bar ── */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-5 print:hidden">
+      {/* Tab bar */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-5">
         {(['details', 'ingredients'] as const).map((tabKey) => (
           <button
             key={tabKey}
@@ -725,13 +701,13 @@ export default function EventDetail() {
       {tab === 'ingredients' && (
         <div>
           {/* Print action */}
-          <div className="flex items-center justify-between mb-4 print:hidden">
+          <div className="flex items-center justify-between mb-4">
             <p className="text-xs text-gray-400">
               Dikira berdasarkan{' '}
               <span className="font-semibold text-gray-600">{event.pax} pax</span>
             </p>
             <button
-              onClick={() => window.print()}
+              onClick={() => printIngredients(event, ingr, menu)}
               className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
             >
               <Printer size={14} strokeWidth={2} />
@@ -740,11 +716,11 @@ export default function EventDetail() {
           </div>
 
           {!ingr ? (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center print:hidden">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
               <p className="text-sm text-gray-400">{t('events.customPax')}</p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6 print:hidden">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
               {/* Bracket */}
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-gray-400">{t('ingredients.bracket')}</span>
@@ -779,33 +755,16 @@ export default function EventDetail() {
 
               {/* Bubur */}
               <SectionHeader title="Bubur" />
-              <IngRow
-                label="Pulut Hitam"
-                value={`${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_tin} tin santan`}
-              />
-              <IngRow
-                label="Kacang Hijau"
-                value={`${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_tin} tin santan`}
-              />
-              <IngRow
-                label="Bubur Jagung"
-                value={`${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kotak} kotak santan`}
-              />
+              <IngRow label="Pulut Hitam" value={`${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_tin} tin santan`} />
+              <IngRow label="Kacang Hijau" value={`${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_tin} tin santan`} />
+              <IngRow label="Bubur Jagung" value={`${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kotak} kotak santan`} />
 
               {/* Acar */}
               <SectionHeader title="Acar" />
-              <IngRow
-                label="Timun"
-                value={ingr.acar.timun_kg !== null ? `${ingr.acar.timun_kg} kg` : null}
-              />
-              <IngRow
-                label="Nenas"
-                value={ingr.acar.nenas_biji !== null ? `${ingr.acar.nenas_biji} biji` : null}
-              />
+              <IngRow label="Timun" value={ingr.acar.timun_kg !== null ? `${ingr.acar.timun_kg} kg` : null} />
+              <IngRow label="Nenas" value={ingr.acar.nenas_biji !== null ? `${ingr.acar.nenas_biji} biji` : null} />
             </div>
           )}
-
-          <PrintView event={event} ingr={ingr} menu={menu} />
         </div>
       )}
     </div>
