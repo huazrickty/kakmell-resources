@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { startOfWeek, endOfWeek, isWithinInterval, addWeeks } from 'date-fns'
 import { CalendarDays, Clock, CheckCircle2, CalendarCheck, ChevronLeft, ChevronRight, FileDown } from 'lucide-react'
 import { toast } from 'sonner'
+import { collection, getDocs, query, where } from 'firebase/firestore'
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { useEvents } from '@/hooks/useEvents'
@@ -9,6 +11,7 @@ import EventSummaryCard from '@/components/EventSummaryCard'
 import { calculateIngredients } from '@/lib/ingredient-calculator'
 import { generateWeeklyPDF, fmtWeekRange, type WeeklyEventEntry } from '@/lib/weekly-export-pdf'
 import { getLogoBase64 } from '@/lib/invoice-pdf'
+import { db } from '@/lib/firebase'
 
 function SkeletonCard() {
   return (
@@ -57,6 +60,14 @@ function StatCard({ label, value, icon: Icon, accent = 'neutral' }: StatCardProp
   )
 }
 
+interface MonthData {
+  month: string
+  revenue: number
+  events: number
+}
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
 export default function Dashboard() {
   const { userDoc } = useAuth()
   const { t } = useLanguage()
@@ -64,6 +75,7 @@ export default function Dashboard() {
   const isAdmin = userDoc?.role === 'admin'
 
   const now       = new Date()
+  const currentYear = now.getFullYear()
   const weekStart = startOfWeek(now, { weekStartsOn: 1 })
   const weekEnd   = endOfWeek(now, { weekStartsOn: 1 })
 
@@ -76,6 +88,43 @@ export default function Dashboard() {
   // ── Weekly export state ────────────────────────────────────────────────────
   const [weekOffset, setWeekOffset] = useState(0)
   const [exporting, setExporting]   = useState<'all' | 'upcoming' | null>(null)
+
+  // ── Revenue analytics state ────────────────────────────────────────────────
+  const [analyticsLoading, setAnalyticsLoading]       = useState(true)
+  const [analyticsYear, setAnalyticsYear]             = useState(new Date().getFullYear())
+  const [paidInvoices, setPaidInvoices]               = useState<{ total: number; invoice_date: any }[]>([])
+  const [allEventsForChart, setAllEventsForChart]     = useState<{ tarikh: any }[]>([])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    Promise.all([
+      getDocs(query(collection(db, 'invoices'), where('status', '==', 'paid'))),
+      getDocs(collection(db, 'events')),
+    ]).then(([invSnap, evSnap]) => {
+      setPaidInvoices(invSnap.docs.map(d => ({ total: d.data().total ?? 0, invoice_date: d.data().invoice_date })))
+      setAllEventsForChart(evSnap.docs.map(d => ({ tarikh: d.data().tarikh })))
+    }).catch(() => {}).finally(() => setAnalyticsLoading(false))
+  }, [isAdmin])
+
+  const monthData: MonthData[] = useMemo(() => {
+    return MONTHS.map((month, i) => {
+      const revenue = paidInvoices
+        .filter(inv => {
+          const d: Date | null = inv.invoice_date?.toDate?.() ?? null
+          return d && d.getFullYear() === analyticsYear && d.getMonth() === i
+        })
+        .reduce((sum, inv) => sum + (inv.total || 0), 0)
+
+      const eventsCount = allEventsForChart.filter(ev => {
+        const d: Date | null = ev.tarikh?.toDate?.() ?? null
+        return d && d.getFullYear() === analyticsYear && d.getMonth() === i
+      }).length
+
+      return { month, revenue, events: eventsCount }
+    })
+  }, [paidInvoices, allEventsForChart, analyticsYear])
+
+  const annualRevenue = useMemo(() => monthData.reduce((s, m) => s + m.revenue, 0), [monthData])
 
   const refWeek       = addWeeks(now, weekOffset)
   const exportStart   = startOfWeek(refWeek, { weekStartsOn: 1 })
@@ -259,6 +308,111 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Revenue Analytics — admin only ────────────────────────────────── */}
+      {isAdmin && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+            {t('dashboard.revenueAnalytics')}
+          </h2>
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
+            {/* Top bar */}
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+              {/* Year selector */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setAnalyticsYear(y => y - 1)}
+                  className="h-7 w-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-sm font-bold text-gray-900 w-12 text-center">{analyticsYear}</span>
+                <button
+                  onClick={() => setAnalyticsYear(y => y + 1)}
+                  disabled={analyticsYear >= currentYear}
+                  className="h-7 w-7 flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+
+              {/* Annual revenue */}
+              <div className="text-right">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">
+                  {t('dashboard.annualRevenue')}
+                </p>
+                <p className="text-xl font-black text-[#1B4332]">
+                  RM {annualRevenue.toLocaleString('en-MY', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+
+            {/* Chart or skeleton */}
+            {analyticsLoading ? (
+              <div className="h-[280px] bg-gray-50 rounded-xl animate-pulse" />
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <ComposedChart data={monthData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    yAxisId="revenue"
+                    orientation="left"
+                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v: number) => `RM${(v / 1000).toFixed(0)}k`}
+                    width={52}
+                  />
+                  <YAxis
+                    yAxisId="events"
+                    orientation="right"
+                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={30}
+                  />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
+                    formatter={(value, name) => {
+                      const num = Number(value ?? 0)
+                      if (name === 'Revenue') {
+                        return [`RM ${num.toLocaleString('en-MY', { minimumFractionDigits: 2 })}`, 'Revenue'] as [string, string]
+                      }
+                      return [value, 'Events'] as [typeof value, string]
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar
+                    yAxisId="revenue"
+                    dataKey="revenue"
+                    name="Revenue"
+                    fill="#C4202A"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={36}
+                  />
+                  <Line
+                    yAxisId="events"
+                    dataKey="events"
+                    name="Events"
+                    stroke="#1B4332"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: '#1B4332' }}
+                    activeDot={{ r: 5 }}
+                    type="monotone"
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </section>
       )}

@@ -73,6 +73,16 @@ const strings = {
     'dashboard.exportUpcoming': 'Upcoming',
     'dashboard.pdfGenerated': 'PDF generated.',
     'dashboard.pdfError': 'PDF generation failed. Try again.',
+    'dashboard.revenueAnalytics': 'Revenue Analytics',
+    'dashboard.annualRevenue': 'Annual Revenue',
+    'dashboard.eventsCountLabel': 'Events Count',
+    'dashboard.monthlyRevenue': 'Monthly Revenue',
+    // ── Search ────────────────────────────────────────────────────────────
+    'search.title': 'Search',
+    'search.placeholder': 'Search events and invoices...',
+    'search.placeholderKitchen': 'Search events...',
+    'search.noResults': 'No results found',
+    'search.escToClose': 'Press Escape to close',
     // ── Events ────────────────────────────────────────────────────────────
     'events.title': 'Events',
     'events.new': 'New Event',
@@ -364,6 +374,16 @@ const strings = {
     'dashboard.exportUpcoming': 'Akan Datang',
     'dashboard.pdfGenerated': 'PDF berjaya dijana.',
     'dashboard.pdfError': 'Gagal menjana PDF. Cuba lagi.',
+    'dashboard.revenueAnalytics': 'Analitik Hasil',
+    'dashboard.annualRevenue': 'Hasil Tahunan',
+    'dashboard.eventsCountLabel': 'Jumlah Acara',
+    'dashboard.monthlyRevenue': 'Hasil Bulanan',
+    // ── Search ────────────────────────────────────────────────────────────
+    'search.title': 'Cari',
+    'search.placeholder': 'Cari acara dan invois...',
+    'search.placeholderKitchen': 'Cari acara...',
+    'search.noResults': 'Tiada hasil dijumpai',
+    'search.escToClose': 'Tekan Escape untuk tutup',
     // ── Events ────────────────────────────────────────────────────────────
     'events.title': 'Acara',
     'events.new': 'Acara Baru',
