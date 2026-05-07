@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { startOfWeek, endOfWeek, isWithinInterval, addWeeks, format } from 'date-fns'
+import { startOfWeek, endOfWeek, isWithinInterval, addWeeks } from 'date-fns'
 import { CalendarDays, Clock, CheckCircle2, CalendarCheck, ChevronLeft, ChevronRight, FileDown } from 'lucide-react'
-import { httpsCallable } from 'firebase/functions'
 import { toast } from 'sonner'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { useEvents } from '@/hooks/useEvents'
 import EventSummaryCard from '@/components/EventSummaryCard'
-import { functions } from '@/lib/firebase'
+import { calculateIngredients } from '@/lib/ingredient-calculator'
 import { generateWeeklyPDF, fmtWeekRange, type WeeklyEventEntry } from '@/lib/weekly-export-pdf'
 
 function SkeletonCard() {
@@ -84,14 +83,21 @@ export default function Dashboard() {
     isWithinInterval(e.tarikh.toDate(), { start: exportStart, end: exportEnd })
   )
 
-  async function handleExport() {
+  function handleExport() {
     setExporting(true)
     try {
-      const fn  = httpsCallable<{ weekStart: string }, WeeklyEventEntry[]>(
-        functions, 'generateWeeklyExportData'
-      )
-      const res = await fn({ weekStart: format(exportStart, 'yyyy-MM-dd') })
-      generateWeeklyPDF(exportStart, exportEnd, res.data)
+      const data: WeeklyEventEntry[] = exportEvents.map((e) => ({
+        event: {
+          nama_majlis:    e.nama_majlis,
+          hall_name:      e.hall_name,
+          tarikh:         e.tarikh,
+          sesi:           e.sesi,
+          pax:            e.pax,
+          menu_selection: e.menu_selection as unknown as Record<string, string>,
+        },
+        ingredients: calculateIngredients(e.pax),
+      }))
+      generateWeeklyPDF(exportStart, exportEnd, data)
       toast.success('PDF berjaya dijana.')
     } catch {
       toast.error('Gagal menjana PDF. Cuba lagi.')

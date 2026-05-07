@@ -95,6 +95,7 @@ const strings = {
     'events.eventNotFound': 'Event not found.',
     // ── Ingredients ───────────────────────────────────────────────────────
     'ingredients.title': 'Ingredients',
+    'ingredients.noEvents': 'No upcoming events',
     'ingredients.bracket': 'Pax Bracket',
     'ingredients.mainItems': 'Main Items',
     'ingredients.daging': 'Daging',
@@ -110,6 +111,12 @@ const strings = {
     'checklist.resetConfirm': 'Reset checklist for today?',
     'checklist.allDone': 'All items checked',
     'checklist.lastUpdated': 'Last updated',
+    'checklist.todayEvents': "Today's Events",
+    'checklist.weekEvents': "This Week's Events",
+    'checklist.noEventsToday': 'No events today or this week',
+    'checklist.showIngredients': 'View Ingredients',
+    'checklist.hideIngredients': 'Hide',
+    'checklist.done': 'done',
     // ── Invoice ───────────────────────────────────────────────────────────
     'invoice.title': 'Invoices',
     'invoice.new': 'New Invoice',
@@ -252,6 +259,7 @@ const strings = {
     'events.eventNotFound': 'Acara tidak dijumpai.',
     // ── Ingredients ───────────────────────────────────────────────────────
     'ingredients.title': 'Bahan-bahan',
+    'ingredients.noEvents': 'Tiada acara akan datang',
     'ingredients.bracket': 'Kuantiti Pax',
     'ingredients.mainItems': 'Bahan Utama',
     'ingredients.daging': 'Daging',
@@ -267,6 +275,12 @@ const strings = {
     'checklist.resetConfirm': 'Set semula senarai semak hari ini?',
     'checklist.allDone': 'Semua item ditandai',
     'checklist.lastUpdated': 'Kemaskini terakhir',
+    'checklist.todayEvents': 'Acara Hari Ini',
+    'checklist.weekEvents': 'Acara Minggu Ini',
+    'checklist.noEventsToday': 'Tiada acara hari ini atau minggu ini',
+    'checklist.showIngredients': 'Lihat Bahan',
+    'checklist.hideIngredients': 'Sembunyikan',
+    'checklist.done': 'siap',
     // ── Invoice ───────────────────────────────────────────────────────────
     'invoice.title': 'Invois',
     'invoice.new': 'Invois Baru',

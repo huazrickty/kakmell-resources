@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { collection, onSnapshot } from 'firebase/firestore'
-import { httpsCallable } from 'firebase/functions'
-import { db, functions } from '@/lib/firebase'
+import { collection, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { toast } from 'sonner'
@@ -41,9 +40,14 @@ export default function UsersSettings() {
   async function approve(uid: string, role: 'admin' | 'kitchen') {
     setBusy(uid)
     try {
-      await httpsCallable(functions, 'approveUser')({ uid, role })
+      await updateDoc(doc(db, 'users', uid), {
+        role,
+        approved_at: serverTimestamp(),
+        approved_by: user!.uid,
+      })
       toast.success('User updated.')
-    } catch {
+    } catch (err) {
+      console.error('approve error:', err)
       toast.error('Failed to update user.')
     } finally {
       setBusy(null)
