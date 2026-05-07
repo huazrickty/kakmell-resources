@@ -43,22 +43,35 @@ function applyDalcaOverride(
   ov: OverrideMap,
 ): DalcaIngredients {
   const r = { ...base }
-  const fields: Array<[string, keyof DalcaIngredients]> = [
+
+  // Non-nullable dalca fields — unit holds the display string; skip if empty
+  const strFields: Array<[string, keyof Pick<DalcaIngredients, 'kacang_dall' | 'terung' | 'kentang' | 'kacang_panjang'>]> = [
     ['dalca/kacang_dall',    'kacang_dall'],
     ['dalca/terung',         'terung'],
     ['dalca/kentang',        'kentang'],
-    ['dalca/karot',          'karot'],
     ['dalca/kacang_panjang', 'kacang_panjang'],
-    ['dalca/serbuk_kari',    'serbuk_kari'],
   ]
-  for (const [key, field] of fields) {
+  for (const [key, field] of strFields) {
     const o = ov[key]
     if (o && !o.is_flat && o.brackets[bracket]) {
       const bv = o.brackets[bracket]!
-      // qty=0 means null/—; unit holds the full display string
+      if (bv.unit) r[field] = bv.unit
+    }
+  }
+
+  // Nullable dalca fields — qty=0 means null/—; unit holds the display string
+  const nullableFields: Array<[string, keyof Pick<DalcaIngredients, 'karot' | 'serbuk_kari'>]> = [
+    ['dalca/karot',       'karot'],
+    ['dalca/serbuk_kari', 'serbuk_kari'],
+  ]
+  for (const [key, field] of nullableFields) {
+    const o = ov[key]
+    if (o && !o.is_flat && o.brackets[bracket]) {
+      const bv = o.brackets[bracket]!
       r[field] = bv.qty === 0 ? null : bv.unit
     }
   }
+
   return r
 }
 
