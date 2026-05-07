@@ -60,13 +60,13 @@ export function getBracket(pax: number): number {
 
 const MAIN_TABLE: Record<Bracket, MainIngredients> = {
   300:  { beras_bag: 2,   ayam_ekor: 20, daging_kg: 18, paceri_nenas_biji: 20, oren_biji: 25, gula_liter: 10 },
-  400:  { beras_bag: 3,   ayam_ekor: 28, daging_kg: 24, paceri_nenas_biji: 25, oren_biji: 30, gula_liter: 10 },
-  500:  { beras_bag: 3.5, ayam_ekor: 35, daging_kg: 30, paceri_nenas_biji: 35, oren_biji: 30, gula_liter: 15 },
-  600:  { beras_bag: 4,   ayam_ekor: 42, daging_kg: 36, paceri_nenas_biji: 40, oren_biji: 30, gula_liter: 20 },
-  700:  { beras_bag: 4.5, ayam_ekor: 50, daging_kg: 42, paceri_nenas_biji: 45, oren_biji: 30, gula_liter: 20 },
-  800:  { beras_bag: 5.5, ayam_ekor: 55, daging_kg: 48, paceri_nenas_biji: 50, oren_biji: 30, gula_liter: 25 },
-  900:  { beras_bag: 6,   ayam_ekor: 65, daging_kg: 54, paceri_nenas_biji: 60, oren_biji: 35, gula_liter: 30 },
-  1000: { beras_bag: 7,   ayam_ekor: 70, daging_kg: 60, paceri_nenas_biji: 70, oren_biji: 40, gula_liter: 30 },
+  400:  { beras_bag: 3,   ayam_ekor: 28, daging_kg: 24, paceri_nenas_biji: 20, oren_biji: 30, gula_liter: 10 },
+  500:  { beras_bag: 3.5, ayam_ekor: 35, daging_kg: 30, paceri_nenas_biji: 30, oren_biji: 30, gula_liter: 15 },
+  600:  { beras_bag: 4,   ayam_ekor: 42, daging_kg: 36, paceri_nenas_biji: 35, oren_biji: 30, gula_liter: 20 },
+  700:  { beras_bag: 4.5, ayam_ekor: 49, daging_kg: 42, paceri_nenas_biji: 40, oren_biji: 30, gula_liter: 20 },
+  800:  { beras_bag: 5.5, ayam_ekor: 55, daging_kg: 48, paceri_nenas_biji: 45, oren_biji: 30, gula_liter: 25 },
+  900:  { beras_bag: 6,   ayam_ekor: 65, daging_kg: 54, paceri_nenas_biji: 55, oren_biji: 35, gula_liter: 30 },
+  1000: { beras_bag: 7,   ayam_ekor: 70, daging_kg: 60, paceri_nenas_biji: 65, oren_biji: 40, gula_liter: 30 },
 }
 
 export function getMainIngredients(pax: number): MainIngredients {
@@ -117,13 +117,13 @@ export const BUBUR: BuburIngredients = {
 
 const ACAR_TABLE: Record<Bracket, AcarIngredients> = {
   300:  { timun_kg: 10,   nenas_biji: 10,   paceri_nenas_biji: 20 },
-  400:  { timun_kg: null, nenas_biji: null,  paceri_nenas_biji: 25 },
-  500:  { timun_kg: 15,   nenas_biji: 10,   paceri_nenas_biji: 35 },
-  600:  { timun_kg: null, nenas_biji: null,  paceri_nenas_biji: 40 },
-  700:  { timun_kg: 20,   nenas_biji: 10,   paceri_nenas_biji: 45 },
-  800:  { timun_kg: 25,   nenas_biji: 12,   paceri_nenas_biji: 50 },
-  900:  { timun_kg: null, nenas_biji: null,  paceri_nenas_biji: 60 },
-  1000: { timun_kg: 30,   nenas_biji: 20,   paceri_nenas_biji: 70 },
+  400:  { timun_kg: null, nenas_biji: null,  paceri_nenas_biji: 20 },
+  500:  { timun_kg: 15,   nenas_biji: 10,   paceri_nenas_biji: 30 },
+  600:  { timun_kg: null, nenas_biji: null,  paceri_nenas_biji: 35 },
+  700:  { timun_kg: 20,   nenas_biji: 10,   paceri_nenas_biji: 40 },
+  800:  { timun_kg: 25,   nenas_biji: 12,   paceri_nenas_biji: 45 },
+  900:  { timun_kg: null, nenas_biji: null,  paceri_nenas_biji: 55 },
+  1000: { timun_kg: 30,   nenas_biji: 20,   paceri_nenas_biji: 65 },
 }
 
 export function getAcar(pax: number): AcarIngredients {

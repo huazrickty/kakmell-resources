@@ -61,21 +61,21 @@ describe('getMainIngredients', () => {
   it('returns correct values for bracket 500 (has fractional beras)', () => {
     expect(getMainIngredients(500)).toEqual({
       beras_bag: 3.5, ayam_ekor: 35, daging_kg: 30,
-      paceri_nenas_biji: 35, oren_biji: 30, gula_liter: 15,
+      paceri_nenas_biji: 30, oren_biji: 30, gula_liter: 15,
     })
   })
 
   it('returns correct values for bracket 800', () => {
     expect(getMainIngredients(800)).toEqual({
       beras_bag: 5.5, ayam_ekor: 55, daging_kg: 48,
-      paceri_nenas_biji: 50, oren_biji: 30, gula_liter: 25,
+      paceri_nenas_biji: 45, oren_biji: 30, gula_liter: 25,
     })
   })
 
   it('returns correct values for bracket 1000', () => {
     expect(getMainIngredients(1000)).toEqual({
       beras_bag: 7, ayam_ekor: 70, daging_kg: 60,
-      paceri_nenas_biji: 70, oren_biji: 40, gula_liter: 30,
+      paceri_nenas_biji: 65, oren_biji: 40, gula_liter: 30,
     })
   })
 
@@ -184,32 +184,32 @@ describe('getAcar', () => {
   })
 
   it('bracket 400: timun and nenas are null, paceri present', () => {
-    expect(getAcar(400)).toEqual({ timun_kg: null, nenas_biji: null, paceri_nenas_biji: 25 })
+    expect(getAcar(400)).toEqual({ timun_kg: null, nenas_biji: null, paceri_nenas_biji: 20 })
   })
 
-  it('bracket 500: timun 15kg, nenas 10 biji, paceri 35 biji', () => {
-    expect(getAcar(500)).toEqual({ timun_kg: 15, nenas_biji: 10, paceri_nenas_biji: 35 })
+  it('bracket 500: timun 15kg, nenas 10 biji, paceri 30 biji', () => {
+    expect(getAcar(500)).toEqual({ timun_kg: 15, nenas_biji: 10, paceri_nenas_biji: 30 })
   })
 
   it('bracket 600: timun and nenas null', () => {
     const a = getAcar(600)
     expect(a.timun_kg).toBeNull()
     expect(a.nenas_biji).toBeNull()
-    expect(a.paceri_nenas_biji).toBe(40)
+    expect(a.paceri_nenas_biji).toBe(35)
   })
 
-  it('bracket 800: timun 25kg, nenas 12 biji, paceri 50 biji', () => {
-    expect(getAcar(800)).toEqual({ timun_kg: 25, nenas_biji: 12, paceri_nenas_biji: 50 })
+  it('bracket 800: timun 25kg, nenas 12 biji, paceri 45 biji', () => {
+    expect(getAcar(800)).toEqual({ timun_kg: 25, nenas_biji: 12, paceri_nenas_biji: 45 })
   })
 
-  it('bracket 900: timun and nenas null, paceri 60', () => {
+  it('bracket 900: timun and nenas null, paceri 55', () => {
     const a = getAcar(900)
     expect(a.timun_kg).toBeNull()
-    expect(a.paceri_nenas_biji).toBe(60)
+    expect(a.paceri_nenas_biji).toBe(55)
   })
 
-  it('bracket 1000: timun 30kg, nenas 20 biji, paceri 70 biji', () => {
-    expect(getAcar(1000)).toEqual({ timun_kg: 30, nenas_biji: 20, paceri_nenas_biji: 70 })
+  it('bracket 1000: timun 30kg, nenas 20 biji, paceri 65 biji', () => {
+    expect(getAcar(1000)).toEqual({ timun_kg: 30, nenas_biji: 20, paceri_nenas_biji: 65 })
   })
 
   it('non-exact pax — 850 resolves to 900', () => {
@@ -254,7 +254,7 @@ describe('calculateIngredients', () => {
     expect(r.daging_box.variance_kg).toBe(8)
     expect(r.dalca.kacang_dall).toBe('3kg')
     expect(r.acar.timun_kg).toBe(30)
-    expect(r.acar.paceri_nenas_biji).toBe(70)
+    expect(r.acar.paceri_nenas_biji).toBe(65)
   })
 
   it('bubur is always flat regardless of bracket', () => {
