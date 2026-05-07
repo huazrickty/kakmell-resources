@@ -1,0 +1,22 @@
+import { useEffect, useState } from 'react'
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+
+export function useHalls(): { halls: string[]; loading: boolean } {
+  const [halls, setHalls] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const q = query(
+      collection(db, 'halls'),
+      where('is_active', '==', true),
+      orderBy('name', 'asc')
+    )
+    getDocs(q).then((snap) => {
+      setHalls(snap.docs.map((d) => d.data().name as string))
+      setLoading(false)
+    })
+  }, [])
+
+  return { halls, loading }
+}
