@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
-import { doc, onSnapshot, updateDoc, getDoc } from 'firebase/firestore'
+import { doc, onSnapshot, updateDoc, deleteDoc, getDoc } from 'firebase/firestore'
 import { toast } from 'sonner'
-import { ArrowLeft, Download, Send, CheckCheck, Building2 } from 'lucide-react'
+import { ArrowLeft, Download, Send, CheckCheck, Building2, Trash2 } from 'lucide-react'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -41,10 +41,12 @@ export default function InvoiceDetail() {
   const { t }       = useLanguage()
   const isAdmin     = userDoc?.role === 'admin'
 
-  const [invoice, setInvoice]   = useState<InvoiceDoc | null>(null)
+  const [invoice, setInvoice]     = useState<InvoiceDoc | null>(null)
   const [eventName, setEventName] = useState('')
-  const [loading, setLoading]   = useState(true)
-  const [busy, setBusy]         = useState(false)
+  const [loading, setLoading]     = useState(true)
+  const [busy, setBusy]           = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleting, setDeleting]   = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -63,6 +65,19 @@ export default function InvoiceDetail() {
     })
     return unsub
   }, [id])
+
+  async function handleDelete() {
+    if (!id) return
+    setDeleting(true)
+    try {
+      await deleteDoc(doc(db, 'invoices', id))
+      toast.success('Invois berjaya dipadam.')
+      navigate('/invoices')
+    } catch {
+      toast.error('Ralat. Cuba lagi.')
+      setDeleting(false)
+    }
+  }
 
   async function updateStatus(status: 'sent' | 'paid') {
     if (!id) return
@@ -279,7 +294,39 @@ export default function InvoiceDetail() {
 
       {/* Action buttons */}
       {isAdmin && (
-        <div className="flex flex-wrap gap-3 justify-end">
+        <div className="flex flex-wrap items-center gap-3 justify-between">
+          {/* Delete — left side */}
+          {!deleteConfirm ? (
+            <button
+              onClick={() => setDeleteConfirm(true)}
+              className="flex items-center gap-2 text-red-600 hover:bg-red-50 border border-red-200 font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors"
+            >
+              <Trash2 size={14} />
+              Padam Invois
+            </button>
+          ) : (
+            <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 flex-1">
+              <span className="text-xs text-red-700 font-medium flex-1">
+                Padam invois ini? Tindakan ini tidak boleh dibatalkan.
+              </span>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 shrink-0"
+              >
+                {deleting ? '...' : 'Ya, Padam'}
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                className="text-xs font-medium text-gray-600 hover:text-gray-800 transition-colors shrink-0"
+              >
+                Batal
+              </button>
+            </div>
+          )}
+
+          {/* Right side actions */}
+          <div className="flex flex-wrap gap-3 justify-end">
           <button
             onClick={() => generateInvoicePDF(invoice, eventName)}
             className="flex items-center gap-2 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors shadow-sm"
@@ -309,6 +356,7 @@ export default function InvoiceDetail() {
               {t('invoice.markPaid')}
             </button>
           )}
+          </div>
         </div>
       )}
     </div>

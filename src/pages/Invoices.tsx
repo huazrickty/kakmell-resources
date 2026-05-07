@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore'
+import { collection, onSnapshot, orderBy, query, doc, deleteDoc } from 'firebase/firestore'
 import { format } from 'date-fns'
-import { FileText } from 'lucide-react'
+import { FileText, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -60,8 +61,10 @@ export default function Invoices() {
   const isAdmin     = userDoc?.role === 'admin'
   const { events }  = useEvents()
 
-  const [invoices, setInvoices] = useState<InvoiceDoc[]>([])
-  const [loading, setLoading]   = useState(true)
+  const [invoices, setInvoices]         = useState<InvoiceDoc[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [deleting, setDeleting]         = useState(false)
 
   // Event id → name map for display
   const eventNameMap = Object.fromEntries(events.map(e => [e.id, e.nama_majlis]))
@@ -73,6 +76,19 @@ export default function Invoices() {
       setLoading(false)
     })
   }, [])
+
+  async function handleDelete(invId: string) {
+    setDeleting(true)
+    try {
+      await deleteDoc(doc(db, 'invoices', invId))
+      toast.success('Invois berjaya dipadam.')
+      setConfirmDeleteId(null)
+    } catch {
+      toast.error('Ralat. Cuba lagi.')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   // Stats
   const totalBilled   = invoices.reduce((s, inv) => s + (inv.total || 0), 0)
@@ -128,16 +144,18 @@ export default function Invoices() {
             const evName = eventNameMap[inv.event_id] ?? '—'
 
             return (
-              <button
+              <div
                 key={inv.id}
-                onClick={() => navigate(`/invoices/${inv.id}`)}
-                className="w-full bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:border-gray-200 transition-all flex text-left"
+                className="w-full bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:border-gray-200 transition-all flex"
               >
                 {/* Left status strip */}
                 <div className={cn('w-1 shrink-0', STATUS_BAR[statusKey])} />
 
-                {/* Main content */}
-                <div className="flex-1 px-4 py-3.5 min-w-0">
+                {/* Main content — clickable */}
+                <div
+                  className="flex-1 px-4 py-3.5 min-w-0 cursor-pointer"
+                  onClick={() => navigate(`/invoices/${inv.id}`)}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-gray-900 tabular-nums">{inv.invoice_no}</p>
@@ -156,7 +174,36 @@ export default function Invoices() {
                     {statusLabel}
                   </span>
                 </div>
-              </button>
+
+                {/* Delete */}
+                {isAdmin && (
+                  confirmDeleteId === inv.id ? (
+                    <div className="flex items-center gap-2 px-3 border-l border-red-100 bg-red-50 shrink-0">
+                      <button
+                        onClick={() => handleDelete(inv.id)}
+                        disabled={deleting}
+                        className="text-[11px] font-bold text-red-700 whitespace-nowrap disabled:opacity-50"
+                      >
+                        {deleting ? '...' : 'Padam'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="text-[11px] text-gray-500 hover:text-gray-700"
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDeleteId(inv.id)}
+                      className="px-3 flex items-center text-gray-300 hover:text-red-500 border-l border-gray-50 hover:bg-red-50/50 transition-colors shrink-0"
+                      aria-label="Padam invois"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )
+                )}
+              </div>
             )
           })}
         </div>
