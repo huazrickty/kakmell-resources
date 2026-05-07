@@ -6,6 +6,7 @@ import type { EventDoc } from '@/hooks/useEvents'
 
 interface Props {
   event: EventDoc
+  onClick?: () => void
 }
 
 const STATUS_STYLES = {
@@ -32,7 +33,7 @@ const STATUS_LABEL_KEYS = {
   cancelled: 'events.statusCancelled',
 } as const
 
-export default function EventSummaryCard({ event }: Props) {
+export default function EventSummaryCard({ event, onClick }: Props) {
   const { t } = useLanguage()
   const date = event.tarikh.toDate()
   const day = format(date, 'd')
@@ -40,8 +41,10 @@ export default function EventSummaryCard({ event }: Props) {
 
   return (
     <div
+      onClick={onClick}
       className={cn(
         'flex bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow overflow-hidden',
+        onClick && 'cursor-pointer',
         BORDER_STYLES[event.status]
       )}
     >

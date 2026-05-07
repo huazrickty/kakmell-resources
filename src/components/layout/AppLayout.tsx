@@ -20,9 +20,9 @@ export default function AppLayout() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar />
+      <div className="print:hidden"><Sidebar /></div>
       <div className="flex flex-1 min-w-0 flex-col">
-        <header className="h-12 shrink-0 bg-white border-b border-gray-200 flex items-center justify-between px-4">
+        <header className="h-12 shrink-0 bg-white border-b border-gray-200 flex items-center justify-between px-4 print:hidden">
           <span className="text-sm font-medium text-gray-500">
             {labelKey ? t(labelKey as Parameters<typeof t>[0]) : ''}
           </span>
@@ -32,7 +32,7 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
-      <BottomNav />
+      <div className="print:hidden"><BottomNav /></div>
     </div>
   )
 }

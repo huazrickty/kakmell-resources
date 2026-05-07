@@ -7,6 +7,7 @@ import Pending from '@/pages/Pending'
 import Dashboard from '@/pages/Dashboard'
 import Events from '@/pages/Events'
 import NewEvent from '@/pages/events/NewEvent'
+import EventDetail from '@/pages/events/EventDetail'
 import Ingredients from '@/pages/Ingredients'
 import Checklist from '@/pages/Checklist'
 import Invoices from '@/pages/Invoices'
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: '/dashboard',   element: <Dashboard /> },
           { path: '/events/new',  element: <NewEvent /> },
+          { path: '/events/:id',  element: <EventDetail /> },
           { path: '/events',      element: <Events /> },
           { path: '/ingredients', element: <Ingredients /> },
           { path: '/checklist',   element: <Checklist /> },
