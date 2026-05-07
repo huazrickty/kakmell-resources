@@ -143,6 +143,16 @@ const strings = {
     'settings.addMenu': 'Add Menu Item',
     'settings.category': 'Category',
     'settings.devPassword': 'Developer Password',
+    'settings.pendingApproval': 'Pending Approval',
+    'settings.allUsers': 'All Users',
+    'settings.noPendingUsers': 'No pending users',
+    'settings.noActiveUsers': 'No active users',
+    'settings.devUnlock': 'Unlock',
+    'settings.devLocked': 'Developer access is password-protected.',
+    'settings.devWarning': 'Changing your own role will sign you out immediately.',
+    'settings.noHalls': 'No halls added yet.',
+    'settings.noMenuItems': 'No items in this category.',
+    'settings.addOption': 'Add Option',
   },
   ms: {
     // ── Auth ──────────────────────────────────────────────────────────────
@@ -286,6 +296,16 @@ const strings = {
     'settings.addMenu': 'Tambah Item Menu',
     'settings.category': 'Kategori',
     'settings.devPassword': 'Kata Laluan Pembangun',
+    'settings.pendingApproval': 'Menunggu Kelulusan',
+    'settings.allUsers': 'Semua Pengguna',
+    'settings.noPendingUsers': 'Tiada pengguna menunggu',
+    'settings.noActiveUsers': 'Tiada pengguna aktif',
+    'settings.devUnlock': 'Buka Kunci',
+    'settings.devLocked': 'Akses pembangun dilindungi kata laluan.',
+    'settings.devWarning': 'Menukar peranan anda sendiri akan log anda keluar serta-merta.',
+    'settings.noHalls': 'Tiada dewan ditambah lagi.',
+    'settings.noMenuItems': 'Tiada item dalam kategori ini.',
+    'settings.addOption': 'Tambah Pilihan',
   },
 } as const
 
