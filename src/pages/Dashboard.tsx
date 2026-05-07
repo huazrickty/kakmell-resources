@@ -378,7 +378,7 @@ export default function Dashboard() {
             </div>
 
             {/* Event list */}
-            <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+            <div className="flex-1 overflow-y-auto divide-y divide-gray-50 pb-4">
               {exportEvents.length === 0 ? (
                 <p className="px-5 py-10 text-center text-sm text-gray-400">
                   {t('dashboard.noEventsToSelect')}
@@ -417,8 +417,8 @@ export default function Dashboard() {
               })}
             </div>
 
-            {/* Footer buttons */}
-            <div className="flex gap-3 px-5 py-4 border-t border-gray-100 shrink-0">
+            {/* Footer buttons — sticky inside sheet, above bottom nav */}
+            <div className="sticky bottom-0 z-10 flex gap-3 px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-gray-100 bg-white shrink-0">
               <button
                 onClick={() => setSelectOpen(false)}
                 className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
