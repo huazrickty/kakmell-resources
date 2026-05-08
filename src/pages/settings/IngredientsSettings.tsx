@@ -16,7 +16,9 @@ import {
 } from '@/lib/ingredient-overrides'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { Edit2, RotateCcw, Check, X, AlertTriangle } from 'lucide-react'
+import { Edit2, RotateCcw, Check, X, AlertTriangle, FileDown } from 'lucide-react'
+import { generateCalibrationForm } from '@/lib/calibration-form-pdf'
+import { getLogoBase64 } from '@/lib/invoice-pdf'
 
 // ── Category tab type ──────────────────────────────────────────────────────
 
@@ -388,6 +390,19 @@ export default function IngredientsSettings() {
   const [editFlat, setEditFlat]   = useState('')
   const [saving, setSaving]       = useState(false)
   const [confirmResetAll, setConfirmResetAll] = useState(false)
+  const [downloading, setDownloading]         = useState(false)
+
+  async function downloadCalibrationForm() {
+    setDownloading(true)
+    try {
+      const logoBase64 = await getLogoBase64()
+      await generateCalibrationForm(logoBase64)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   useEffect(() => {
     invalidateOverrideCache()
@@ -597,9 +612,19 @@ export default function IngredientsSettings() {
         {t('settings.ingredientInfoBanner')}
       </div>
 
-      {/* Reset All */}
-      {hasAnyOverride && !confirmResetAll && (
-        <div className="flex justify-end">
+      {/* Action buttons row */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <button
+          onClick={downloadCalibrationForm}
+          disabled={downloading}
+          className="flex items-center gap-1.5 text-xs font-semibold text-[#1B4332] hover:text-[#163828] border border-[#1B4332]/30 rounded-lg px-3 py-2 hover:bg-[#1B4332]/5 transition-colors disabled:opacity-50"
+        >
+          <FileDown size={13} />
+          {downloading ? t('common.generating') : 'Muat Turun Borang Kalibrasi'}
+        </button>
+
+        {/* Reset All */}
+        {hasAnyOverride && !confirmResetAll && (
           <button
             onClick={() => setConfirmResetAll(true)}
             className="flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700 border border-red-200 rounded-lg px-3 py-2 hover:bg-red-50 transition-colors"
@@ -607,8 +632,8 @@ export default function IngredientsSettings() {
             <RotateCcw size={13} />
             {t('settings.resetAll')}
           </button>
-        </div>
-      )}
+        )}
+      </div>
       {confirmResetAll && (
         <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
           <AlertTriangle size={16} className="text-red-500 shrink-0" />

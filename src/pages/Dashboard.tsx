@@ -12,6 +12,7 @@ import { calculateIngredients } from '@/lib/ingredient-calculator'
 import { generateWeeklyPDF, fmtWeekRange, type WeeklyEventEntry } from '@/lib/weekly-export-pdf'
 import { getLogoBase64 } from '@/lib/invoice-pdf'
 import { db } from '@/lib/firebase'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 
 function SkeletonCard() {
   return (
@@ -297,30 +298,31 @@ export default function Dashboard() {
             </div>
 
             {/* Export action */}
-            <div className="px-5 py-4 flex items-center justify-between gap-4">
-              {/* Preview list of event names */}
+            <div className="px-5 py-4 space-y-3">
+              {/* Event preview — above buttons */}
               {exportEvents.length > 0 ? (
-                <div className="flex-1 min-w-0 space-y-0.5">
+                <div className="flex flex-wrap gap-1.5">
                   {exportEvents.slice(0, 3).map((e) => (
-                    <p key={e.id} className="text-xs text-gray-500 truncate">
-                      · {e.nama_majlis}
-                    </p>
+                    <span key={e.id} className="text-xs text-gray-500 bg-gray-50 rounded px-2 py-0.5 truncate max-w-[180px]">
+                      {e.nama_majlis}
+                    </span>
                   ))}
                   {exportEvents.length > 3 && (
-                    <p className="text-xs text-gray-400">+{exportEvents.length - 3} {t('common.more')}</p>
+                    <span className="text-xs text-gray-400 bg-gray-50 rounded px-2 py-0.5">
+                      +{exportEvents.length - 3} {t('common.more')}
+                    </span>
                   )}
                 </div>
               ) : (
-                <p className="flex-1 text-xs text-gray-400 italic">
-                  {t('dashboard.noEventsThisWeek')}
-                </p>
+                <p className="text-xs text-gray-400 italic">{t('dashboard.noEventsThisWeek')}</p>
               )}
 
-              <div className="flex flex-wrap gap-2 shrink-0">
+              {/* Buttons — stacked on mobile, row on sm+ */}
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={() => handleExport('all')}
                   disabled={exporting !== null}
-                  className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold text-sm px-3 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex flex-1 items-center justify-center gap-1.5 h-11 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold text-sm rounded-lg transition-colors disabled:opacity-50"
                 >
                   <FileDown size={13} />
                   {exporting === 'all' ? t('common.generating') : t('dashboard.exportAll')}
@@ -328,7 +330,7 @@ export default function Dashboard() {
                 <button
                   onClick={() => handleExport('upcoming')}
                   disabled={exporting !== null}
-                  className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold text-sm px-3 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex flex-1 items-center justify-center gap-1.5 h-11 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold text-sm rounded-lg transition-colors disabled:opacity-50"
                 >
                   <FileDown size={13} />
                   {exporting === 'upcoming' ? t('common.generating') : t('dashboard.exportUpcoming')}
@@ -336,7 +338,7 @@ export default function Dashboard() {
                 <button
                   onClick={openSelectModal}
                   disabled={exporting !== null}
-                  className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm px-3 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex flex-1 items-center justify-center gap-1.5 h-11 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-lg transition-colors disabled:opacity-50"
                 >
                   <FileDown size={13} />
                   {exporting === 'selected' ? t('common.generating') : t('dashboard.exportSelect')}
@@ -347,99 +349,93 @@ export default function Dashboard() {
         </section>
       )}
 
-      {/* ── Select Events Modal ───────────────────────────────────────────── */}
-      {selectOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
-          onClick={(e) => { if (e.target === e.currentTarget) setSelectOpen(false) }}
+      {/* ── Select Events Sheet ───────────────────────────────────────────── */}
+      <Sheet open={selectOpen} onOpenChange={setSelectOpen}>
+        <SheetContent
+          side="bottom"
+          showCloseButton={false}
+          className="flex flex-col h-[85dvh] gap-0 p-0"
         >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/40" onClick={() => setSelectOpen(false)} />
-
-          {/* Sheet / Modal */}
-          <div className="relative z-10 w-full md:max-w-xl bg-white rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col max-h-[85dvh]">
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
-              <div>
-                <h2 className="text-base font-bold text-gray-900">{t('dashboard.selectEventsTitle')}</h2>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {selectedIds.size} {t('dashboard.eventsSelected')}
-                </p>
-              </div>
-              <button
-                onClick={toggleAll}
-                className="text-xs font-semibold text-[#1B4332] hover:underline"
-              >
-                {selectedIds.size === exportEvents.length
-                  ? t('dashboard.deselectAll')
-                  : t('dashboard.selectAll')}
-              </button>
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
+            <div>
+              <h2 className="text-base font-bold text-gray-900">{t('dashboard.selectEventsTitle')}</h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {selectedIds.size} {t('dashboard.eventsSelected')}
+              </p>
             </div>
-
-            {/* Event list */}
-            <div className="flex-1 overflow-y-auto divide-y divide-gray-50 pb-4">
-              {exportEvents.length === 0 ? (
-                <p className="px-5 py-10 text-center text-sm text-gray-400">
-                  {t('dashboard.noEventsToSelect')}
-                </p>
-              ) : exportEvents.map((e) => {
-                const checked = selectedIds.has(e.id)
-                const dateStr = e.tarikh?.toDate
-                  ? e.tarikh.toDate().toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })
-                  : ''
-                return (
-                  <button
-                    key={e.id}
-                    onClick={() => toggleId(e.id)}
-                    className={`w-full flex items-center gap-3 px-5 py-3 min-h-[48px] text-left transition-colors ${checked ? 'bg-red-50' : 'hover:bg-gray-50'}`}
-                  >
-                    {/* Checkbox */}
-                    <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${checked ? 'bg-red-600 border-red-600' : 'border-gray-300'}`}>
-                      {checked && (
-                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </span>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{e.nama_majlis}</p>
-                      <p className="text-xs text-gray-500 truncate">{e.hall_name} · {dateStr}</p>
-                    </div>
-
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${e.sesi === 'siang' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                      {e.sesi === 'siang' ? 'Siang' : 'Malam'}
-                    </span>
-                    <span className="text-xs text-gray-400 shrink-0">{e.pax} pax</span>
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Footer buttons — sticky inside sheet, above bottom nav */}
-            <div className="sticky bottom-0 z-10 flex gap-3 px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-gray-100 bg-white shrink-0">
-              <button
-                onClick={() => setSelectOpen(false)}
-                className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={() => {
-                  const selected = exportEvents.filter(e => selectedIds.has(e.id))
-                  handleExport('selected', selected)
-                }}
-                disabled={selectedIds.size === 0 || exporting !== null}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <FileDown size={14} />
-                {t('dashboard.exportSelected')}
-              </button>
-            </div>
+            <button
+              onClick={toggleAll}
+              className="text-xs font-semibold text-[#1B4332] hover:underline"
+            >
+              {selectedIds.size === exportEvents.length
+                ? t('dashboard.deselectAll')
+                : t('dashboard.selectAll')}
+            </button>
           </div>
-        </div>
-      )}
+
+          {/* Scrollable event list */}
+          <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+            {exportEvents.length === 0 ? (
+              <p className="px-5 py-10 text-center text-sm text-gray-400">
+                {t('dashboard.noEventsToSelect')}
+              </p>
+            ) : exportEvents.map((e) => {
+              const checked = selectedIds.has(e.id)
+              const dateStr = e.tarikh?.toDate
+                ? e.tarikh.toDate().toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' })
+                : ''
+              return (
+                <button
+                  key={e.id}
+                  onClick={() => toggleId(e.id)}
+                  className={`w-full flex items-center gap-3 px-5 py-3 min-h-[48px] text-left transition-colors ${checked ? 'bg-red-50' : 'hover:bg-gray-50'}`}
+                >
+                  <span className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${checked ? 'bg-red-600 border-red-600' : 'border-gray-300'}`}>
+                    {checked && (
+                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{e.nama_majlis}</p>
+                    <p className="text-xs text-gray-500 truncate">{e.hall_name} · {dateStr}</p>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${e.sesi === 'siang' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                    {e.sesi === 'siang' ? 'Siang' : 'Malam'}
+                  </span>
+                  <span className="text-xs text-gray-400 shrink-0">{e.pax} pax</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Footer — shrink-0 guarantees it never scrolls away */}
+          <div
+            className="shrink-0 flex gap-3 px-5 pt-4 border-t border-gray-100 bg-white"
+            style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+          >
+            <button
+              onClick={() => setSelectOpen(false)}
+              className="flex-1 h-12 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={() => {
+                const selected = exportEvents.filter(e => selectedIds.has(e.id))
+                handleExport('selected', selected)
+              }}
+              disabled={selectedIds.size === 0 || exporting !== null}
+              className="flex-1 h-12 flex items-center justify-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <FileDown size={14} />
+              {exporting === 'selected' ? t('common.generating') : t('dashboard.exportSelected')}
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* ── Revenue Analytics — admin only ────────────────────────────────── */}
       {isAdmin && (

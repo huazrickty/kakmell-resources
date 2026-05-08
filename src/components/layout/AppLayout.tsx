@@ -65,7 +65,7 @@ export default function AppLayout() {
             )}
           </div>
         </header>
-        <main className="flex-1 pb-16 md:pb-0">
+        <main className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
           <Outlet />
         </main>
       </div>

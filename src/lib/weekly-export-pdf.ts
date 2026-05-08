@@ -232,12 +232,11 @@ export async function generateWeeklyPDF(
       // ── LEFT: BAHAN UTAMA ──────────────────────────────────────────────
       lY = sectionHead('BAHAN UTAMA', COL1, lY)
       const mainRows: [string, string][] = [
-        ['Beras',        `${main.beras_bag} bag`],
-        ['Ayam',         `${main.ayam_ekor} ekor`],
-        ['Daging',       `${main.daging_kg} kg`],
-        ['Paceri Nenas', `${main.paceri_nenas_biji} biji`],
-        ['Oren',         `${main.oren_biji} biji`],
-        ['Gula',         `${main.gula_liter} L`],
+        ['Beras', `${main.beras_bag} bag`],
+        ['Ayam',  `${main.ayam_ekor} ekor`],
+        ['Daging',`${main.daging_kg} kg`],
+        ['Oren',  `${main.oren_biji} biji`],
+        ['Gula',  `${main.gula_liter} L`],
       ]
       for (const [l, v] of mainRows) lY = ingRow(l, v, COL1, COL1V, lY)
 

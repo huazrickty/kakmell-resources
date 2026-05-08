@@ -33,14 +33,17 @@ export default function BottomNav() {
   )
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-white border-t border-gray-200 shadow-lg flex items-stretch">
+    <nav
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg flex items-stretch"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       {visibleItems.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
           className={({ isActive }) =>
             cn(
-              'flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors relative',
+              'flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors relative h-16',
               isActive ? 'text-red-600' : 'text-gray-400'
             )
           }
