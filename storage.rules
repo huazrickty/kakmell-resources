@@ -2,9 +2,37 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
+
+    function userRole() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
     }
+
+    function isAdmin() {
+      return request.auth != null && userRole() == 'admin';
+    }
+
+    function isApproved() {
+      return request.auth != null && userRole() in ['admin', 'kitchen'];
+    }
+
+    // Owner = the user the assignment doc points at. fileName is "{taskId}.jpg".
+    function isAssignee(date, fileName) {
+      return firestore.get(/databases/(default)/documents/daily_assignments/$(date)/tasks/$(fileName.split('\\.')[0])).data.assigned_to == request.auth.uid;
+    }
+
+    function isValidImage() {
+      return request.resource.size < 5 * 1024 * 1024
+          && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── task-photos/{YYYY-MM-DD}/{taskId}.jpg ─────────────────────────────
+    match /task-photos/{date}/{fileName} {
+      allow read: if isAdmin() || (isApproved() && isAssignee(date, fileName));
+      allow create, update: if isValidImage()
+                            && (isAdmin() || (isApproved() && isAssignee(date, fileName)));
+      allow delete: if isAdmin() || (isApproved() && isAssignee(date, fileName));
+    }
+
+    // Everything else: no access.
   }
 }

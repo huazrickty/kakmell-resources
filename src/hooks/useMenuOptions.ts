@@ -8,11 +8,12 @@ export interface MenuOptionsByCategory {
   daging: string[]
   acar: string[]
   bubur: string[]
-  air: string[]
+  air_panas: string[]
+  air_sejuk: string[]
 }
 
 const EMPTY: MenuOptionsByCategory = {
-  nasi: [], ayam: [], daging: [], acar: [], bubur: [], air: [],
+  nasi: [], ayam: [], daging: [], acar: [], bubur: [], air_panas: [], air_sejuk: [],
 }
 
 export function useMenuOptions(ready: boolean): { options: MenuOptionsByCategory; loading: boolean } {
@@ -24,7 +25,7 @@ export function useMenuOptions(ready: boolean): { options: MenuOptionsByCategory
     const q = query(collection(db, 'menu_options'), where('is_active', '==', true))
     getDocs(q)
       .then((snap) => {
-        const grouped: MenuOptionsByCategory = { nasi: [], ayam: [], daging: [], acar: [], bubur: [], air: [] }
+        const grouped: MenuOptionsByCategory = { nasi: [], ayam: [], daging: [], acar: [], bubur: [], air_panas: [], air_sejuk: [] }
         snap.docs.forEach((doc) => {
           const { category, name_ms } = doc.data() as { category: string; name_ms: string }
           if (category in grouped) {

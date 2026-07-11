@@ -22,40 +22,48 @@ const BORDER:   [number, number, number] = [100, 100, 100]
 const HEAD_BG:  [number, number, number] = [220, 220, 220]
 const ROW_ALT:  [number, number, number] = [248, 248, 248]
 
-// ── Current system reference values (pax 300–1000 only) ───────────────────
+// ── Current system reference values (matches ingredient-calculator.ts) ────
 // Index order matches section rows defined below
 
+const REF_BRACKETS = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+
 const REF_MAIN: Partial<Record<number, string[]>> = {
-  300:  ['2',   '20', '18', '25', '10'],
-  400:  ['3',   '28', '24', '30', '10'],
-  500:  ['3.5', '35', '30', '30', '15'],
-  600:  ['4',   '42', '36', '30', '20'],
-  700:  ['4.5', '50', '42', '30', '20'],
-  800:  ['5.5', '55', '48', '30', '25'],
-  900:  ['6',   '65', '54', '35', '30'],
-  1000: ['7',   '70', '60', '40', '30'],
+  100:  ['0.75', '10', '10', '20', '5' ],
+  200:  ['1.5',  '20', '20', '25', '5' ],
+  300:  ['2',    '21', '18', '25', '10'],
+  400:  ['3',    '28', '24', '30', '10'],
+  500:  ['3.5',  '35', '30', '30', '15'],
+  600:  ['4',    '42', '36', '30', '15'],
+  700:  ['4.5',  '49', '42', '30', '20'],
+  800:  ['5',    '56', '48', '30', '20'],
+  900:  ['6',    '63', '54', '30', '25'],
+  1000: ['7',    '70', '60', '40', '30'],
 }
 
 const REF_DALCA: Partial<Record<number, string[]>> = {
-  300:  ['1',   '2',   '1 bag',      '10 biji', '1',   '0.5'],
-  400:  ['1',   '2.5', '1 bag',      '3.5',     '1',   '—'],
-  500:  ['1.5', '3',   '1 bag',      '—',       '1.5', '1'],
-  600:  ['2',   '3.5', '1.5 bag',    '—',       '1.5', '1'],
-  700:  ['2',   '4',   '1.5 bag',    '—',       '2',   '—'],
-  800:  ['2.5', '5',   '1.5b+4.5kg', '4.5',     '2',   '—'],
-  900:  ['3',   '6',   '2 bag',      '6',       '2.5', '—'],
-  1000: ['3',   '7',   '2 bag',      '7',       '3',   '2'],
+  100:  ['1', '0.6', '1/3 bag',   '5 biji' ],
+  200:  ['1', '1.2', '1/2 bag',   '5 biji' ],
+  300:  ['2', '1.8', '1/2 bag',   '10 biji'],
+  400:  ['2', '2.4', '2/3 bag',   '15 biji'],
+  500:  ['3', '3',   '1 bag',     '20 biji'],
+  600:  ['3', '3.6', '1 1/3 bag', '20 biji'],
+  700:  ['3', '4.2', '1 1/2 bag', '20 biji'],
+  800:  ['3', '4.8', '1 1/2 bag', '25 biji'],
+  900:  ['3', '5.4', '1 2/3 bag', '25 biji'],
+  1000: ['3', '6',   '2 bag',     '25 biji'],
 }
 
 const REF_PACERI: Partial<Record<number, string>> = {
-  300: '20', 400: '25', 500: '35', 600: '40',
-  700: '45', 800: '50', 900: '60', 1000: '70',
+  100: '10', 200: '15', 300: '20', 400: '25', 500: '30',
+  600: '35', 700: '40', 800: '45', 900: '50', 1000: '60',
 }
 const REF_TIMUN: Partial<Record<number, string>> = {
-  300: '10', 500: '15', 700: '20', 800: '25', 1000: '30',
+  100: '3', 200: '6', 300: '10', 400: '12', 500: '15',
+  600: '15', 700: '20', 800: '25', 900: '25', 1000: '30',
 }
 const REF_NENAS_ACAR: Partial<Record<number, string>> = {
-  300: '10', 500: '10', 700: '10', 800: '12', 1000: '20',
+  100: '3', 200: '6', 300: '10', 400: '10', 500: '10',
+  600: '10', 700: '10', 800: '12', 900: '15', 1000: '20',
 }
 
 function fmtDate(): string {
@@ -272,7 +280,7 @@ export async function generateCalibrationForm(logoBase64: string): Promise<void>
   y += 5
   const mainLabels = ['Beras (bags)', 'Ayam (pieces)', 'Daging (kg)', 'Oren (pieces)', 'Gula (litres)']
   drawRef(y, mainLabels.map((lbl, i) => {
-    const parts = [300,400,500,600,700,800,900,1000]
+    const parts = REF_BRACKETS
       .map(p => `${p}:${REF_MAIN[p]?.[i] ?? '—'}`)
       .join('  ')
     return `${lbl}:  ${parts}`
@@ -286,18 +294,16 @@ export async function generateCalibrationForm(logoBase64: string): Promise<void>
   y = drawHeader(2, 'SECTION 2: DALCA')
 
   y = drawTable(y, [
-    { label: 'Kacang Dall',    unit: 'kg'      },
-    { label: 'Terung',         unit: 'kg'      },
-    { label: 'Kentang',        unit: 'bag / kg'},
-    { label: 'Karot',          unit: 'biji/kg' },
-    { label: 'Kacang Panjang', unit: 'kg'      },
-    { label: 'Serbuk Kari',    unit: 'kg'      },
+    { label: 'Kacang Dall', unit: 'kg'      },
+    { label: 'Terung',      unit: 'kg'      },
+    { label: 'Kentang',     unit: 'bag'     },
+    { label: 'Karot',       unit: 'biji'    },
   ])
 
   y += 5
-  const dalcaLabels = ['Kacang Dall', 'Terung', 'Kentang', 'Karot', 'Kacang Panjang', 'Serbuk Kari']
+  const dalcaLabels = ['Kacang Dall', 'Terung', 'Kentang', 'Karot']
   drawRef(y, dalcaLabels.map((lbl, i) => {
-    const parts = [300,400,500,600,700,800,900,1000]
+    const parts = REF_BRACKETS
       .map(p => `${p}:${REF_DALCA[p]?.[i] ?? '—'}`)
       .join('  ')
     return `${lbl}:  ${parts}`
@@ -334,12 +340,9 @@ export async function generateCalibrationForm(logoBase64: string): Promise<void>
   ])
 
   y += 5
-  const paceriParts = [300,400,500,600,700,800,900,1000]
-    .map(p => `${p}:${REF_PACERI[p] ?? '—'}`).join('  ')
-  const timunParts  = [300,500,700,800,1000]
-    .map(p => `${p}:${REF_TIMUN[p]}`).join('  ') + '  (others: —)'
-  const nenasParts  = [300,500,700,800,1000]
-    .map(p => `${p}:${REF_NENAS_ACAR[p]}`).join('  ') + '  (others: —)'
+  const paceriParts = REF_BRACKETS.map(p => `${p}:${REF_PACERI[p] ?? '—'}`).join('  ')
+  const timunParts  = REF_BRACKETS.map(p => `${p}:${REF_TIMUN[p] ?? '—'}`).join('  ')
+  const nenasParts  = REF_BRACKETS.map(p => `${p}:${REF_NENAS_ACAR[p] ?? '—'}`).join('  ')
   drawRef(y, [
     `Paceri Nenas (pieces):  ${paceriParts}`,
     `Pencuk Cucumber (kg):   ${timunParts}`,
@@ -353,32 +356,21 @@ export async function generateCalibrationForm(logoBase64: string): Promise<void>
   pdf.addPage()
   y = drawHeader(4, 'SECTION 4: BUBUR (DESSERT PORRIDGE)')
 
-  // Note box
-  pdf.setFillColor(255, 248, 220)
-  pdf.setDrawColor(...BORDER)
-  pdf.setLineWidth(0.5)
-  pdf.rect(M, y, USABLE_W, 11, 'FD')
-  italic(9)
-  pdf.setTextColor(...BLACK)
-  pdf.text(
-    'Note: Porridge quantities are usually flat (same regardless of pax). Fill in if different from current values.',
-    M + 4, y + 7,
-  )
-  y += 15
-
   y = drawTable(y, [
-    { label: 'Bubur Pulut Hitam',   unit: 'kg'    },
-    { label: 'Santan Pulut Hitam',  unit: 'tin'   },
-    { label: 'Bubur Kacang Hijau',  unit: 'kg'    },
-    { label: 'Santan Kacang Hijau', unit: 'tin'   },
-    { label: 'Bubur Jagung',        unit: 'beg'   },
-    { label: 'Santan Jagung',       unit: 'kotak' },
+    { label: 'Bubur Pulut Hitam',   unit: 'kg'  },
+    { label: 'Santan Pulut Hitam',  unit: 'kg'  },
+    { label: 'Sagu Pulut Hitam',    unit: 'kg'  },
+    { label: 'Bubur Kacang Hijau',  unit: 'kg'  },
+    { label: 'Santan Kacang Hijau', unit: 'kg'  },
+    { label: 'Sagu Kacang Hijau',   unit: 'kg'  },
+    { label: 'Bubur Jagung',        unit: 'beg' },
+    { label: 'Santan Jagung',       unit: 'kg'  },
+    { label: 'Sagu Jagung',         unit: 'kg'  },
   ])
 
   y += 5
   drawRef(y, [
-    'Current values (flat — same for all pax):',
-    'Pulut Hitam: 2 kg · Santan: 1 tin  |  Kacang Hijau: 2 kg · Santan: 1 tin  |  Jagung: 2 bags (4 kg) · Santan: 2 boxes',
+    'Flat for all pax:  PH 2kg · santan 1kg · sagu 0.5kg  |  KH 2kg · santan 1kg · sagu 0.5kg  |  Jagung 2 beg (4kg) · santan 2kg (3kg @1000) · sagu 1kg',
   ])
   drawFooter()
 
@@ -415,8 +407,8 @@ export async function generateCalibrationForm(logoBase64: string): Promise<void>
 
   italic(9)
   pdf.setTextColor(...DGRAY)
-  pdf.text('Note: Trimming = max 1 box (fixed).', M + 185, y + 14)
-  pdf.text('Slice = as required (beef_kg ÷ 17, round up).', M + 185, y + 21)
+  pdf.text('Note: Slice/Trim/Lebihan use a fixed', M + 185, y + 14)
+  pdf.text('lookup per pax bracket (see below).', M + 185, y + 21)
 
   y += 30
 
@@ -428,8 +420,8 @@ export async function generateCalibrationForm(logoBase64: string): Promise<void>
 
   y += 5
   drawRef(y, [
-    'Slice (boxes) — estimated: 300:2  400:2  500:2  600:3  700:3  800:3  900:4  1000:4  (formula: ceil(beef_kg ÷ 17))',
-    'Trimming: 1 box (fixed for all pax)  ·  Surplus: (slice_boxes × 17) − beef_kg',
+    'Slice (boxes):  100:1  200:1  300:1  400:1  500:1  600:1  700:2  800:1  900:2  1000:2',
+    'Trimming (boxes):  100–400:0  500–700:0.5  800–1000:1   ·   Lebihan (kg):  100:+7  200:−3  300:−2  400:−7  500:−2  600:−8  700:+3  800:−9  900:+2  1000:−4',
   ])
   drawFooter()
 

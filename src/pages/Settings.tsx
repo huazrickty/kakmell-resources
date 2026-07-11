@@ -12,14 +12,16 @@ import MenuSettings       from '@/pages/settings/MenuSettings'
 import HallsSettings      from '@/pages/settings/HallsSettings'
 import DeveloperSettings  from '@/pages/settings/DeveloperSettings'
 import IngredientsSettings from '@/pages/settings/IngredientsSettings'
+import TasksSettings       from '@/pages/settings/TasksSettings'
 
-type Tab = 'users' | 'menu' | 'halls' | 'ingredients' | 'dev'
+type Tab = 'users' | 'menu' | 'halls' | 'ingredients' | 'tasks' | 'dev'
 
 const TABS: { id: Tab; label: (t: (k: StringKey) => string) => string }[] = [
   { id: 'users',       label: (t) => t('settings.users') },
   { id: 'menu',        label: (t) => t('settings.menu') },
   { id: 'halls',       label: (t) => t('settings.halls') },
   { id: 'ingredients', label: (t) => t('settings.ingredients') },
+  { id: 'tasks',       label: (t) => t('settings.tasks') },
   { id: 'dev',         label: (t) => t('settings.devSettings') },
 ]
 
@@ -101,6 +103,7 @@ export default function Settings() {
       {tab === 'menu'  && <MenuSettings />}
       {tab === 'halls'       && <HallsSettings />}
       {tab === 'ingredients' && <IngredientsSettings />}
+      {tab === 'tasks'       && <TasksSettings />}
       {tab === 'dev'         && <DeveloperSettings />}
 
       {/* ── Log Aktiviti card ───────────────────────────────────────────── */}

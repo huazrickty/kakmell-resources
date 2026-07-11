@@ -3,7 +3,7 @@ import { db } from './firebase'
 
 export async function logActivity(params: {
   action: string
-  category: 'event' | 'invoice' | 'user' | 'ingredient' | 'settings'
+  category: 'event' | 'invoice' | 'user' | 'ingredient' | 'settings' | 'task' | 'menu'
   description: string
   entity_id?: string
   entity_name?: string

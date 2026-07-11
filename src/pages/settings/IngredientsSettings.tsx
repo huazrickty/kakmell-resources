@@ -42,21 +42,18 @@ interface FlatItem {
 }
 
 const MAIN_ITEMS: BracketItem[] = [
-  { key: 'main/beras',        label: 'Beras',        unit: 'bag'  },
-  { key: 'main/ayam',         label: 'Ayam',         unit: 'ekor' },
-  { key: 'main/daging',       label: 'Daging',       unit: 'kg'   },
-  { key: 'main/paceri_nenas', label: 'Paceri Nenas', unit: 'biji' },
-  { key: 'main/oren',         label: 'Oren',         unit: 'biji' },
-  { key: 'main/gula',         label: 'Gula',         unit: 'L'    },
+  { key: 'main/beras',  label: 'Beras',  unit: 'bag'  },
+  { key: 'main/ayam',   label: 'Ayam',   unit: 'ekor' },
+  { key: 'main/daging', label: 'Daging', unit: 'kg'   },
+  { key: 'main/oren',   label: 'Oren',   unit: 'biji' },
+  { key: 'main/gula',   label: 'Gula',   unit: 'L'    },
 ]
 
 const DALCA_ITEMS: BracketItem[] = [
-  { key: 'dalca/kacang_dall',    label: 'Kacang Dall',    unit: '', isDalca: true },
-  { key: 'dalca/terung',         label: 'Terung',         unit: '', isDalca: true },
-  { key: 'dalca/kentang',        label: 'Kentang',        unit: '', isDalca: true },
-  { key: 'dalca/karot',          label: 'Karot',          unit: '', isDalca: true, isNullable: true },
-  { key: 'dalca/kacang_panjang', label: 'Kacang Panjang', unit: '', isDalca: true },
-  { key: 'dalca/serbuk_kari',    label: 'Serbuk Kari',    unit: '', isDalca: true, isNullable: true },
+  { key: 'dalca/kacang_dall', label: 'Kacang Dall', unit: '', isDalca: true },
+  { key: 'dalca/terung',      label: 'Terung',      unit: '', isDalca: true },
+  { key: 'dalca/kentang',     label: 'Kentang',     unit: '', isDalca: true },
+  { key: 'dalca/karot',       label: 'Karot',       unit: '', isDalca: true },
 ]
 
 const ACAR_ITEMS: BracketItem[] = [
@@ -65,13 +62,16 @@ const ACAR_ITEMS: BracketItem[] = [
 ]
 
 const BUBUR_ITEMS: FlatItem[] = [
-  { key: 'bubur/pulut_hitam_beras',   label: 'Pulut Hitam — Beras Pulut', defaultQty: BUBUR.pulut_hitam.beras_pulut_kg, unit: 'kg'    },
-  { key: 'bubur/pulut_hitam_santan',  label: 'Pulut Hitam — Santan',      defaultQty: BUBUR.pulut_hitam.santan_tin,     unit: 'tin'   },
-  { key: 'bubur/kacang_hijau_kacang', label: 'Kacang Hijau — Kacang',     defaultQty: BUBUR.kacang_hijau.kacang_kg,     unit: 'kg'    },
-  { key: 'bubur/kacang_hijau_santan', label: 'Kacang Hijau — Santan',     defaultQty: BUBUR.kacang_hijau.santan_tin,    unit: 'tin'   },
-  { key: 'bubur/jagung_beg',          label: 'Jagung — Beg',              defaultQty: BUBUR.jagung.beg,                unit: 'beg'   },
-  { key: 'bubur/jagung_beras',        label: 'Jagung — Beras',            defaultQty: BUBUR.jagung.beras_kg,           unit: 'kg'    },
-  { key: 'bubur/jagung_santan',       label: 'Jagung — Santan',           defaultQty: BUBUR.jagung.santan_kotak,       unit: 'kotak' },
+  { key: 'bubur/pulut_hitam_beras',   label: 'Pulut Hitam — Beras Pulut', defaultQty: BUBUR.pulut_hitam.beras_pulut_kg, unit: 'kg'  },
+  { key: 'bubur/pulut_hitam_santan',  label: 'Pulut Hitam — Santan',      defaultQty: BUBUR.pulut_hitam.santan_kg,      unit: 'kg'  },
+  { key: 'bubur/pulut_hitam_sagu',    label: 'Pulut Hitam — Sagu',        defaultQty: BUBUR.pulut_hitam.sagu_kg,        unit: 'kg'  },
+  { key: 'bubur/kacang_hijau_kacang', label: 'Kacang Hijau — Kacang',     defaultQty: BUBUR.kacang_hijau.kacang_kg,     unit: 'kg'  },
+  { key: 'bubur/kacang_hijau_santan', label: 'Kacang Hijau — Santan',     defaultQty: BUBUR.kacang_hijau.santan_kg,     unit: 'kg'  },
+  { key: 'bubur/kacang_hijau_sagu',   label: 'Kacang Hijau — Sagu',       defaultQty: BUBUR.kacang_hijau.sagu_kg,       unit: 'kg'  },
+  { key: 'bubur/jagung_beg',          label: 'Jagung — Beg',              defaultQty: BUBUR.jagung.beg,                 unit: 'beg' },
+  { key: 'bubur/jagung_beras',        label: 'Jagung — Beras',            defaultQty: BUBUR.jagung.beras_kg,            unit: 'kg'  },
+  { key: 'bubur/jagung_santan',       label: 'Jagung — Santan',           defaultQty: BUBUR.jagung.santan_kg,           unit: 'kg'  },
+  { key: 'bubur/jagung_sagu',         label: 'Jagung — Sagu',             defaultQty: BUBUR.jagung.sagu_kg,             unit: 'kg'  },
 ]
 
 // ── Default value helpers ──────────────────────────────────────────────────
@@ -79,25 +79,22 @@ const BUBUR_ITEMS: FlatItem[] = [
 function getDefaultMainQty(key: string, b: Bracket): number {
   const m = getMainIngredients(b)
   const map: Record<string, number> = {
-    'main/beras':        m.beras_bag,
-    'main/ayam':         m.ayam_ekor,
-    'main/daging':       m.daging_kg,
-    'main/paceri_nenas': m.paceri_nenas_biji,
-    'main/oren':         m.oren_biji,
-    'main/gula':         m.gula_liter,
+    'main/beras':  m.beras_bag,
+    'main/ayam':   m.ayam_ekor,
+    'main/daging': m.daging_kg,
+    'main/oren':   m.oren_biji,
+    'main/gula':   m.gula_liter,
   }
   return map[key] ?? 0
 }
 
 function getDefaultDalcaStr(key: string, b: Bracket): string | null {
   const d = getDalca(b)
-  const map: Record<string, string | null> = {
-    'dalca/kacang_dall':    d.kacang_dall,
-    'dalca/terung':         d.terung,
-    'dalca/kentang':        d.kentang,
-    'dalca/karot':          d.karot,
-    'dalca/kacang_panjang': d.kacang_panjang,
-    'dalca/serbuk_kari':    d.serbuk_kari,
+  const map: Record<string, string> = {
+    'dalca/kacang_dall': d.kacang_dall,
+    'dalca/terung':      d.terung,
+    'dalca/kentang':     d.kentang,
+    'dalca/karot':       d.karot,
   }
   return map[key] ?? null
 }
@@ -149,7 +146,7 @@ function BracketTable({
   const { t } = useLanguage()
   return (
     <div className="overflow-x-auto -mx-4 px-4">
-      <table className="w-full text-xs min-w-[680px]">
+      <table className="w-full text-xs min-w-[840px]">
         <thead>
           <tr className="border-b border-gray-100">
             <th className="py-2 text-left font-semibold text-gray-500 pr-3 w-32">Bahan</th>

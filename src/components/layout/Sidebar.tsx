@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Package,
   CheckSquare,
+  ListChecks,
   Receipt,
   Settings as SettingsIcon,
   LogOut,
@@ -25,6 +26,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/events',      icon: CalendarDays,    labelKey: 'nav.events',      roles: ['admin'] },
   { to: '/ingredients', icon: Package,          labelKey: 'nav.ingredients', roles: ['admin', 'kitchen'] },
   { to: '/checklist',   icon: CheckSquare,      labelKey: 'nav.checklist',   roles: ['admin', 'kitchen'] },
+  { to: '/tasks',       icon: ListChecks,       labelKey: 'nav.tasks',       roles: ['admin', 'kitchen'] },
   { to: '/invoices',    icon: Receipt,          labelKey: 'nav.invoices',    roles: ['admin'] },
   { to: '/settings',    icon: SettingsIcon,     labelKey: 'nav.settings',    roles: ['admin'] },
 ]

@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Receipt,
   CheckSquare,
+  ListChecks,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -21,6 +22,7 @@ const BOTTOM_NAV_ITEMS: BottomNavItem[] = [
   { to: '/events',    icon: CalendarDays,    labelKey: 'nav.events',    roles: ['admin'] },
   { to: '/invoices',  icon: Receipt,         labelKey: 'nav.invoices',  roles: ['admin'] },
   { to: '/checklist', icon: CheckSquare,     labelKey: 'nav.checklist', roles: ['admin', 'kitchen'] },
+  { to: '/tasks',     icon: ListChecks,      labelKey: 'nav.tasks',     roles: ['admin', 'kitchen'] },
 ]
 
 export default function BottomNav() {

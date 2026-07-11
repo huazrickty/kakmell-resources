@@ -5,7 +5,7 @@ import { db, functions } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { toast } from 'sonner'
-import { Lock, ShieldAlert } from 'lucide-react'
+import { Lock, ShieldAlert, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface UserRecord {
@@ -32,6 +32,7 @@ export default function DeveloperSettings() {
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [staged, setStaged]         = useState<Record<string, string>>({})
   const [busy, setBusy]             = useState<string | null>(null)
+  const [purging, setPurging]       = useState(false)
 
   useEffect(() => {
     if (!unlocked) return
@@ -70,6 +71,19 @@ export default function DeveloperSettings() {
       setStaged({})
     } finally {
       setBusy(null)
+    }
+  }
+
+  async function purgeOldTasks() {
+    setPurging(true)
+    try {
+      const res = await httpsCallable(functions, 'cleanupOldTaskAssignmentsManual')({})
+      const s = res.data as { datesDeleted: number; taskDocsDeleted: number; photosDeleted: number }
+      toast.success(`${t('settings.toast.purgeDone')}: ${s.datesDeleted} dates, ${s.taskDocsDeleted} tasks, ${s.photosDeleted} photos`)
+    } catch {
+      toast.error(t('settings.toast.purgeFailed'))
+    } finally {
+      setPurging(false)
     }
   }
 
@@ -173,6 +187,22 @@ export default function DeveloperSettings() {
           </div>
         </div>
       )}
+
+      {/* ── Manual task-data cleanup (mirrors nightly scheduled function) ── */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3.5 flex items-center gap-3 flex-wrap">
+        <div className="flex-1 min-w-[200px]">
+          <p className="text-sm font-semibold text-gray-900">{t('settings.purgeOldTasks')}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{t('settings.purgeOldTasksDesc')}</p>
+        </div>
+        <button
+          onClick={purgeOldTasks}
+          disabled={purging}
+          className="flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700 border border-red-200 rounded-lg px-3 py-2 hover:bg-red-50 transition-colors disabled:opacity-40"
+        >
+          <Trash2 size={13} />
+          {purging ? '...' : t('settings.apply')}
+        </button>
+      </div>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { useEvents, type EventDoc, type MenuSelection } from '@/hooks/useEvents'
+import { getHotDrinks, getColdDrinks } from '@/lib/menu-types'
 import { calculateIngredients } from '@/lib/ingredient-calculator'
 import { cn } from '@/lib/utils'
 
@@ -20,8 +21,14 @@ function getLaukItems(menu: MenuSelection): string[] {
   if (menu.acar)      items.push(menu.acar)
   if (menu.bubur)     items.push(menu.bubur)
   items.push('Oren')
-  if (menu.air_panas) items.push(menu.air_panas)
-  items.push('Air Anggur')
+  // New events store hot/cold arrays; old events fall back to air_panas string
+  items.push(...getHotDrinks(menu))
+  const cold = getColdDrinks(menu)
+  if (cold.length > 0) {
+    items.push(...cold)
+  } else {
+    items.push('Air Anggur') // legacy auto-include for pre-split events
+  }
   return items
 }
 
@@ -159,12 +166,11 @@ function EventChecklist({ event, uid }: EventChecklistProps) {
                 </p>
                 <div className="space-y-1">
                   {([
-                    ['Beras',        `${ingr.main.beras_bag} bag`],
-                    ['Ayam',         `${ingr.main.ayam_ekor} ekor`],
-                    ['Daging',       `${ingr.main.daging_kg} kg`],
-                    ['Paceri Nenas', `${ingr.main.paceri_nenas_biji} biji`],
-                    ['Oren',         `${ingr.main.oren_biji} biji`],
-                    ['Gula',         `${ingr.main.gula_liter} L`],
+                    ['Beras',  `${ingr.main.beras_bag} bag`],
+                    ['Ayam',   `${ingr.main.ayam_ekor} ekor`],
+                    ['Daging', `${ingr.main.daging_kg} kg`],
+                    ['Oren',   `${ingr.main.oren_biji} biji`],
+                    ['Gula',   `${ingr.main.gula_liter} L`],
                   ] as [string, string][]).map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between text-xs gap-2">
                       <span className="text-gray-400">{k}</span>
@@ -181,12 +187,10 @@ function EventChecklist({ event, uid }: EventChecklistProps) {
                 </p>
                 <div className="space-y-1">
                   {([
-                    ['Kacang Dall',    ingr.dalca.kacang_dall],
-                    ['Terung',         ingr.dalca.terung],
-                    ['Kentang',        ingr.dalca.kentang],
-                    ['Karot',          ingr.dalca.karot ?? '—'],
-                    ['Kacang Panjang', ingr.dalca.kacang_panjang],
-                    ['Serbuk Kari',    ingr.dalca.serbuk_kari ?? '—'],
+                    ['Kacang Dall', ingr.dalca.kacang_dall],
+                    ['Terung',      ingr.dalca.terung],
+                    ['Kentang',     ingr.dalca.kentang],
+                    ['Karot',       ingr.dalca.karot],
                   ] as [string, string][]).map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between text-xs gap-2">
                       <span className="text-gray-400">{k}</span>

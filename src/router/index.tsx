@@ -10,6 +10,7 @@ import NewEvent from '@/pages/events/NewEvent'
 import EventDetail from '@/pages/events/EventDetail'
 import Ingredients from '@/pages/Ingredients'
 import Checklist from '@/pages/Checklist'
+import Tasks from '@/pages/Tasks'
 import Invoices from '@/pages/Invoices'
 import NewInvoice from '@/pages/invoices/NewInvoice'
 import NewCustomInvoice from '@/pages/invoices/NewCustomInvoice'
@@ -69,6 +70,7 @@ export const router = createBrowserRouter([
           { path: '/events',      element: <Events /> },
           { path: '/ingredients', element: <Ingredients /> },
           { path: '/checklist',   element: <Checklist /> },
+          { path: '/tasks',       element: <Tasks /> },
           { path: '/invoices/new',        element: <NewInvoice /> },
           { path: '/invoices/custom/new', element: <NewCustomInvoice /> },
           { path: '/invoices/:id',        element: <InvoiceDetail /> },

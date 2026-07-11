@@ -88,6 +88,26 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // ── tasks ──────────────────────────────────────────────────────────────
+    match /tasks/{taskId} {
+      allow read: if isApproved();
+      allow write: if isAdmin();
+    }
+
+    // ── daily_assignments ──────────────────────────────────────────────────
+    // Admin manages all. Kitchen reads only docs assigned to them and may
+    // update only completion fields on their own tasks (Phase 3).
+    match /daily_assignments/{date}/tasks/{taskId} {
+      allow read: if isAdmin()
+                  || (isApproved() && resource.data.assigned_to == request.auth.uid);
+      allow write: if isAdmin();
+      allow update: if isApproved()
+                    && resource.data.assigned_to == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['status', 'completed_at', 'photo_url'])
+                    && request.resource.data.status in ['pending', 'done'];
+    }
+
     // ── ingredient_overrides ─────────────────────────────────────────────────
     match /ingredient_overrides/{docId} {
       allow read: if isApproved();

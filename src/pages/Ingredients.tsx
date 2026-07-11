@@ -20,31 +20,30 @@ import { cn } from '@/lib/utils'
 
 function mainRows(m: MainIngredients): [string, string][] {
   return [
-    ['Beras',         `${m.beras_bag} bag`],
-    ['Ayam',          `${m.ayam_ekor} ekor`],
-    ['Daging',        `${m.daging_kg} kg`],
-    ['Paceri Nenas',  `${m.paceri_nenas_biji} biji`],
-    ['Oren',          `${m.oren_biji} biji`],
-    ['Gula',          `${m.gula_liter} L`],
+    ['Beras',  `${m.beras_bag} bag`],
+    ['Ayam',   `${m.ayam_ekor} ekor`],
+    ['Daging', `${m.daging_kg} kg`],
+    ['Oren',   `${m.oren_biji} biji`],
+    ['Gula',   `${m.gula_liter} L`],
   ]
 }
 
 function dagingRows(d: DagingBox): [string, string][] {
+  const trimStr = d.trim_boxes === 0 ? '—' : `${d.trim_boxes} kotak`
+  const lebStr  = `${d.variance_kg > 0 ? '+' : ''}${d.variance_kg} kg`
   return [
-    ['Slice',    `${d.slice_boxes} kotak`],
-    ['Trim',     '1 kotak'],
-    ['Lebihan',  `${d.variance_kg} kg`],
+    ['Slice',   `${d.slice_boxes} kotak`],
+    ['Trim',    trimStr],
+    ['Lebihan', lebStr],
   ]
 }
 
 function dalcaRows(d: DalcaIngredients): [string, string][] {
   return [
-    ['Kacang Dall',    d.kacang_dall],
-    ['Terung',         d.terung],
-    ['Kentang',        d.kentang],
-    ['Karot',          d.karot ?? '—'],
-    ['Kacang Panjang', d.kacang_panjang],
-    ['Serbuk Kari',    d.serbuk_kari ?? '—'],
+    ['Kacang Dall', d.kacang_dall],
+    ['Terung',      d.terung],
+    ['Kentang',     d.kentang],
+    ['Karot',       d.karot],
   ]
 }
 

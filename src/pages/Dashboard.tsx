@@ -159,8 +159,15 @@ export default function Dashboard() {
           sesi:           e.sesi,
           pax:            e.pax,
           menu_selection: e.menu_selection as unknown as Record<string, string>,
+          menu_type:      e.menu_type,
+          selected_items: e.selected_items,
+          remarks:        e.remarks,
+          menu_tambahan:  e.menu_tambahan,
         },
-        ingredients: calculateIngredients(e.pax, e.menu_selection.acar),
+        // Non-kahwin events have no ingredient calculation
+        ingredients: (e.menu_type ?? 'kahwin') === 'kahwin'
+          ? calculateIngredients(e.pax, e.menu_selection?.acar)
+          : null,
       }))
       const logoBase64 = await getLogoBase64()
       const title = mode === 'upcoming'

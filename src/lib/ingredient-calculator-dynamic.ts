@@ -5,7 +5,8 @@ import {
   getAcar,
   getPencuk,
   getDagingBox,
-  BUBUR,
+  getDagingBoxFromKg,
+  getBuburIngredients,
   type Bracket,
   type IngredientResult,
   type MainIngredients,
@@ -22,12 +23,11 @@ function applyMainOverride(
 ): MainIngredients {
   const r = { ...base }
   const fields: Array<[string, keyof MainIngredients]> = [
-    ['main/beras',        'beras_bag'],
-    ['main/ayam',         'ayam_ekor'],
-    ['main/daging',       'daging_kg'],
-    ['main/paceri_nenas', 'paceri_nenas_biji'],
-    ['main/oren',         'oren_biji'],
-    ['main/gula',         'gula_liter'],
+    ['main/beras',  'beras_bag'],
+    ['main/ayam',   'ayam_ekor'],
+    ['main/daging', 'daging_kg'],
+    ['main/oren',   'oren_biji'],
+    ['main/gula',   'gula_liter'],
   ]
   for (const [key, field] of fields) {
     const o = ov[key]
@@ -45,31 +45,17 @@ function applyDalcaOverride(
 ): DalcaIngredients {
   const r = { ...base }
 
-  // Non-nullable dalca fields — unit holds the display string; skip if empty
-  const strFields: Array<[string, keyof Pick<DalcaIngredients, 'kacang_dall' | 'terung' | 'kentang' | 'kacang_panjang'>]> = [
-    ['dalca/kacang_dall',    'kacang_dall'],
-    ['dalca/terung',         'terung'],
-    ['dalca/kentang',        'kentang'],
-    ['dalca/kacang_panjang', 'kacang_panjang'],
+  const strFields: Array<[string, keyof DalcaIngredients]> = [
+    ['dalca/kacang_dall', 'kacang_dall'],
+    ['dalca/terung',      'terung'],
+    ['dalca/kentang',     'kentang'],
+    ['dalca/karot',       'karot'],
   ]
   for (const [key, field] of strFields) {
     const o = ov[key]
     if (o && !o.is_flat && o.brackets[bracket]) {
       const bv = o.brackets[bracket]!
       if (bv.unit) r[field] = bv.unit
-    }
-  }
-
-  // Nullable dalca fields — qty=0 means null/—; unit holds the display string
-  const nullableFields: Array<[string, keyof Pick<DalcaIngredients, 'karot' | 'serbuk_kari'>]> = [
-    ['dalca/karot',       'karot'],
-    ['dalca/serbuk_kari', 'serbuk_kari'],
-  ]
-  for (const [key, field] of nullableFields) {
-    const o = ov[key]
-    if (o && !o.is_flat && o.brackets[bracket]) {
-      const bv = o.brackets[bracket]!
-      r[field] = bv.qty === 0 ? null : bv.unit
     }
   }
 
@@ -102,9 +88,9 @@ function applyBuburOverride(
   ov: OverrideMap,
 ): BuburIngredients {
   const r: BuburIngredients = {
-    pulut_hitam: { ...base.pulut_hitam },
+    pulut_hitam:  { ...base.pulut_hitam },
     kacang_hijau: { ...base.kacang_hijau },
-    jagung: { ...base.jagung },
+    jagung:       { ...base.jagung },
   }
 
   const flat = (key: string): number | null => {
@@ -115,17 +101,25 @@ function applyBuburOverride(
   const ph_beras   = flat('bubur/pulut_hitam_beras')
   if (ph_beras   !== null) r.pulut_hitam.beras_pulut_kg = ph_beras
   const ph_santan  = flat('bubur/pulut_hitam_santan')
-  if (ph_santan  !== null) r.pulut_hitam.santan_tin     = ph_santan
+  if (ph_santan  !== null) r.pulut_hitam.santan_kg      = ph_santan
+  const ph_sagu    = flat('bubur/pulut_hitam_sagu')
+  if (ph_sagu    !== null) r.pulut_hitam.sagu_kg        = ph_sagu
+
   const kh_kacang  = flat('bubur/kacang_hijau_kacang')
-  if (kh_kacang  !== null) r.kacang_hijau.kacang_kg     = kh_kacang
+  if (kh_kacang  !== null) r.kacang_hijau.kacang_kg    = kh_kacang
   const kh_santan  = flat('bubur/kacang_hijau_santan')
-  if (kh_santan  !== null) r.kacang_hijau.santan_tin    = kh_santan
+  if (kh_santan  !== null) r.kacang_hijau.santan_kg    = kh_santan
+  const kh_sagu    = flat('bubur/kacang_hijau_sagu')
+  if (kh_sagu    !== null) r.kacang_hijau.sagu_kg      = kh_sagu
+
   const jag_beg    = flat('bubur/jagung_beg')
-  if (jag_beg    !== null) r.jagung.beg                 = jag_beg
+  if (jag_beg    !== null) r.jagung.beg                = jag_beg
   const jag_beras  = flat('bubur/jagung_beras')
-  if (jag_beras  !== null) r.jagung.beras_kg             = jag_beras
+  if (jag_beras  !== null) r.jagung.beras_kg           = jag_beras
   const jag_santan = flat('bubur/jagung_santan')
-  if (jag_santan !== null) r.jagung.santan_kotak         = jag_santan
+  if (jag_santan !== null) r.jagung.santan_kg          = jag_santan
+  const jag_sagu   = flat('bubur/jagung_sagu')
+  if (jag_sagu   !== null) r.jagung.sagu_kg            = jag_sagu
 
   return r
 }
@@ -142,12 +136,17 @@ export function calculateIngredientsWithOverrides(
   const main    = applyMainOverride(getMainIngredients(pax), b, overrides)
   const baseAcar = acarType === 'Pencuk' ? getPencuk(pax) : getAcar(pax)
 
+  const dagingOverridden = !!overrides['main/daging']?.brackets[b]
+  const daging_box = dagingOverridden
+    ? getDagingBoxFromKg(main.daging_kg)
+    : getDagingBox(pax)
+
   return {
     bracket,
     main,
-    daging_box: getDagingBox(main.daging_kg),
-    dalca:      applyDalcaOverride(getDalca(pax), b, overrides),
-    bubur:      applyBuburOverride(BUBUR, overrides),
-    acar:       applyAcarOverride(baseAcar, b, overrides),
+    daging_box,
+    dalca: applyDalcaOverride(getDalca(pax), b, overrides),
+    bubur: applyBuburOverride(getBuburIngredients(pax), overrides),
+    acar:  applyAcarOverride(baseAcar, b, overrides),
   }
 }

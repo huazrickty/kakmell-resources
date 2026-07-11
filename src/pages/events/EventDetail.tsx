@@ -13,6 +13,8 @@ import { useLanguage } from '@/context/LanguageContext'
 import { useEvent } from '@/hooks/useEvent'
 import { useHalls } from '@/hooks/useHalls'
 import { useMenuOptions } from '@/hooks/useMenuOptions'
+import { useMenuTypeItems } from '@/hooks/useMenuTypeItems'
+import { resolveMenuType, MENU_TYPE_LABEL_KEYS, getHotDrinks, getColdDrinks } from '@/lib/menu-types'
 import { type IngredientResult } from '@/lib/ingredient-calculator'
 import { getIngredientOverrides, type OverrideMap } from '@/lib/ingredient-overrides'
 import { calculateIngredientsWithOverrides } from '@/lib/ingredient-calculator-dynamic'
@@ -94,15 +96,6 @@ function esc(s: string | null | undefined): string {
     .replace(/"/g, '&quot;')
 }
 
-function pRow(label: string, value: string | number | null | undefined): string {
-  if (value === null || value === undefined || value === '') return ''
-  return `<div class="row"><span class="rl">${esc(label)}</span><span class="rs"></span><span class="rq">${esc(String(value))}</span></div>`
-}
-
-function pSection(title: string): string {
-  return `<div class="sh">${esc(title)}</div>`
-}
-
 function generatePrintHTML(
   event: EventDoc,
   ingr: IngredientResult | null,
@@ -114,54 +107,81 @@ function generatePrintHTML(
   const bracketStr = ingr ? ` (Bracket ${ingr.bracket})` : ''
   const printTime = format(new Date(), 'd MMM yyyy, HH:mm')
 
-  let buburHTML = ''
-  if (ingr) {
-    const b = menu.bubur
-    if (b === 'Bubur Pulut Hitam') {
-      buburHTML = pRow('Pulut Hitam', `${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_tin} tin santan`)
-    } else if (b === 'Bubur Kacang Hijau') {
-      buburHTML = pRow('Kacang Hijau', `${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_tin} tin santan`)
-    } else if (b === 'Bubur Jagung') {
-      buburHTML = pRow('Bubur Jagung', `${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kotak} kotak stn`)
+  const fmtSagu = (kg: number) => kg < 1 ? `${Math.round(kg * 1000)} g` : `${kg} kg`
+
+  // Numbered main item; qty right-aligned. Numbering is dynamic — absent items
+  // (no bubur / no drinks) simply don't consume a number.
+  const ni = (num: number, name: string, qty?: string) =>
+    `<div class="item"><span class="inum">${num}.</span><span class="iname">${esc(name)}</span>${qty ? `<span class="iq">${esc(qty)}</span>` : ''}</div>`
+
+  const br = (label: string, value: string) =>
+    `<div class="branch"><span class="bl">└ ${esc(label)}</span><span class="bq">${esc(value)}</span></div>`
+
+  let bodyHTML: string
+  if (!ingr) {
+    bodyHTML = `<div class="custom-pax">Pax melebihi 1,000 — kuantiti tersuai. Hubungi pengurusan.</div>`
+  } else {
+    const { main, daging_box, dalca, acar, bubur } = ingr
+    const trimVal = daging_box.trim_boxes === 0 ? '—' : `${daging_box.trim_boxes} kotak`
+    const lebVal  = `${daging_box.variance_kg > 0 ? '+' : ''}${daging_box.variance_kg} kg`
+    let n = 1
+    const rows: string[] = []
+
+    rows.push(ni(n++, menu.nasi || 'Nasi', `${main.beras_bag} bag`))
+    rows.push(ni(n++, menu.ayam || 'Ayam', `${main.ayam_ekor} ekor`))
+    rows.push(ni(n++, menu.daging || 'Daging', `${main.daging_kg} kg`))
+    rows.push(br('Slice', `${daging_box.slice_boxes} kotak`))
+    rows.push(br('Trimming', trimVal))
+    rows.push(br('Lebihan', lebVal))
+    rows.push(ni(n++, 'Dalca'))
+    rows.push(br('Kacang Dall', dalca.kacang_dall))
+    rows.push(br('Terung', dalca.terung))
+    rows.push(br('Kentang', dalca.kentang))
+    rows.push(br('Karot', dalca.karot))
+
+    if (menu.acar === 'Pencuk') {
+      rows.push(ni(n++, 'Pencuk (Acar Jelatah)'))
+      if (acar.timun_kg !== null) rows.push(br('Timun', `${acar.timun_kg} kg`))
+      rows.push(br('Nenas', `${acar.nenas_biji} biji`))
     } else {
-      buburHTML =
-        pRow('Pulut Hitam', `${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_tin} tin santan`) +
-        pRow('Kacang Hijau', `${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_tin} tin santan`) +
-        pRow('Jagung', `${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kotak} kotak stn`)
+      rows.push(ni(n++, 'Paceri Nenas', `${acar.nenas_biji} biji`))
     }
+
+    if (menu.bubur === 'Bubur Pulut Hitam') {
+      const b = bubur.pulut_hitam
+      rows.push(ni(n++, 'Bubur Pulut Hitam'))
+      rows.push(br('Pulut Hitam', `${b.beras_pulut_kg} kg`))
+      rows.push(br('Santan', `${b.santan_kg} kg`))
+      rows.push(br('Sagu', fmtSagu(b.sagu_kg)))
+    } else if (menu.bubur === 'Bubur Kacang Hijau') {
+      const b = bubur.kacang_hijau
+      rows.push(ni(n++, 'Bubur Kacang Hijau'))
+      rows.push(br('Kacang Hijau', `${b.kacang_kg} kg`))
+      rows.push(br('Santan', `${b.santan_kg} kg`))
+      rows.push(br('Sagu', fmtSagu(b.sagu_kg)))
+    } else if (menu.bubur === 'Bubur Jagung') {
+      const b = bubur.jagung
+      rows.push(ni(n++, 'Bubur Jagung'))
+      rows.push(br('Jagung', `${b.beras_kg} kg (${b.beg} beg)`))
+      rows.push(br('Santan', `${b.santan_kg} kg`))
+      rows.push(br('Sagu', fmtSagu(b.sagu_kg)))
+    }
+
+    // Air — hot + cold combined; legacy air_panas falls back via the helpers
+    const drinks = [...getHotDrinks(menu), ...getColdDrinks(menu)]
+    if (drinks.length > 0) rows.push(ni(n++, drinks.join(' · ')))
+
+    rows.push(ni(n++, 'Buah Oren', `${main.oren_biji} biji`))
+    rows.push(ni(n++, 'Air Gula', `${main.gula_liter} L`))
+
+    bodyHTML = `<div class="list">${rows.join('')}</div>`
   }
 
-  const bodyHTML = !ingr
-    ? `<div class="custom-pax">Pax melebihi 1,000 — kuantiti tersuai. Hubungi pengurusan.</div>`
-    : `<div class="grid">
-        <div>
-          ${pSection('Bahan Utama')}
-          ${pRow('Beras', `${ingr.main.beras_bag} bag`)}
-          ${pRow('Ayam', `${ingr.main.ayam_ekor} ekor`)}
-          ${pRow('Daging', `${ingr.main.daging_kg} kg`)}
-          ${pRow('Paceri Nenas', `${ingr.main.paceri_nenas_biji} biji`)}
-          ${pRow('Oren', `${ingr.main.oren_biji} biji`)}
-          ${pRow('Gula', `${ingr.main.gula_liter} L`)}
-          ${pSection('Kotak Daging')}
-          ${pRow('Slice (potong)', `${ingr.daging_box.slice_boxes} kotak`)}
-          ${pRow('Trim', `${ingr.daging_box.trim_boxes} kotak`)}
-          ${pRow('Lebihan', `${ingr.daging_box.variance_kg} kg`)}
-        </div>
-        <div>
-          ${pSection('Dalca')}
-          ${pRow('Kacang Dall', ingr.dalca.kacang_dall)}
-          ${pRow('Terung', ingr.dalca.terung)}
-          ${pRow('Kentang', ingr.dalca.kentang)}
-          ${pRow('Karot', ingr.dalca.karot)}
-          ${pRow('Kacang Panjang', ingr.dalca.kacang_panjang)}
-          ${pRow('Serbuk Kari', ingr.dalca.serbuk_kari)}
-          ${pSection('Bubur')}
-          ${buburHTML}
-          ${pSection(menu.acar === 'Pencuk' ? 'Pencuk (Acar Jelatah)' : 'Paceri Nenas')}
-          ${ingr.acar.timun_kg !== null ? pRow('Timun', `${ingr.acar.timun_kg} kg`) : ''}
-          ${pRow('Nenas', `${ingr.acar.nenas_biji} biji`)}
-        </div>
-      </div>`
+  // Catatan / Menu Tambahan — full page available in print, no truncation needed
+  const notesHTML = [
+    event.remarks?.trim() ? `<div class="note"><b>Catatan:</b> ${esc(event.remarks.trim())}</div>` : '',
+    event.menu_tambahan?.trim() ? `<div class="note"><b>Menu Tambahan:</b> ${esc(event.menu_tambahan.trim())}</div>` : '',
+  ].join('')
 
   return `<!DOCTYPE html>
 <html lang="ms">
@@ -171,18 +191,22 @@ function generatePrintHTML(
 <style>
 @page { size: A4 portrait; margin: 12mm; }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; line-height: 1.3; color: #374151; }
+body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.3; color: #374151; }
 .header { display: flex; align-items: flex-start; border-bottom: 1.5pt solid #dc2626; padding-bottom: 6pt; margin-bottom: 8pt; }
 .logo { height: 30pt; object-fit: contain; margin-right: 8pt; }
 .brand { font-size: 13pt; font-weight: 800; color: #111827; line-height: 1.2; }
-.ev-sub { font-size: 9.5pt; color: #374151; margin-top: 1pt; }
-.ev-meta { font-size: 8.5pt; color: #6b7280; margin-top: 1pt; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16pt; }
-.sh { font-size: 7.5pt; font-weight: 800; color: #dc2626; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 8pt; margin-bottom: 1.5pt; border-bottom: 0.75pt solid #fca5a5; padding-bottom: 1.5pt; }
-.row { display: flex; align-items: baseline; padding: 1.5pt 0; border-bottom: 0.5pt dotted #e5e7eb; }
-.rl { color: #374151; }
-.rs { flex: 1; }
-.rq { font-weight: 700; color: #111827; white-space: nowrap; }
+.ev-sub { font-size: 10pt; color: #374151; margin-top: 1pt; }
+.ev-meta { font-size: 9pt; color: #6b7280; margin-top: 1pt; }
+.list { margin-top: 2pt; }
+.item { display: flex; align-items: baseline; padding: 3.5pt 0; border-bottom: 0.5pt solid #e5e7eb; }
+.inum { font-weight: 800; color: #111827; font-size: 11pt; min-width: 18pt; flex-shrink: 0; }
+.iname { font-weight: 800; color: #111827; font-size: 11pt; flex: 1; }
+.iq { font-weight: 800; color: #111827; font-size: 13pt; white-space: nowrap; margin-left: 6pt; }
+.branch { display: flex; align-items: baseline; padding: 2pt 0 2pt 14pt; border-bottom: 0.5pt dotted #f3f4f6; }
+.bl { color: #333333; font-size: 9.5pt; flex: 1; }
+.bq { font-weight: 700; color: #111827; font-size: 11pt; white-space: nowrap; }
+.note { margin-top: 6pt; font-size: 9pt; color: #374151; }
+.note b { color: #6b7280; }
 .footer { margin-top: 10pt; border-top: 0.5pt solid #e5e7eb; padding-top: 4pt; display: flex; justify-content: space-between; font-size: 7.5pt; color: #9ca3af; }
 .custom-pax { font-size: 10pt; color: #6b7280; text-align: center; padding: 20pt 0; }
 </style>
@@ -197,6 +221,7 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; line-height:
   </div>
 </div>
 ${bodyHTML}
+${notesHTML}
 <div class="footer">
   <span>Dijana: ${esc(printTime)}</span>
   <span>KAKMELL RESOURCES</span>
@@ -220,7 +245,7 @@ function printIngredients(event: EventDoc, ingr: IngredientResult | null, menu: 
 
 // ── Main component ──────────────────────────────────────────────────────────
 
-const EMPTY_MENU: MenuSelection = { nasi: '', ayam: '', daging: '', acar: '', bubur: '', air_panas: '' }
+const EMPTY_MENU: MenuSelection = { nasi: '', ayam: '', daging: '', acar: '', bubur: '', hot_drinks: [], cold_drinks: [] }
 
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>()
@@ -232,6 +257,11 @@ export default function EventDetail() {
   const { event, loading } = useEvent(id!)
   const { halls } = useHalls(!!user)
   const { options } = useMenuOptions(!!user)
+
+  // 'kahwin' when missing — pre-Feature-A events are all weddings
+  const menuType = resolveMenuType(event?.menu_type)
+  const isKahwin = menuType === 'kahwin'
+  const { items: typeItems } = useMenuTypeItems(menuType, !!user)
 
   const [existingInvoiceId, setExistingInvoiceId] = useState<string | null>(null)
   const [overrides, setOverrides] = useState<OverrideMap>({})
@@ -261,11 +291,14 @@ export default function EventDetail() {
     pax: 0,
     status: 'upcoming' as 'upcoming' | 'completed' | 'cancelled',
     remarks: '',
+    menu_tambahan: '',
     menu: EMPTY_MENU,
+    selected_items: [] as string[],
   })
 
   function enterEditMode() {
     if (!event) return
+    const source = event.menu_selection ?? EMPTY_MENU
     setEditForm({
       nama_majlis: event.nama_majlis,
       hall_name: event.hall_name,
@@ -274,7 +307,14 @@ export default function EventDetail() {
       pax: event.pax,
       status: event.status,
       remarks: event.remarks || '',
-      menu: { ...(event.menu_selection ?? EMPTY_MENU) },
+      menu_tambahan: event.menu_tambahan ?? '',
+      // Legacy air_panas string maps into hot_drinks on first edit
+      menu: {
+        ...source,
+        hot_drinks: getHotDrinks(source),
+        cold_drinks: getColdDrinks(source),
+      },
+      selected_items: [...(event.selected_items ?? [])],
     })
     setIsEditing(true)
   }
@@ -294,7 +334,10 @@ export default function EventDetail() {
         pax: Number(editForm.pax),
         status: editForm.status,
         remarks: editForm.remarks.trim(),
-        menu_selection: editForm.menu,
+        menu_tambahan: editForm.menu_tambahan.trim(),
+        // Drop legacy air_panas — hot_drinks/cold_drinks are the source of truth after edit
+        menu_selection: (({ air_panas: _legacy, ...rest }) => rest)(editForm.menu),
+        ...(!isKahwin && { selected_items: editForm.selected_items }),
       })
       logActivity({
         action: 'event_updated',
@@ -415,7 +458,8 @@ export default function EventDetail() {
         </span>
       </div>
 
-      {/* Tab bar */}
+      {/* Tab bar — non-kahwin has no ingredient calculator, so no tabs */}
+      {isKahwin && (
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-5">
         {(['details', 'ingredients'] as const).map((tabKey) => (
           <button
@@ -432,11 +476,12 @@ export default function EventDetail() {
           </button>
         ))}
       </div>
+      )}
 
       {/* ════════════════════════════════════════
           Details Tab
       ════════════════════════════════════════ */}
-      {tab === 'details' && (
+      {(tab === 'details' || !isKahwin) && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
 
           {!isEditing ? (
@@ -473,16 +518,19 @@ export default function EventDetail() {
               </div>
 
               {/* Menu chips */}
-              {(() => {
+              {isKahwin ? (() => {
                 const items = [
                   { cat: 'Nasi', val: menu.nasi },
                   { cat: 'Ayam', val: menu.ayam },
                   { cat: 'Daging', val: menu.daging },
                   { cat: 'Acar', val: menu.acar },
                   { cat: 'Bubur', val: menu.bubur },
-                  { cat: 'Air Panas', val: menu.air_panas },
                 ].filter((item) => item.val)
-                return items.length > 0 ? (
+                const drinkRows = [
+                  { cat: t('events.hotDrinks'), vals: getHotDrinks(menu) },
+                  { cat: t('events.coldDrinks'), vals: getColdDrinks(menu) },
+                ].filter((row) => row.vals.length > 0)
+                return items.length > 0 || drinkRows.length > 0 ? (
                   <div className="mb-5">
                     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2.5">
                       {t('events.selectedMenu')}
@@ -494,10 +542,49 @@ export default function EventDetail() {
                           <MenuChip label={val} />
                         </div>
                       ))}
+                      {drinkRows.map(({ cat, vals }) => (
+                        <div key={cat} className="flex items-start gap-2.5">
+                          <span className="text-xs text-gray-400 w-20 shrink-0 pt-1">{cat}</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {vals.map((val) => <MenuChip key={val} label={val} />)}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ) : null
-              })()}
+              })() : (
+                <div className="mb-5">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2.5">
+                    {t('events.selectedMenu')}
+                  </p>
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <span className="text-xs text-gray-400 w-20 shrink-0">{t('events.menuType')}</span>
+                    <span className="inline-flex px-3 py-1 rounded-full bg-[#1B4332]/10 text-[#1B4332] text-xs font-semibold border border-[#1B4332]/20">
+                      {t(MENU_TYPE_LABEL_KEYS[menuType])}
+                    </span>
+                  </div>
+                  {(event.selected_items ?? []).length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {(event.selected_items ?? []).map((item) => (
+                        <MenuChip key={item} label={item} />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-300 italic">{t('events.noItemsForType')}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Menu Tambahan */}
+              {event.menu_tambahan && (
+                <div className="mb-5">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+                    {t('events.menuTambahan')}
+                  </p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{event.menu_tambahan}</p>
+                </div>
+              )}
 
               {/* Remarks */}
               <div className="mb-5">
@@ -686,38 +773,98 @@ export default function EventDetail() {
                 </div>
               </div>
 
-              {/* Menu pills */}
-              {(['nasi', 'ayam', 'daging', 'acar', 'bubur'] as const).map((cat) =>
-                options[cat].length > 0 ? (
-                  <div key={cat}>
-                    <FieldLabel>{cat.charAt(0).toUpperCase() + cat.slice(1)}</FieldLabel>
-                    <div className="flex flex-wrap gap-2">
-                      {options[cat].map((opt) => (
-                        <Pill
-                          key={opt}
-                          label={opt}
-                          selected={editForm.menu[cat] === opt}
-                          onClick={() => setEditForm((f) => ({ ...f, menu: { ...f.menu, [cat]: opt } }))}
-                        />
-                      ))}
-                    </div>
+              {/* Menu pills (kahwin) / item tick list (non-kahwin) */}
+              {isKahwin ? (
+                <>
+                  {(['nasi', 'ayam', 'daging', 'acar', 'bubur'] as const).map((cat) =>
+                    options[cat].length > 0 ? (
+                      <div key={cat}>
+                        <FieldLabel>{cat.charAt(0).toUpperCase() + cat.slice(1)}</FieldLabel>
+                        <div className="flex flex-wrap gap-2">
+                          {options[cat].map((opt) => (
+                            <Pill
+                              key={opt}
+                              label={opt}
+                              selected={editForm.menu[cat] === opt}
+                              onClick={() => setEditForm((f) => ({ ...f, menu: { ...f.menu, [cat]: opt } }))}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ) : null
+                  )}
+
+                  {/* Minuman Panas / Sejuk — multi-select */}
+                  {([
+                    { key: 'hot_drinks' as const, label: t('events.hotDrinks'), opts: options.air_panas, fallback: ['Teh O', 'Kopi O', 'Air Sirap'] },
+                    { key: 'cold_drinks' as const, label: t('events.coldDrinks'), opts: options.air_sejuk, fallback: ['Air Anggur/Kordial', 'Air Sirap'] },
+                  ]).map(({ key, label, opts, fallback }) => {
+                    const selected = editForm.menu[key] ?? []
+                    // Union with saved selections so a deactivated drink stays visible
+                    const shown = [...new Set([...(opts.length > 0 ? opts : fallback), ...selected])]
+                    return (
+                      <div key={key}>
+                        <FieldLabel>{label}</FieldLabel>
+                        <div className="flex flex-wrap gap-2">
+                          {shown.map((opt) => (
+                            <Pill
+                              key={opt}
+                              label={opt}
+                              selected={selected.includes(opt)}
+                              onClick={() => setEditForm((f) => {
+                                const cur = f.menu[key] ?? []
+                                return {
+                                  ...f,
+                                  menu: {
+                                    ...f.menu,
+                                    [key]: cur.includes(opt) ? cur.filter((d) => d !== opt) : [...cur, opt],
+                                  },
+                                }
+                              })}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </>
+              ) : (
+                <div>
+                  <FieldLabel>{t('events.selectItems')}</FieldLabel>
+                  <div className="flex flex-wrap gap-2">
+                    {/* Union of the type's active items and this event's saved
+                        items, so a since-deactivated item stays visible */}
+                    {[...new Set([...typeItems, ...editForm.selected_items])].sort((a, b) => a.localeCompare(b)).map((item) => (
+                      <Pill
+                        key={item}
+                        label={item}
+                        selected={editForm.selected_items.includes(item)}
+                        onClick={() => setEditForm((f) => ({
+                          ...f,
+                          selected_items: f.selected_items.includes(item)
+                            ? f.selected_items.filter((i) => i !== item)
+                            : [...f.selected_items, item],
+                        }))}
+                      />
+                    ))}
                   </div>
-                ) : null
+                </div>
               )}
 
-              {/* Air Panas */}
+              {/* Menu Tambahan */}
               <div>
-                <FieldLabel>{t('events.airPanas')}</FieldLabel>
-                <div className="flex flex-wrap gap-2">
-                  {(options.air.length > 0 ? options.air : ['Teh O', 'Kopi O']).map((opt) => (
-                    <Pill
-                      key={opt}
-                      label={opt}
-                      selected={editForm.menu.air_panas === opt}
-                      onClick={() => setEditForm((f) => ({ ...f, menu: { ...f.menu, air_panas: opt } }))}
-                    />
-                  ))}
-                </div>
+                <FieldLabel>{t('events.menuTambahan')}</FieldLabel>
+                <textarea
+                  value={editForm.menu_tambahan}
+                  onChange={(e) => setEditForm((f) => ({ ...f, menu_tambahan: e.target.value }))}
+                  rows={2}
+                  maxLength={300}
+                  placeholder={t('events.menuTambahanPlaceholder')}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 resize-none"
+                />
+                <p className="text-[10px] text-gray-400 text-right mt-0.5 tabular-nums">
+                  {editForm.menu_tambahan.length}/300
+                </p>
               </div>
 
               {/* Remarks */}
@@ -753,9 +900,9 @@ export default function EventDetail() {
       )}
 
       {/* ════════════════════════════════════════
-          Ingredients Tab
+          Ingredients Tab — kahwin only (no calculator for other types)
       ════════════════════════════════════════ */}
-      {tab === 'ingredients' && (
+      {tab === 'ingredients' && isKahwin && (
         <div>
           {/* Print action */}
           <div className="flex items-center justify-between mb-4">
@@ -791,15 +938,14 @@ export default function EventDetail() {
               <IngRow label="Beras" value={`${ingr.main.beras_bag} bag`} />
               <IngRow label="Ayam" value={`${ingr.main.ayam_ekor} ekor`} />
               <IngRow label="Daging" value={`${ingr.main.daging_kg} kg`} />
-              <IngRow label="Paceri Nenas" value={`${ingr.main.paceri_nenas_biji} biji`} />
               <IngRow label="Oren" value={`${ingr.main.oren_biji} biji`} />
               <IngRow label="Gula" value={`${ingr.main.gula_liter} L`} />
 
               {/* Kotak Daging */}
               <SectionHeader title={t('ingredients.dagingBox')} />
               <IngRow label="Slice (potong)" value={`${ingr.daging_box.slice_boxes} kotak`} />
-              <IngRow label="Trim" value={`${ingr.daging_box.trim_boxes} kotak`} />
-              <IngRow label="Lebihan" value={`${ingr.daging_box.variance_kg} kg`} />
+              <IngRow label="Trim" value={ingr.daging_box.trim_boxes === 0 ? '—' : `${ingr.daging_box.trim_boxes} kotak`} />
+              <IngRow label="Lebihan" value={`${ingr.daging_box.variance_kg > 0 ? '+' : ''}${ingr.daging_box.variance_kg} kg`} />
 
               {/* Dalca */}
               <SectionHeader title={t('ingredients.dalca')} />
@@ -807,14 +953,12 @@ export default function EventDetail() {
               <IngRow label="Terung" value={ingr.dalca.terung} />
               <IngRow label="Kentang" value={ingr.dalca.kentang} />
               <IngRow label="Karot" value={ingr.dalca.karot} />
-              <IngRow label="Kacang Panjang" value={ingr.dalca.kacang_panjang} />
-              <IngRow label="Serbuk Kari" value={ingr.dalca.serbuk_kari} />
 
               {/* Bubur */}
               <SectionHeader title={t('ingredients.bubur')} />
-              <IngRow label="Pulut Hitam" value={`${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_tin} tin santan`} />
-              <IngRow label="Kacang Hijau" value={`${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_tin} tin santan`} />
-              <IngRow label="Bubur Jagung" value={`${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kotak} kotak santan`} />
+              <IngRow label="Pulut Hitam" value={`${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_kg}kg santan + ${ingr.bubur.pulut_hitam.sagu_kg}kg sagu`} />
+              <IngRow label="Kacang Hijau" value={`${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_kg}kg santan + ${ingr.bubur.kacang_hijau.sagu_kg}kg sagu`} />
+              <IngRow label="Bubur Jagung" value={`${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kg}kg santan + ${ingr.bubur.jagung.sagu_kg}kg sagu`} />
 
               {/* Acar */}
               <SectionHeader title={menu.acar === 'Pencuk' ? 'Pencuk (Acar Jelatah)' : 'Paceri Nenas'} />

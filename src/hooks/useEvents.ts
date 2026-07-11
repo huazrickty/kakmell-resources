@@ -8,7 +8,10 @@ export interface MenuSelection {
   daging: string
   acar: string
   bubur: string
-  air_panas: string
+  // Legacy single hot drink — events created before the hot/cold split
+  air_panas?: string
+  hot_drinks?: string[]
+  cold_drinks?: string[]
 }
 
 export interface EventDoc {
@@ -21,6 +24,12 @@ export interface EventDoc {
   status: 'upcoming' | 'completed' | 'cancelled'
   remarks: string
   menu_selection: MenuSelection
+  // Feature A: absent on pre-existing events — treat missing as 'kahwin'
+  menu_type?: string
+  // Non-kahwin only: chosen item names (BM)
+  selected_items?: string[]
+  // Optional free-text extra menu note, all menu types (Feature B)
+  menu_tambahan?: string
   created_by: string
   created_at: Timestamp
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore'
 import { toast } from 'sonner'
@@ -7,6 +7,8 @@ import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { useHalls } from '@/hooks/useHalls'
 import { useMenuOptions } from '@/hooks/useMenuOptions'
+import { useMenuTypeItems } from '@/hooks/useMenuTypeItems'
+import { MENU_TYPES, MENU_TYPE_LABEL_KEYS, type MenuType } from '@/lib/menu-types'
 import { cn } from '@/lib/utils'
 import { logActivity } from '@/lib/activity-logger'
 
@@ -130,8 +132,39 @@ export default function NewEvent() {
     daging: '',
     acar: '',
     bubur: '',
-    air_panas: 'Teh O',
+    hot_drinks: ['Teh O'] as string[],
+    cold_drinks: [] as string[],
   })
+
+  function toggleDrink(kind: 'hot_drinks' | 'cold_drinks', drink: string) {
+    setStep2((s) => ({
+      ...s,
+      [kind]: s[kind].includes(drink)
+        ? s[kind].filter((d) => d !== drink)
+        : [...s[kind], drink],
+    }))
+  }
+
+  const [menuType, setMenuType] = useState<MenuType>('kahwin')
+  const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const [menuTambahan, setMenuTambahan] = useState('')
+  const { items: typeItems, loading: typeItemsLoading } = useMenuTypeItems(menuType, !!user)
+
+  // Non-kahwin default: full package pre-selected, admin unticks exceptions
+  function changeMenuType(mt: MenuType) {
+    setMenuType(mt)
+    setSelectedItems([])
+  }
+
+  useEffect(() => {
+    if (menuType !== 'kahwin') setSelectedItems(typeItems)
+  }, [typeItems, menuType])
+
+  function toggleItem(item: string) {
+    setSelectedItems((prev) =>
+      prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
+    )
+  }
 
   function handleNext() {
     if (!step1.nama_majlis.trim()) {
@@ -157,6 +190,7 @@ export default function NewEvent() {
   async function handleSubmit() {
     setSubmitting(true)
     try {
+      const EMPTY_MENU = { nasi: '', ayam: '', daging: '', acar: '', bubur: '', hot_drinks: [], cold_drinks: [] }
       const docRef = await addDoc(collection(db, 'events'), {
         nama_majlis: step1.nama_majlis.trim(),
         hall_name: step1.hall_name,
@@ -164,7 +198,13 @@ export default function NewEvent() {
         sesi: step1.sesi,
         pax: Number(step1.pax),
         status: 'upcoming',
-        menu_selection: step2,
+        menu_type: menuType,
+        // Kahwin keeps its structured selection; non-kahwin stores a flat item
+        // list (menu_selection stays present-but-empty so existing consumers
+        // of that field never see undefined)
+        menu_selection: menuType === 'kahwin' ? step2 : EMPTY_MENU,
+        ...(menuType !== 'kahwin' && { selected_items: selectedItems }),
+        ...(menuTambahan.trim() && { menu_tambahan: menuTambahan.trim() }),
         remarks: step1.remarks.trim(),
         created_by: user!.uid,
         created_at: serverTimestamp(),
@@ -303,7 +343,45 @@ export default function NewEvent() {
         {/* ── Step 2: Menu Selection ── */}
         {step === 2 && (
           <div className="space-y-6">
-            {menuLoading ? (
+            {/* Jenis Menu */}
+            <div>
+              <FieldLabel>{t('events.menuType')}</FieldLabel>
+              <div className="flex flex-wrap gap-2">
+                {MENU_TYPES.map((mt) => (
+                  <MenuPill
+                    key={mt}
+                    label={t(MENU_TYPE_LABEL_KEYS[mt])}
+                    selected={menuType === mt}
+                    onClick={() => changeMenuType(mt)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Non-kahwin: flat item tick list, no calculator */}
+            {menuType !== 'kahwin' && (
+              typeItemsLoading ? (
+                <div className="text-sm text-gray-400 text-center py-8">{t('common.loading')}</div>
+              ) : typeItems.length === 0 ? (
+                <div className="text-sm text-gray-400 text-center py-8">{t('events.noItemsForType')}</div>
+              ) : (
+                <div>
+                  <FieldLabel>{t('events.selectItems')}</FieldLabel>
+                  <div className="flex flex-wrap gap-2">
+                    {typeItems.map((item) => (
+                      <MenuPill
+                        key={item}
+                        label={item}
+                        selected={selectedItems.includes(item)}
+                        onClick={() => toggleItem(item)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )
+            )}
+
+            {menuType === 'kahwin' && (menuLoading ? (
               <div className="text-sm text-gray-400 text-center py-8">{t('common.loading')}</div>
             ) : (
               <>
@@ -382,22 +460,53 @@ export default function NewEvent() {
                   </div>
                 </div>
 
-                {/* Air Panas */}
+                {/* Minuman Panas — multi-select */}
                 <div>
-                  <FieldLabel>{t('events.airPanas')}</FieldLabel>
+                  <FieldLabel>{t('events.hotDrinks')}</FieldLabel>
                   <div className="flex flex-wrap gap-2">
-                    {(options.air.length > 0 ? options.air : ['Teh O', 'Kopi O']).map((opt) => (
+                    {(options.air_panas.length > 0 ? options.air_panas : ['Teh O', 'Kopi O', 'Air Sirap']).map((opt) => (
                       <MenuPill
                         key={opt}
                         label={opt}
-                        selected={step2.air_panas === opt}
-                        onClick={() => setStep2((s) => ({ ...s, air_panas: opt }))}
+                        selected={step2.hot_drinks.includes(opt)}
+                        onClick={() => toggleDrink('hot_drinks', opt)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Minuman Sejuk — multi-select */}
+                <div>
+                  <FieldLabel>{t('events.coldDrinks')}</FieldLabel>
+                  <div className="flex flex-wrap gap-2">
+                    {(options.air_sejuk.length > 0 ? options.air_sejuk : ['Air Anggur/Kordial', 'Air Sirap']).map((opt) => (
+                      <MenuPill
+                        key={opt}
+                        label={opt}
+                        selected={step2.cold_drinks.includes(opt)}
+                        onClick={() => toggleDrink('cold_drinks', opt)}
                       />
                     ))}
                   </div>
                 </div>
               </>
-            )}
+            ))}
+
+            {/* Menu Tambahan — optional free-text note, all menu types */}
+            <div>
+              <FieldLabel>{t('events.menuTambahan')}</FieldLabel>
+              <textarea
+                value={menuTambahan}
+                onChange={(e) => setMenuTambahan(e.target.value)}
+                rows={2}
+                maxLength={300}
+                placeholder={t('events.menuTambahanPlaceholder')}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-white resize-none"
+              />
+              <p className="text-[10px] text-gray-400 text-right mt-0.5 tabular-nums">
+                {menuTambahan.length}/300
+              </p>
+            </div>
 
             {/* Navigation */}
             <div className="flex items-center justify-between pt-2">

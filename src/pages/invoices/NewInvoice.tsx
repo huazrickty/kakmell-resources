@@ -86,7 +86,8 @@ export default function NewInvoice() {
         id: 'katering',
         description: `Katering — ${event.hall_name} — ${event.pax} pax`,
         qty: String(event.pax),
-        unit_price: '10',
+        // Tiered suggestion: < 300 pax → RM15.00, >= 300 pax → RM10.50 (editable)
+        unit_price: event.pax < 300 ? '15' : '10.50',
         protected: true,
         toggled: true,
       },

@@ -10,6 +10,10 @@
     "preview": "vite preview",
     "seed": "tsx scripts/seed.ts",
     "seed:events": "tsx scripts/seed-events.ts",
+    "seed:tasks": "tsx scripts/seedTasks.ts",
+    "seed:menutypes": "tsx scripts/seedMenuTypeItems.ts",
+    "seed:drinks": "tsx scripts/seedDrinks.ts",
+    "migrate:menutypes": "tsx scripts/migrateMenuTypes.ts",
     "seed:historical": "tsx scripts/run-seed-historical.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -19,6 +23,7 @@
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
+    "browser-image-compression": "^2.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

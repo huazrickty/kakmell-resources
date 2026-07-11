@@ -235,10 +235,11 @@ export async function generateInvoicePDF(
   let fy = footY + 5
   bold(8); pdf.setTextColor(17, 24, 39)
   pdf.text('Thank You For Your Business!', M, fy); fy += 5
-  reg(7.5); pdf.setTextColor(107, 114, 128)
-  pdf.text('If you have any questions about this invoice, please contact', M, fy); fy += 4.5
-  pdf.text('NORMILA (018-3970769)', M, fy); fy += 4.5
-  pdf.text('Make all checks payable to KAKMELL RESOURCES', M, fy)
+  bold(7.5); pdf.setTextColor(17, 24, 39)
+  pdf.text('KAKMELL RESOURCES', M, fy); fy += 4.5
+  reg(7.5)
+  pdf.text('32601052091', M, fy); fy += 4.5
+  pdf.text('HONG LEONG BANK', M, fy)
 
   reg(6.5); pdf.setTextColor(156, 163, 175)
   pdf.text('Page 1 of 1', W - M, footY + 5, { align: 'right' })
