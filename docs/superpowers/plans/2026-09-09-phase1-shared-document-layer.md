@@ -17,13 +17,23 @@
 - Do NOT touch `src/lib/ingredient-calculator.ts`, `ingredient-calculator-dynamic.ts`, `ingredient-overrides.ts`.
 - Do NOT change Firestore schema of `events` or `invoices`. Only additive: new `counters` collection + rules block.
 - Do NOT add pages/routes. Do NOT edit `src/lib/i18n.ts` (no new keys needed; the i18n key-parity test must stay green).
-- `pnpm build`, `pnpm test`, `pnpm lint` must pass at the end of every task.
-- No `firebase deploy`, no auto-run of the migration script.
+- `pnpm build` and `pnpm test` must pass at the end of every task, BEFORE the commit.
+- `pnpm lint` baseline on this branch is **27 problems (25 errors, 2 warnings), all pre-existing** (measured at `60fbe93`). Gate = the count must not grow and no problem may point into a file you created; do NOT fix unrelated pre-existing lint errors in this phase. Paste the summary line in the report.
+- Commit message format: `refactor(shared): <task summary>` (Task 7: `chore(functions): …`). One commit per task. Always end the message with the two attribution lines given by the session (`Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>` + `Claude-Session: https://claude.ai/code/session_01FvWhyRGkhsDyXcT2kJHh2Z`). Use `git -c core.safecrlf=false commit` (repo has mixed line endings; the warning is noise).
+- Branch: `refactor/shared-document-layer`. Never commit to `main`.
+- After EVERY task, before commit: run the task's grep gate and paste the raw output in the report. "Done" without grep output is not accepted.
+- No `firebase deploy` of any kind (rules, functions, hosting), no auto-run of the migration script.
+- Never stage `firebase-service-account.json` (gitignored, verify with `git diff --cached --name-only | grep -i service-account` → empty).
 - Path alias `@/` → `src/`. Test files colocated as `*.test.ts` under `src/lib`.
 
-## Working-tree warning
+## Working-tree status
 
-`git status` at session start shows ~40 modified + several untracked files (ui-kit migration, More page, etc.) that are **not committed**. Refactoring on top of that makes the diff review for this phase unreadable. Recommended: commit or stash that WIP first (`git add -A && git commit -m "wip: ui-kit migration"`), then execute this plan so every task diff is isolated. Executor: confirm with user before starting Task 1.
+DONE 2026-09-09: WIP committed as `bdec9d8 wip: ui-kit migration`, pushed to `origin/main`. Branch `refactor/shared-document-layer` created from it; plan committed as `735be05`. Baseline on that commit: `pnpm build` ✓, `pnpm test` ✓ (79 tests, 2 files). All tasks run on this branch.
+
+## Execution mode (user decision)
+
+- Tasks 1, 2, 3, 6, 7 → one fresh subagent each; this file is the source of truth; subagent reports diff + build/test/lint output + grep gate output.
+- Tasks 4, 5 → inline in the main session (user wants to see reasoning for the transaction counter and the flag-based editor).
 
 ---
 
@@ -455,11 +465,19 @@ import { describe, it, expect } from 'vitest'
 import { formatDocumentNumber, parseDocumentNumber } from './document-number'
 
 describe('formatDocumentNumber', () => {
-  it('pads to 3 and grows beyond 999', () => {
+  it('pads to 3: 001, 010, 100; grows beyond 999', () => {
     expect(formatDocumentNumber('invoice', 2026, 1)).toBe('INV-2026-001')
-    expect(formatDocumentNumber('invoice', 2026, 42)).toBe('INV-2026-042')
+    expect(formatDocumentNumber('invoice', 2026, 10)).toBe('INV-2026-010')
+    expect(formatDocumentNumber('invoice', 2026, 100)).toBe('INV-2026-100')
     expect(formatDocumentNumber('invoice', 2026, 1234)).toBe('INV-2026-1234')
     expect(formatDocumentNumber('quotation', 2027, 7)).toBe('QUO-2027-007')
+  })
+  it('year rollover: sequence is per year, new year restarts from 001', () => {
+    // nextSequence is the pure core used by the transaction: (counterDoc, year) → next seq
+    expect(nextSequence({ '2026': 42 }, 2026)).toBe(43)
+    expect(nextSequence({ '2026': 42 }, 2027)).toBe(1)     // year field absent → init 0 → 1
+    expect(nextSequence(undefined, 2026)).toBe(1)          // counter doc absent
+    expect(formatDocumentNumber('invoice', 2027, nextSequence({ '2026': 42 }, 2027))).toBe('INV-2027-001')
   })
 })
 
@@ -497,28 +515,48 @@ export function parseDocumentNumber(no: string): { kind: DocumentKind; year: num
   const kind = (Object.keys(DOCUMENT_PREFIX) as DocumentKind[]).find(k => DOCUMENT_PREFIX[k] === m[1])!
   return { kind, year: Number(m[2]), seq: Number(m[3]) }
 }
+
+/** Counter doc shape: { "2026": 12, "2027": 3 } — year → last issued sequence. */
+export type CounterDoc = Record<string, number>
+
+/** Pure core of the transaction: missing doc or missing year field → 0 → next is 1. */
+export function nextSequence(counter: CounterDoc | undefined, year: number): number {
+  const current = counter?.[String(year)]
+  return (typeof current === 'number' && Number.isFinite(current) ? current : 0) + 1
+}
 ```
 
 ```ts
 // src/lib/document-number.firestore.ts
 import { doc, runTransaction } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { formatDocumentNumber, type DocumentKind } from './document-number'
+import { formatDocumentNumber, nextSequence, type CounterDoc, type DocumentKind } from './document-number'
 
 /**
  * Atomically increments counters/{kind}.{year} and returns the formatted number.
  * Fixes: race between two admins, and re-issue of a number after a delete.
+ *
+ * Retry: Firestore's runTransaction already retries on contention (default 5
+ * attempts) — that covers two admins saving at once. We add ONE outer retry
+ * only for the 'aborted' / 'unavailable' error codes (transient network),
+ * so a flaky mobile connection does not surface as a failed save.
  */
 export async function nextDocumentNumber(kind: DocumentKind, year = new Date().getFullYear()): Promise<string> {
   const ref = doc(db, 'counters', kind)
   const key = String(year)
-  const seq = await runTransaction(db, async (tx) => {
+  const run = () => runTransaction(db, async (tx) => {
     const snap = await tx.get(ref)
-    const current = snap.exists() ? (snap.data()[key] as number | undefined) ?? 0 : 0
-    const next = current + 1
+    const next = nextSequence(snap.exists() ? (snap.data() as CounterDoc) : undefined, year)
     tx.set(ref, { [key]: next }, { merge: true })
     return next
   })
+  let seq: number
+  try {
+    seq = await run()
+  } catch (err: any) {
+    if (err?.code === 'aborted' || err?.code === 'unavailable') seq = await run()
+    else throw err
+  }
   return formatDocumentNumber(kind, year, seq)
 }
 ```
@@ -707,7 +745,14 @@ export function DocumentStatusBadge({ kind, status, className }: { kind: Documen
 
 ---
 
-### Task 7: Dead Functions removal (ONLY after user confirms)
+### Task 7: Dead Functions removal
+
+**Pre-check (mandatory, paste output in report):**
+```
+grep -n "export const \(createInvoice\|updateInvoiceStatus\|generateWeeklyExportData\) = " functions/src/index.ts
+grep -rn "httpsCallable(" src
+```
+Expected: all three are `onCall(` (verified 2026-09-09: `generateWeeklyExportData` :99, `createInvoice` :139, `updateInvoiceStatus` :187 — all `onCall`); the only `httpsCallable` names in `src/` are `changeUserRole` and `cleanupOldTaskAssignmentsManual`. If `generateWeeklyExportData` is anything other than `onCall`, or any caller appears, STOP and report — do not delete it or the calculator.
 
 **Files:**
 - Modify: `functions/src/index.ts` — remove `LineItem`, `CreateInvoiceData`, `UpdateInvoiceStatusData`, `WeeklyExportData` types; remove `createInvoice`, `updateInvoiceStatus`, `generateWeeklyExportData`; remove `import { calculateIngredients } from "./ingredient-calculator.js"`; remove `Timestamp` from firebase-admin import if unused after.
