@@ -13,12 +13,19 @@ export interface StatusMeta {
   strip: string
 }
 
-// Partial: the 'quotation' entry is added in Phase 2 together with its i18n keys.
 export const DOCUMENT_STATUS: Partial<Record<DocumentKind, Record<string, StatusMeta>>> = {
   invoice: {
     draft: { badge: 'neutral', labelKey: 'invoice.statusDraft', strip: 'bg-ink/15' },
     sent:  { badge: 'warn',    labelKey: 'invoice.statusSent',  strip: 'bg-warn'   },
     paid:  { badge: 'ok',      labelKey: 'invoice.statusPaid',  strip: 'bg-ok'     },
+  },
+  // 'expired' is display-only (derived from valid_until by effectiveStatus); never stored.
+  quotation: {
+    draft:    { badge: 'neutral', labelKey: 'quotation.statusDraft',    strip: 'bg-ink/15' },
+    sent:     { badge: 'warn',    labelKey: 'quotation.statusSent',     strip: 'bg-warn'   },
+    accepted: { badge: 'ok',      labelKey: 'quotation.statusAccepted', strip: 'bg-ok'     },
+    rejected: { badge: 'danger',  labelKey: 'quotation.statusRejected', strip: 'bg-danger' },
+    expired:  { badge: 'neutral', labelKey: 'quotation.statusExpired',  strip: 'bg-ink/30' },
   },
 }
 

@@ -40,13 +40,13 @@ export interface InvoiceDoc {
 export const fmtRM = (n: number): string =>
   'RM ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 
-function fmtFilenameDate(d: Date): string {
+export function fmtFilenameDate(d: Date): string {
   const dd = String(d.getDate()).padStart(2, '0')
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   return `${dd}${mm}${d.getFullYear()}`
 }
 
-function sanitizePart(s: string): string {
+export function sanitizePart(s: string): string {
   return s
     .replace(/^Majlis\s+/i, '')
     .replace(/\s+&\s+/g, '-')

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import type { InvoiceLineItem } from '@/lib/invoice-pdf'
+import { fmtUnitPriceInput } from '@/lib/pricing'
 
 /**
  * One editable line-item row. Flags are optional so a plain row (custom
@@ -30,6 +31,17 @@ export function itemTotal(li: FormItem): number {
 
 export function isActive(li: FormItem): boolean {
   return li.toggled !== false
+}
+
+/** Inverse of toLineItems: persisted line items → editable rows (revision / convert prefill). */
+export function fromLineItems(items: InvoiceLineItem[], idPrefix = 'li'): FormItem[] {
+  const stamp = Date.now()
+  return items.map((li, i) => ({
+    id: `${idPrefix}-${i}-${stamp}`,
+    description: li.description,
+    qty: String(li.qty),
+    unit_price: fmtUnitPriceInput(li.unit_price),
+  }))
 }
 
 export interface UseLineItemsOptions {
