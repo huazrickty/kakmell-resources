@@ -83,16 +83,37 @@ async function main() {
   }
 
   const ref = db.collection('counters').doc('invoice')
-  const existing = await ref.get()
-  if (existing.exists) console.log('\ncounters/invoice already exists:', existing.data())
+  const existingSnap = await ref.get()
+  const existing = (existingSnap.exists ? existingSnap.data() : {}) as Record<string, number>
+  console.log('\ncounters/invoice currently:', existingSnap.exists ? existing : '(does not exist)')
 
-  console.log('\ncounter values to write (counters/invoice, merge):', maxByYear)
+  // ── GUARD: never lower a counter ──────────────────────────────────────────
+  // counter[year] = max(existing counter, highest invoice_no for that year).
+  // The counter may legitimately be AHEAD of the highest surviving invoice
+  // (test invoices deleted → gaps stay). Blindly setting counter = max
+  // invoice_no would lower it and re-issue numbers — the exact bug this
+  // replaces. Years present only in the existing counter are left untouched.
+  const toWrite: Record<string, number> = {}
+  let needsWrite = false
+  console.log('\nper-year decision (existing counter | highest invoice | value to write):')
+  for (const year of [...new Set([...Object.keys(existing), ...Object.keys(maxByYear)])].sort()) {
+    const cur = typeof existing[year] === 'number' ? existing[year] : 0
+    const inv = maxByYear[year] ?? 0
+    const val = Math.max(cur, inv)
+    toWrite[year] = val
+    const flag = inv > cur ? '  ← invoice max > counter: WRITE needed' : (cur > inv ? '  (counter ahead — kept)' : '  (in sync)')
+    if (inv > cur) needsWrite = true
+    console.log(`  ${year}: ${cur} | ${inv} | ${val}${flag}`)
+  }
 
   if (!write) {
-    console.log('\nDRY RUN — nothing written. Re-run with --write to seed counters/invoice.')
+    console.log(needsWrite
+      ? '\nDRY RUN — nothing written. Counter is BEHIND the highest invoice; re-run with --write.'
+      : '\nDRY RUN — nothing written. Counter already >= highest invoice for every year; --write would be a no-op.')
     return
   }
-  await ref.set(maxByYear, { merge: true })
+  if (!needsWrite) { console.log('\nNothing to write — counter already >= highest invoice for every year.'); return }
+  await ref.set(toWrite, { merge: true })
   console.log('\nWRITTEN counters/invoice =', (await ref.get()).data())
 }
 
