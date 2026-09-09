@@ -12,26 +12,7 @@ import { generateInvoicePDF, buildInvoiceFilename, getLogoBase64, fmtRM, type In
 import { logActivity } from '@/lib/activity-logger'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui-kit'
-
-// ── Lookup tables ──────────────────────────────────────────────────────────
-
-const GAJI_TABLE: [number, number][] = [
-  [300, 530], [400, 590], [500, 850], [650, 910],
-  [700, 970], [800, 1030], [1000, 1150], [1300, 1680], [1500, 2000],
-]
-
-function getGajiSuggestion(pax: number): number {
-  for (const [bracket, gaji] of GAJI_TABLE) {
-    if (pax <= bracket) return gaji
-  }
-  return 2000
-}
-
-function getBerkatSuggestion(pax: number): number {
-  if (pax <= 500) return 100
-  if (pax <= 800) return 200
-  return 300
-}
+import { getKateringUnitPrice, getGajiPekerja, getBerkatSuggestion, fmtUnitPriceInput, MAKAN_BERADAB_PRICE } from '@/lib/pricing'
 
 async function nextInvoiceNo(): Promise<string> {
   const snap = await getDocs(collection(db, 'invoices'))
@@ -88,7 +69,7 @@ export default function NewInvoice() {
         description: `Katering — ${event.hall_name} — ${event.pax} pax`,
         qty: String(event.pax),
         // Tiered suggestion: < 300 pax → RM15.00, >= 300 pax → RM10.50 (editable)
-        unit_price: event.pax < 300 ? '15' : '10.50',
+        unit_price: fmtUnitPriceInput(getKateringUnitPrice(event.pax)),
         protected: true,
         toggled: true,
       },
@@ -96,7 +77,7 @@ export default function NewInvoice() {
         id: 'makanberadab',
         description: 'Makan Beradab',
         qty: '1',
-        unit_price: '100',
+        unit_price: String(MAKAN_BERADAB_PRICE),
         protected: true,
         toggled: true,
       },
@@ -109,7 +90,7 @@ export default function NewInvoice() {
         toggled: true,
       },
     ])
-    setGajiPerkerja(String(getGajiSuggestion(event.pax)))
+    setGajiPerkerja(String(getGajiPekerja(event.pax)))
   }, [event, checkDone])
 
   // Computed totals
