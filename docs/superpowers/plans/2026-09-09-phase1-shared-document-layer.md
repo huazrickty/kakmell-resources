@@ -453,16 +453,24 @@ export type DocumentKind = 'invoice' | 'quotation'
 export const DOCUMENT_PREFIX: Record<DocumentKind, string> = { invoice: 'INV', quotation: 'QUO' }
 export function formatDocumentNumber(kind: DocumentKind, year: number, seq: number): string  // INV-2026-007
 export function parseDocumentNumber(no: string): { kind: DocumentKind; year: number; seq: number } | null
-export async function nextDocumentNumber(kind: DocumentKind, year = new Date().getFullYear()): Promise<string>
+export async function nextDocumentNumber(kind: DocumentKind, year: number): Promise<string>
 ```
+- **`year` is REQUIRED (no default).** The caller must pass the year of the DOCUMENT DATE (`invoiceDate.getFullYear()`), never the system clock. Backdating an invoice to 31/12/2026 while saving on 01/01/2027 must yield `INV-2026-xxx`, not `INV-2027-001`. In this phase both invoice pages store `invoice_date: serverTimestamp()` (no date field on the form), so today the caller passes `new Date().getFullYear()` explicitly at the call site — the signature forces the future quotation form (which will have a date field) to think about it.
 - Firestore: `counters/{kind}` document, fields `{ [year: string]: number }` e.g. `{ "2026": 12 }`.
+- **Gap policy** — this comment goes verbatim at the top of `document-number.firestore.ts`:
+  ```
+  // Sequence gaps are expected and intentional. A burned number (failed addDoc,
+  // or a retried transaction that had already committed) is never reused —
+  // reissuing numbers is the exact bug this module replaces. Do not add
+  // gap-filling logic.
+  ```
 
 - [ ] **Step 1: Failing tests (pure part)**
 
 ```ts
 // src/lib/document-number.test.ts
-import { describe, it, expect } from 'vitest'
-import { formatDocumentNumber, parseDocumentNumber } from './document-number'
+import { describe, it, expect, vi } from 'vitest'
+import { formatDocumentNumber, parseDocumentNumber, nextSequence } from './document-number'
 
 describe('formatDocumentNumber', () => {
   it('pads to 3: 001, 010, 100; grows beyond 999', () => {
@@ -478,6 +486,15 @@ describe('formatDocumentNumber', () => {
     expect(nextSequence({ '2026': 42 }, 2027)).toBe(1)     // year field absent → init 0 → 1
     expect(nextSequence(undefined, 2026)).toBe(1)          // counter doc absent
     expect(formatDocumentNumber('invoice', 2027, nextSequence({ '2026': 42 }, 2027))).toBe('INV-2027-001')
+  })
+  it('year comes from the document date, not the system clock (backdated save)', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2027, 0, 1, 9, 0, 0))                 // clock says 2027
+    const docDate = new Date(2026, 11, 31)                           // invoice dated 31/12/2026
+    const year = docDate.getFullYear()
+    expect(new Date().getFullYear()).toBe(2027)                      // sanity: clock really is 2027
+    expect(formatDocumentNumber('invoice', year, nextSequence({ '2026': 42, '2027': 3 }, year))).toBe('INV-2026-043')
+    vi.useRealTimers()
   })
 })
 
@@ -528,6 +545,10 @@ export function nextSequence(counter: CounterDoc | undefined, year: number): num
 
 ```ts
 // src/lib/document-number.firestore.ts
+// Sequence gaps are expected and intentional. A burned number (failed addDoc,
+// or a retried transaction that had already committed) is never reused —
+// reissuing numbers is the exact bug this module replaces. Do not add
+// gap-filling logic.
 import { doc, runTransaction } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { formatDocumentNumber, nextSequence, type CounterDoc, type DocumentKind } from './document-number'
@@ -536,12 +557,15 @@ import { formatDocumentNumber, nextSequence, type CounterDoc, type DocumentKind 
  * Atomically increments counters/{kind}.{year} and returns the formatted number.
  * Fixes: race between two admins, and re-issue of a number after a delete.
  *
+ * `year` MUST be the year of the document date (e.g. invoiceDate.getFullYear()),
+ * never the system clock — a backdated document keeps its own year's sequence.
+ *
  * Retry: Firestore's runTransaction already retries on contention (default 5
  * attempts) — that covers two admins saving at once. We add ONE outer retry
  * only for the 'aborted' / 'unavailable' error codes (transient network),
  * so a flaky mobile connection does not surface as a failed save.
  */
-export async function nextDocumentNumber(kind: DocumentKind, year = new Date().getFullYear()): Promise<string> {
+export async function nextDocumentNumber(kind: DocumentKind, year: number): Promise<string> {
   const ref = doc(db, 'counters', kind)
   const key = String(year)
   const run = () => runTransaction(db, async (tx) => {
@@ -575,8 +599,8 @@ export async function nextDocumentNumber(kind: DocumentKind, year = new Date().g
 ```
 
 - [ ] **Step 6: Switch pages**
-  - `NewInvoice.tsx`: delete `nextInvoiceNo` (36-40); `const invoiceNo = await nextDocumentNumber('invoice')`; import from `@/lib/document-number.firestore`.
-  - `NewCustomInvoice.tsx`: same (14-18, 73).
+  - `NewInvoice.tsx`: delete `nextInvoiceNo`; `const invoiceNo = await nextDocumentNumber('invoice', new Date().getFullYear())` — explicit at the call site because this form has no date field yet (`invoice_date: serverTimestamp()`); import from `@/lib/document-number.firestore`.
+  - `NewCustomInvoice.tsx`: same.
   - Remove now-unused `getDocs`/`collection` imports only if no other use remains in each file (`NewInvoice` still uses them for the duplicate check — keep; `NewCustomInvoice` → remove `getDocs`).
 
 - [ ] **Step 7: Migration script (manual run, never auto)**
