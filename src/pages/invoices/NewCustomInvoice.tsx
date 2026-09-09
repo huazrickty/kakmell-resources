@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { toast } from 'sonner'
-import { ArrowLeft, Trash2, Plus, FileDown, Save } from 'lucide-react'
+import { ArrowLeft, FileDown, Save } from 'lucide-react'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -12,13 +12,11 @@ import { logActivity } from '@/lib/activity-logger'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui-kit'
 import { nextDocumentNumber } from '@/lib/document-number.firestore'
+import { useLineItems, newBlankItem, type FormItem } from '@/hooks/useLineItems'
+import { LineItemsEditor } from '@/components/LineItemsEditor'
 
-interface FormItem {
-  id: string
-  description: string
-  qty: string
-  unit_price: string
-}
+// A row counts only when it has a description and a positive unit price
+const isFilled = (li: FormItem) => li.description.trim() !== '' && parseFloat(li.unit_price) > 0
 
 export default function NewCustomInvoice() {
   const navigate          = useNavigate()
@@ -28,40 +26,21 @@ export default function NewCustomInvoice() {
 
   const [billedTo, setBilledTo]     = useState('')
   const [reference, setReference]   = useState('')
-  const [items, setItems]           = useState<FormItem[]>([
-    { id: 'r1', description: '', qty: '1', unit_price: '' },
-    { id: 'r2', description: '', qty: '1', unit_price: '' },
-    { id: 'r3', description: '', qty: '1', unit_price: '' },
-  ])
+  const { items, updateItem, addItem, removeItem, canRemove, subtotal, toLineItems } = useLineItems(
+    [newBlankItem('r1'), newBlankItem('r2'), newBlankItem('r3')],
+    { minItems: 1 },
+  )
   const [gajiToggle, setGajiToggle] = useState(false)
   const [gajiAmount, setGajiAmount] = useState('')
   const [saving, setSaving]         = useState(false)
 
-  const subtotal = useMemo(() =>
-    items.reduce((sum, li) =>
-      sum + (parseFloat(li.qty) || 0) * (parseFloat(li.unit_price) || 0), 0),
-  [items])
-
   const gajiNum = gajiToggle ? (parseFloat(gajiAmount) || 0) : 0
   const total   = subtotal - gajiNum
-
-  function updateItem(id: string, field: keyof FormItem, value: string) {
-    setItems(prev => prev.map(li => li.id === id ? { ...li, [field]: value } : li))
-  }
-
-  function addItem() {
-    setItems(prev => [...prev, { id: `r-${Date.now()}`, description: '', qty: '1', unit_price: '' }])
-  }
-
-  function removeItem(id: string) {
-    if (items.length <= 1) return
-    setItems(prev => prev.filter(li => li.id !== id))
-  }
 
   async function save(andDownload = false) {
     if (!user) return
     if (!billedTo.trim()) { toast.error(t('invoice.validation.billedTo')); return }
-    const activeItems = items.filter(li => li.description.trim() && parseFloat(li.unit_price) > 0)
+    const activeItems = items.filter(isFilled)
     if (activeItems.length === 0) { toast.error(t('invoice.validation.items')); return }
 
     setSaving(true)
@@ -69,13 +48,7 @@ export default function NewCustomInvoice() {
       // Year from the document date. This form has no date field yet (invoice_date
       // is serverTimestamp()), so "now" IS the document date — pass it explicitly.
       const invoiceNo = await nextDocumentNumber('invoice', new Date().getFullYear())
-      const lineItems = activeItems.map(li => ({
-        description:  li.description,
-        qty:          parseFloat(li.qty) || 0,
-        unit_price:   parseFloat(li.unit_price) || 0,
-        total:        (parseFloat(li.qty) || 0) * (parseFloat(li.unit_price) || 0),
-        is_deduction: false,
-      }))
+      const lineItems = toLineItems(isFilled)
 
       const docRef = await addDoc(collection(db, 'invoices'), {
         event_id:     null,
@@ -195,86 +168,14 @@ export default function NewCustomInvoice() {
       </div>
 
       {/* Line items table */}
-      <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden mb-4">
-        <div
-          className="grid items-center bg-ink/[0.03] border-b border-line px-4 py-2.5"
-          style={{ gridTemplateColumns: '24px 1fr 72px 96px 28px' }}
-        >
-          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">#</span>
-          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">{t('invoice.description')}</span>
-          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest text-right">{t('invoice.qty')}</span>
-          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest text-right pr-2">{t('invoice.unitPrice')}</span>
-          <span />
-        </div>
-
-        <div className="divide-y divide-line">
-          {items.map((li, i) => {
-            const qty      = parseFloat(li.qty) || 0
-            const unit     = parseFloat(li.unit_price) || 0
-            const rowTotal = qty * unit
-            return (
-              <div
-                key={li.id}
-                className="grid items-center px-4 py-2.5 gap-1"
-                style={{ gridTemplateColumns: '24px 1fr 72px 96px 28px' }}
-              >
-                <span className="text-xs text-ink-soft font-mono tabular-nums">{i + 1}</span>
-
-                <input
-                  type="text"
-                  value={li.description}
-                  onChange={e => updateItem(li.id, 'description', e.target.value)}
-                  placeholder={t('invoice.itemPlaceholder')}
-                  className="text-sm text-ink py-1 px-1.5 rounded border border-transparent focus:border-line focus:outline-none w-full"
-                />
-
-                <input
-                  type="number"
-                  value={li.qty}
-                  onChange={e => updateItem(li.id, 'qty', e.target.value)}
-                  className="text-sm text-right text-ink py-1 px-1.5 rounded border border-transparent focus:border-line focus:outline-none w-full tabular-nums"
-                />
-
-                <div>
-                  <input
-                    type="number"
-                    value={li.unit_price}
-                    onChange={e => updateItem(li.id, 'unit_price', e.target.value)}
-                    step="0.01"
-                    placeholder="0.00"
-                    className="text-sm text-right text-ink py-1 px-1.5 rounded border border-transparent focus:border-line focus:outline-none w-full tabular-nums"
-                  />
-                  {unit > 0 && qty > 0 && (
-                    <p className="text-[10px] text-ink-soft text-right mt-0.5 pr-1.5 tabular-nums">
-                      = {fmtRM(rowTotal)}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex justify-center">
-                  <button
-                    onClick={() => removeItem(li.id)}
-                    disabled={items.length <= 1}
-                    className="text-ink-soft/50 hover:text-danger transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        <div className="px-4 py-3 border-t border-line">
-          <button
-            onClick={addItem}
-            className="flex items-center gap-1.5 text-xs font-semibold text-ink hover:text-ink transition-colors"
-          >
-            <Plus size={13} />
-            {t('invoice.addItem')}
-          </button>
-        </div>
-      </div>
+      <LineItemsEditor
+        items={items}
+        onUpdate={updateItem}
+        onRemove={removeItem}
+        onAdd={addItem}
+        canRemove={canRemove}
+        addButtonVariant="compact"
+      />
 
       {/* Gaji Pekerja toggle */}
       <div className="bg-surface rounded-xl border border-line shadow-sm px-4 py-4 mb-4">

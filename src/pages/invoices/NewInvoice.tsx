@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
 import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { ArrowLeft, Trash2, Plus, FileDown, Save } from 'lucide-react'
+import { ArrowLeft, FileDown, Save } from 'lucide-react'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -11,21 +11,11 @@ import { useEvent } from '@/hooks/useEvent'
 import { generateInvoicePDF, buildInvoiceFilename, fmtRM, type InvoiceDoc } from '@/lib/invoice-pdf'
 import { getLogoBase64 } from '@/lib/pdf-common'
 import { logActivity } from '@/lib/activity-logger'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui-kit'
+import { useLineItems, isActive } from '@/hooks/useLineItems'
+import { LineItemsEditor } from '@/components/LineItemsEditor'
 import { getKateringUnitPrice, getGajiPekerja, getBerkatSuggestion, fmtUnitPriceInput, MAKAN_BERADAB_PRICE } from '@/lib/pricing'
 import { nextDocumentNumber } from '@/lib/document-number.firestore'
-
-// ── Types ──────────────────────────────────────────────────────────────────
-
-interface FormItem {
-  id: string
-  description: string
-  qty: string
-  unit_price: string
-  protected: boolean
-  toggled: boolean
-}
 
 // ── Main ───────────────────────────────────────────────────────────────────
 
@@ -39,7 +29,7 @@ export default function NewInvoice() {
 
   const { event, loading: eventLoading } = useEvent(eventId)
   const [checkDone, setCheckDone]       = useState(false)
-  const [items, setItems]               = useState<FormItem[]>([])
+  const { items, setItems, updateItem, addItem, removeItem, canRemove, subtotal, toLineItems } = useLineItems()
   const [gajiPerkerja, setGajiPerkerja] = useState('')
   const [saving, setSaving]             = useState(false)
 
@@ -68,6 +58,7 @@ export default function NewInvoice() {
         unit_price: fmtUnitPriceInput(getKateringUnitPrice(event.pax)),
         protected: true,
         toggled: true,
+        qtyLocked: true,
       },
       {
         id: 'makanberadab',
@@ -76,6 +67,7 @@ export default function NewInvoice() {
         unit_price: String(MAKAN_BERADAB_PRICE),
         protected: true,
         toggled: true,
+        toggleable: true,
       },
       {
         id: 'berkat',
@@ -87,36 +79,12 @@ export default function NewInvoice() {
       },
     ])
     setGajiPerkerja(String(getGajiPekerja(event.pax)))
-  }, [event, checkDone])
+    // setItems is a useState setter (stable identity) re-exposed by useLineItems
+  }, [event, checkDone, setItems])
 
   // Computed totals
-  const subtotal = useMemo(() =>
-    items.filter(li => li.toggled).reduce((sum, li) => {
-      return sum + (parseFloat(li.qty) || 0) * (parseFloat(li.unit_price) || 0)
-    }, 0),
-  [items])
-
   const gajiNum = parseFloat(gajiPerkerja) || 0
   const total   = subtotal - gajiNum
-
-  function updateItem(id: string, field: keyof FormItem, value: string | boolean) {
-    setItems(prev => prev.map(li => li.id === id ? { ...li, [field]: value } : li))
-  }
-
-  function addItem() {
-    setItems(prev => [...prev, {
-      id: `custom-${Date.now()}`,
-      description: '',
-      qty: '1',
-      unit_price: '',
-      protected: false,
-      toggled: true,
-    }])
-  }
-
-  function removeItem(id: string) {
-    setItems(prev => prev.filter(li => li.id !== id))
-  }
 
   async function save(andDownload = false) {
     if (!user || !event) return
@@ -125,13 +93,7 @@ export default function NewInvoice() {
       // Year from the document date. This form has no date field yet (invoice_date
       // is serverTimestamp()), so "now" IS the document date — pass it explicitly.
       const invoiceNo  = await nextDocumentNumber('invoice', new Date().getFullYear())
-      const lineItems  = items.filter(li => li.toggled).map(li => ({
-        description: li.description,
-        qty:         parseFloat(li.qty) || 0,
-        unit_price:  parseFloat(li.unit_price) || 0,
-        total:       (parseFloat(li.qty) || 0) * (parseFloat(li.unit_price) || 0),
-        is_deduction: false,
-      }))
+      const lineItems  = toLineItems(isActive)
 
       const docRef = await addDoc(collection(db, 'invoices'), {
         event_id:     eventId,
@@ -231,116 +193,14 @@ export default function NewInvoice() {
       </div>
 
       {/* Line items table */}
-      <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden mb-4">
-        {/* Table header */}
-        <div className="grid items-center bg-ink/[0.03] border-b border-line px-4 py-2.5"
-          style={{ gridTemplateColumns: '24px 1fr 72px 96px 28px' }}>
-          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">#</span>
-          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">{t('invoice.description')}</span>
-          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest text-right">{t('invoice.qty')}</span>
-          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest text-right pr-2">{t('invoice.unitPrice')}</span>
-          <span />
-        </div>
-
-        {/* Rows */}
-        <div className="divide-y divide-line">
-          {items.map((li, i) => {
-            const qty      = parseFloat(li.qty) || 0
-            const unit     = parseFloat(li.unit_price) || 0
-            const rowTotal = qty * unit
-            return (
-              <div
-                key={li.id}
-                className={cn(
-                  'grid items-center px-4 py-2.5 gap-1',
-                  !li.toggled && 'opacity-40'
-                )}
-                style={{ gridTemplateColumns: '24px 1fr 72px 96px 28px' }}
-              >
-                {/* Number / toggle checkbox */}
-                <div className="shrink-0">
-                  {li.id === 'makanberadab' ? (
-                    <button
-                      onClick={() => updateItem(li.id, 'toggled', !li.toggled)}
-                      className={cn(
-                        'w-4 h-4 rounded border-2 flex items-center justify-center transition-colors',
-                        li.toggled
-                          ? 'bg-ink border-ink'
-                          : 'border-line bg-surface'
-                      )}
-                    >
-                      {li.toggled && (
-                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </button>
-                  ) : (
-                    <span className="text-xs text-ink-soft font-mono tabular-nums">{i + 1}</span>
-                  )}
-                </div>
-
-                {/* Description */}
-                <input
-                  type="text"
-                  value={li.description}
-                  onChange={(e) => updateItem(li.id, 'description', e.target.value)}
-                  disabled={li.protected}
-                  placeholder={t('invoice.itemPlaceholder')}
-                  className="text-sm text-ink py-1 px-1.5 rounded border border-transparent focus:border-line focus:outline-none disabled:bg-transparent disabled:cursor-default w-full"
-                />
-
-                {/* Qty */}
-                <input
-                  type="number"
-                  value={li.qty}
-                  onChange={(e) => updateItem(li.id, 'qty', e.target.value)}
-                  disabled={li.id === 'katering'}
-                  className="text-sm text-right text-ink py-1 px-1.5 rounded border border-transparent focus:border-line focus:outline-none w-full disabled:bg-transparent disabled:cursor-default tabular-nums"
-                />
-
-                {/* Unit price + row total */}
-                <div>
-                  <input
-                    type="number"
-                    value={li.unit_price}
-                    onChange={(e) => updateItem(li.id, 'unit_price', e.target.value)}
-                    step="0.01"
-                    placeholder="0.00"
-                    className="text-sm text-right text-ink py-1 px-1.5 rounded border border-transparent focus:border-line focus:outline-none w-full tabular-nums"
-                  />
-                  {unit > 0 && qty > 0 && (
-                    <p className="text-[10px] text-ink-soft text-right mt-0.5 pr-1.5 tabular-nums">
-                      = {fmtRM(rowTotal)}
-                    </p>
-                  )}
-                </div>
-
-                {/* Delete */}
-                <div className="flex justify-center">
-                  {!li.protected && (
-                    <button
-                      onClick={() => removeItem(li.id)}
-                      className="text-ink-soft/50 hover:text-danger transition-colors"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Add item — ghost button row */}
-        <button
-          onClick={addItem}
-          className="flex w-full items-center justify-center gap-1.5 min-h-12 border-t border-line text-sm font-semibold text-ink-soft hover:text-ink hover:bg-ink/[0.02] transition-colors"
-        >
-          <Plus size={14} />
-          {t('invoice.addItem')}
-        </button>
-      </div>
+      <LineItemsEditor
+        items={items}
+        onUpdate={updateItem}
+        onRemove={removeItem}
+        onAdd={addItem}
+        canRemove={canRemove}
+        addButtonVariant="row"
+      />
 
       {/* Gaji Pekerja */}
       <div className="bg-surface rounded-xl border border-line shadow-sm px-4 py-4 mb-4">
