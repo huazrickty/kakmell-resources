@@ -11,6 +11,7 @@ import { useEvent } from '@/hooks/useEvent'
 import { generateInvoicePDF, buildInvoiceFilename, getLogoBase64, fmtRM, type InvoiceDoc } from '@/lib/invoice-pdf'
 import { logActivity } from '@/lib/activity-logger'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui-kit'
 
 // ── Lookup tables ──────────────────────────────────────────────────────────
 
@@ -208,7 +209,7 @@ export default function NewInvoice() {
   if (eventLoading || !checkDone) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-[#1B4332]" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-line border-t-ink" />
       </div>
     )
   }
@@ -216,8 +217,8 @@ export default function NewInvoice() {
   if (!event) {
     return (
       <div className="p-6 text-center py-24">
-        <p className="text-sm text-gray-400">{t('invoice.eventNotFound')}</p>
-        <button onClick={() => navigate('/invoices')} className="mt-4 text-[#1B4332] text-sm font-medium hover:underline">
+        <p className="text-sm text-ink-soft">{t('invoice.eventNotFound')}</p>
+        <button onClick={() => navigate('/invoices')} className="mt-4 text-ink text-sm font-medium hover:underline">
           ← {t('invoice.title')}
         </button>
       </div>
@@ -226,24 +227,24 @@ export default function NewInvoice() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="p-4 md:p-6 max-w-3xl mx-auto">
+    <div className="p-4 md:p-6 max-w-3xl mx-auto pb-28 md:pb-6">
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="text-gray-400 hover:text-gray-700 transition-colors"
+          className="text-ink-soft hover:text-ink transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{t('invoice.new')}</h1>
-          <p className="text-sm text-gray-500">{event.nama_majlis}</p>
+          <h1 className="text-xl font-bold text-ink">{t('invoice.new')}</h1>
+          <p className="text-sm text-ink-soft">{event.nama_majlis}</p>
         </div>
       </div>
 
       {/* Event banner */}
-      <div className="bg-[#1B4332] rounded-xl px-5 py-3.5 mb-5 flex flex-wrap items-center gap-x-5 gap-y-1">
+      <div className="bg-ink rounded-xl px-5 py-3.5 mb-5 flex flex-wrap items-center gap-x-5 gap-y-1">
         <span className="text-white font-bold text-sm">{event.nama_majlis}</span>
         <span className="text-white/60 text-xs">{event.hall_name}</span>
         <span className="text-white/60 text-xs">{format(event.tarikh.toDate(), 'd MMM yyyy')}</span>
@@ -251,19 +252,19 @@ export default function NewInvoice() {
       </div>
 
       {/* Line items table */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-4">
+      <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden mb-4">
         {/* Table header */}
-        <div className="grid items-center bg-gray-50 border-b border-gray-100 px-4 py-2.5"
+        <div className="grid items-center bg-ink/[0.03] border-b border-line px-4 py-2.5"
           style={{ gridTemplateColumns: '24px 1fr 72px 96px 28px' }}>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">#</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('invoice.description')}</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">{t('invoice.qty')}</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right pr-2">{t('invoice.unitPrice')}</span>
+          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">#</span>
+          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">{t('invoice.description')}</span>
+          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest text-right">{t('invoice.qty')}</span>
+          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest text-right pr-2">{t('invoice.unitPrice')}</span>
           <span />
         </div>
 
         {/* Rows */}
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-line">
           {items.map((li, i) => {
             const qty      = parseFloat(li.qty) || 0
             const unit     = parseFloat(li.unit_price) || 0
@@ -285,8 +286,8 @@ export default function NewInvoice() {
                       className={cn(
                         'w-4 h-4 rounded border-2 flex items-center justify-center transition-colors',
                         li.toggled
-                          ? 'bg-[#1B4332] border-[#1B4332]'
-                          : 'border-gray-300 bg-white'
+                          ? 'bg-ink border-ink'
+                          : 'border-line bg-surface'
                       )}
                     >
                       {li.toggled && (
@@ -296,7 +297,7 @@ export default function NewInvoice() {
                       )}
                     </button>
                   ) : (
-                    <span className="text-xs text-gray-400 font-mono tabular-nums">{i + 1}</span>
+                    <span className="text-xs text-ink-soft font-mono tabular-nums">{i + 1}</span>
                   )}
                 </div>
 
@@ -307,7 +308,7 @@ export default function NewInvoice() {
                   onChange={(e) => updateItem(li.id, 'description', e.target.value)}
                   disabled={li.protected}
                   placeholder={t('invoice.itemPlaceholder')}
-                  className="text-sm text-gray-800 py-1 px-1.5 rounded border border-transparent focus:border-gray-200 focus:outline-none disabled:bg-transparent disabled:cursor-default w-full"
+                  className="text-sm text-ink py-1 px-1.5 rounded border border-transparent focus:border-line focus:outline-none disabled:bg-transparent disabled:cursor-default w-full"
                 />
 
                 {/* Qty */}
@@ -316,7 +317,7 @@ export default function NewInvoice() {
                   value={li.qty}
                   onChange={(e) => updateItem(li.id, 'qty', e.target.value)}
                   disabled={li.id === 'katering'}
-                  className="text-sm text-right text-gray-800 py-1 px-1.5 rounded border border-transparent focus:border-gray-200 focus:outline-none w-full disabled:bg-transparent disabled:cursor-default tabular-nums"
+                  className="text-sm text-right text-ink py-1 px-1.5 rounded border border-transparent focus:border-line focus:outline-none w-full disabled:bg-transparent disabled:cursor-default tabular-nums"
                 />
 
                 {/* Unit price + row total */}
@@ -327,10 +328,10 @@ export default function NewInvoice() {
                     onChange={(e) => updateItem(li.id, 'unit_price', e.target.value)}
                     step="0.01"
                     placeholder="0.00"
-                    className="text-sm text-right text-gray-800 py-1 px-1.5 rounded border border-transparent focus:border-gray-200 focus:outline-none w-full tabular-nums"
+                    className="text-sm text-right text-ink py-1 px-1.5 rounded border border-transparent focus:border-line focus:outline-none w-full tabular-nums"
                   />
                   {unit > 0 && qty > 0 && (
-                    <p className="text-[10px] text-gray-400 text-right mt-0.5 pr-1.5 tabular-nums">
+                    <p className="text-[10px] text-ink-soft text-right mt-0.5 pr-1.5 tabular-nums">
                       = {fmtRM(rowTotal)}
                     </p>
                   )}
@@ -341,7 +342,7 @@ export default function NewInvoice() {
                   {!li.protected && (
                     <button
                       onClick={() => removeItem(li.id)}
-                      className="text-gray-300 hover:text-red-500 transition-colors"
+                      className="text-ink-soft/50 hover:text-danger transition-colors"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -352,81 +353,70 @@ export default function NewInvoice() {
           })}
         </div>
 
-        {/* Add item */}
-        <div className="px-4 py-3 border-t border-gray-50">
-          <button
-            onClick={addItem}
-            className="flex items-center gap-1.5 text-xs font-semibold text-[#1B4332] hover:text-[#163828] transition-colors"
-          >
-            <Plus size={13} />
-            {t('invoice.addItem')}
-          </button>
-        </div>
+        {/* Add item — ghost button row */}
+        <button
+          onClick={addItem}
+          className="flex w-full items-center justify-center gap-1.5 min-h-12 border-t border-line text-sm font-semibold text-ink-soft hover:text-ink hover:bg-ink/[0.02] transition-colors"
+        >
+          <Plus size={14} />
+          {t('invoice.addItem')}
+        </button>
       </div>
 
       {/* Gaji Pekerja */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-4 mb-4">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-          {t('invoice.gajiPerkerja')} <span className="text-gray-300 font-normal">(tolakan)</span>
+      <div className="bg-surface rounded-xl border border-line shadow-sm px-4 py-4 mb-4">
+        <p className="text-[10px] font-bold text-ink-soft uppercase tracking-widest mb-3">
+          {t('invoice.gajiPerkerja')} <span className="text-ink-soft/50 font-normal">(tolakan)</span>
         </p>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-sm text-gray-500">{t('invoice.staffWagesHint')}</span>
+          <span className="text-sm text-ink-soft">{t('invoice.staffWagesHint')}</span>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm text-gray-500">RM</span>
+            <span className="text-sm text-ink-soft">RM</span>
             <input
               type="number"
               value={gajiPerkerja}
               onChange={(e) => setGajiPerkerja(e.target.value)}
               step="0.01"
-              className="w-28 text-right border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-red-600 focus:outline-none focus:border-[#1B4332] tabular-nums"
+              className="w-28 text-right border border-line rounded-lg px-2.5 py-1.5 text-sm font-semibold text-danger focus:outline-none focus:border-ink tabular-nums"
             />
           </div>
         </div>
       </div>
 
       {/* Totals */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-4 mb-6">
+      <div className="bg-surface rounded-xl border border-line shadow-sm px-4 py-4 mb-6">
         <div className="space-y-2 max-w-xs ml-auto">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">Subtotal</span>
-            <span className="font-semibold text-gray-900 tabular-nums">{fmtRM(subtotal)}</span>
+            <span className="text-ink-soft">Subtotal</span>
+            <span className="font-semibold text-ink tabular-nums">{fmtRM(subtotal)}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">{t('invoice.gajiPerkerja')}</span>
-            <span className="font-semibold text-red-600 tabular-nums">({fmtRM(gajiNum)})</span>
+            <span className="text-ink-soft">{t('invoice.gajiPerkerja')}</span>
+            <span className="font-semibold text-danger tabular-nums">({fmtRM(gajiNum)})</span>
           </div>
-          <div className="h-px bg-gray-100" />
+          <div className="h-px bg-ink/5" />
           <div className="flex items-center justify-between">
-            <span className="font-bold text-gray-900 text-base">{t('invoice.totalLabel')}</span>
-            <span className="font-black text-xl text-[#1B4332] tabular-nums">{fmtRM(total)}</span>
+            <span className="font-bold text-ink text-base">{t('invoice.totalLabel')}</span>
+            <span className="font-black text-xl text-ink tabular-nums">{fmtRM(total)}</span>
           </div>
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex flex-wrap items-center gap-3 justify-end">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-gray-500 hover:text-gray-700 font-medium px-4 py-2.5 text-sm transition-colors"
-        >
-          {t('common.cancel')}
-        </button>
-        <button
-          onClick={() => save(false)}
-          disabled={saving}
-          className="flex items-center gap-2 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 shadow-sm"
-        >
-          <Save size={14} />
-          {t('invoice.saveDraft')}
-        </button>
-        <button
-          onClick={() => save(true)}
-          disabled={saving}
-          className="flex items-center gap-2 bg-[#1B4332] hover:bg-[#163828] text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50"
-        >
-          <FileDown size={14} />
-          {saving ? t('invoice.saving') : t('invoice.downloadPdf')}
-        </button>
+      {/* Sticky action bar — thumb-reachable, above the bottom nav */}
+      <div className="fixed md:sticky left-0 right-0 md:left-auto md:right-auto bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-0 bg-bg/95 backdrop-blur border-t border-line px-4 py-3 md:mt-6 md:-mx-6 md:px-6 z-40">
+        <div className="max-w-3xl mx-auto flex gap-2">
+          <Button variant="ghost" onClick={() => navigate(-1)}>
+            {t('common.cancel')}
+          </Button>
+          <Button variant="secondary" className="flex-1" disabled={saving} onClick={() => save(false)}>
+            <Save size={15} />
+            {t('invoice.saveDraft')}
+          </Button>
+          <Button className="flex-1" disabled={saving} onClick={() => save(true)}>
+            <FileDown size={15} />
+            {saving ? t('invoice.saving') : t('invoice.downloadPdf')}
+          </Button>
+        </div>
       </div>
     </div>
   )

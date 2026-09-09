@@ -145,15 +145,15 @@ function BracketTable({
 }: BracketTableProps) {
   const { t } = useLanguage()
   return (
-    <div className="overflow-x-auto -mx-4 px-4">
+    <div className="overflow-x-auto">
       <table className="w-full text-xs min-w-[840px]">
         <thead>
-          <tr className="border-b border-gray-100">
-            <th className="py-2 text-left font-semibold text-gray-500 pr-3 w-32">Bahan</th>
+          <tr className="border-b border-line">
+            <th className="py-2 text-left font-semibold text-ink-soft pr-3 w-32 sticky left-0 bg-surface z-10">Bahan</th>
             {BRACKETS.map((b) => (
-              <th key={b} className="py-2 text-center font-semibold text-gray-400 w-14">{b}</th>
+              <th key={b} className="py-2 text-center font-semibold text-ink-soft w-14">{b}</th>
             ))}
-            <th className="py-2 text-center font-semibold text-gray-400 w-12">Unit</th>
+            <th className="py-2 text-center font-semibold text-ink-soft w-12">Unit</th>
             <th className="py-2 w-20" />
           </tr>
         </thead>
@@ -162,13 +162,13 @@ function BracketTable({
             const hasOv = !!overrides[item.key]
             const isEditing = editKey === item.key
             return (
-              <tr key={item.key} className={cn('border-b border-gray-50 last:border-0', hasOv && 'bg-red-50/30')}>
+              <tr key={item.key} className={cn('border-b border-line last:border-0', hasOv && 'bg-danger/5/30')}>
                 {/* Bahan name */}
-                <td className="py-2.5 pr-3 font-medium text-gray-800 align-middle">
+                <td className="py-2.5 pr-3 font-medium text-ink align-middle sticky left-0 bg-surface z-10">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {item.label}
                     {hasOv && (
-                      <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 uppercase tracking-wide">
+                      <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-danger/10 text-danger uppercase tracking-wide">
                         Override
                       </span>
                     )}
@@ -203,12 +203,12 @@ function BracketTable({
                           value={editVals[b] ?? ''}
                           onChange={(e) => onEditValChange(b, e.target.value)}
                           placeholder={item.isNullable ? '—' : ''}
-                          className="w-12 text-center border border-gray-300 rounded-md px-1 py-1 text-xs focus:outline-none focus:border-[#1B4332] focus:ring-1 focus:ring-[#1B4332]"
+                          className="w-12 text-center border border-line rounded-md px-1 py-1 text-xs focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink/25"
                         />
                       ) : (
                         <span className={cn(
                           'tabular-nums',
-                          isOverridden ? 'text-red-600 font-semibold' : 'text-gray-500',
+                          isOverridden ? 'text-danger font-semibold' : 'text-ink-soft',
                         )}>
                           {displayVal}
                         </span>
@@ -218,7 +218,7 @@ function BracketTable({
                 })}
 
                 {/* Unit */}
-                <td className="py-2.5 text-center text-gray-400 align-middle">
+                <td className="py-2.5 text-center text-ink-soft align-middle">
                   {item.unit || 'teks'}
                 </td>
 
@@ -229,14 +229,14 @@ function BracketTable({
                       <button
                         onClick={() => onSave(item)}
                         disabled={saving}
-                        className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-[#1B4332] text-white text-[11px] font-semibold hover:bg-[#1B4332]/90 disabled:opacity-50 transition-colors"
+                        className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-ink text-white text-[11px] font-semibold hover:bg-ink/90 disabled:opacity-50 transition-colors"
                       >
                         <Check size={11} />
                         {t('common.save')}
                       </button>
                       <button
                         onClick={onCancel}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                        className="p-1.5 rounded-lg text-ink-soft hover:text-ink hover:bg-ink/5 transition-colors"
                       >
                         <X size={13} />
                       </button>
@@ -245,7 +245,7 @@ function BracketTable({
                     <div className="flex items-center gap-1 justify-end">
                       <button
                         onClick={() => onEdit(item)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-[#1B4332] hover:bg-green-50 transition-colors"
+                        className="p-1.5 rounded-lg text-ink-soft hover:text-ink hover:bg-ok/10 transition-colors"
                         title="Edit"
                       >
                         <Edit2 size={13} />
@@ -253,7 +253,7 @@ function BracketTable({
                       {hasOv && (
                         <button
                           onClick={() => onReset(item.key)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          className="p-1.5 rounded-lg text-ink-soft hover:text-danger hover:bg-danger/5 transition-colors"
                           title="Reset ke default"
                         >
                           <RotateCcw size={13} />
@@ -293,7 +293,7 @@ function BuburTable({
   const { t } = useLanguage()
   return (
     <div className="space-y-1.5">
-      <p className="text-[10px] text-gray-400 mb-3">{t('settings.buburFlat')}</p>
+      <p className="text-[10px] text-ink-soft mb-3">{t('settings.buburFlat')}</p>
       {items.map((item) => {
         const ov = overrides[item.key]
         const hasOv = !!ov
@@ -306,14 +306,14 @@ function BuburTable({
             key={item.key}
             className={cn(
               'flex items-center gap-3 py-2.5 px-3 rounded-xl border',
-              hasOv ? 'border-red-200 bg-red-50/30' : 'border-gray-100 bg-white',
+              hasOv ? 'border-danger/30 bg-danger/5/30' : 'border-line bg-surface',
             )}
           >
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-gray-800 flex items-center gap-1.5 flex-wrap">
+              <p className="text-xs font-medium text-ink flex items-center gap-1.5 flex-wrap">
                 {item.label}
                 {hasOv && (
-                  <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 uppercase tracking-wide">
+                  <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold bg-danger/10 text-danger uppercase tracking-wide">
                     Override
                   </span>
                 )}
@@ -326,18 +326,18 @@ function BuburTable({
                   type="number"
                   value={editFlat}
                   onChange={(e) => onEditFlatChange(e.target.value)}
-                  className="w-16 text-center border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:border-[#1B4332] focus:ring-1 focus:ring-[#1B4332]"
+                  className="w-16 text-center border border-line rounded-md px-2 py-1 text-xs focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink/25"
                 />
-                <span className="text-xs text-gray-500">{item.unit}</span>
+                <span className="text-xs text-ink-soft">{item.unit}</span>
                 <button
                   onClick={() => onSave(item)}
                   disabled={saving}
-                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-[#1B4332] text-white text-[11px] font-semibold hover:bg-[#1B4332]/90 disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-ink text-white text-[11px] font-semibold hover:bg-ink/90 disabled:opacity-50 transition-colors"
                 >
                   <Check size={11} />
                   {t('common.save')}
                 </button>
-                <button onClick={onCancel} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 transition-colors">
+                <button onClick={onCancel} className="p-1.5 rounded-lg text-ink-soft hover:text-ink transition-colors">
                   <X size={13} />
                 </button>
               </div>
@@ -345,13 +345,13 @@ function BuburTable({
               <div className="flex items-center gap-3 shrink-0">
                 <span className={cn(
                   'text-sm font-semibold tabular-nums',
-                  isOverridden ? 'text-red-600' : 'text-gray-500',
+                  isOverridden ? 'text-danger' : 'text-ink-soft',
                 )}>
                   {displayQty} {item.unit}
                 </span>
                 <button
                   onClick={() => onEdit(item)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-[#1B4332] hover:bg-green-50 transition-colors"
+                  className="p-1.5 rounded-lg text-ink-soft hover:text-ink hover:bg-ok/10 transition-colors"
                   title="Edit"
                 >
                   <Edit2 size={13} />
@@ -359,7 +359,7 @@ function BuburTable({
                 {hasOv && (
                   <button
                     onClick={() => onReset(item.key)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    className="p-1.5 rounded-lg text-ink-soft hover:text-danger hover:bg-danger/5 transition-colors"
                     title="Reset ke default"
                   >
                     <RotateCcw size={13} />
@@ -605,7 +605,7 @@ export default function IngredientsSettings() {
   return (
     <div className="space-y-4">
       {/* Info banner */}
-      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 leading-relaxed">
+      <div className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-xs text-warn leading-relaxed">
         {t('settings.ingredientInfoBanner')}
       </div>
 
@@ -614,17 +614,17 @@ export default function IngredientsSettings() {
         <button
           onClick={downloadCalibrationForm}
           disabled={downloading}
-          className="flex items-center gap-1.5 text-xs font-semibold text-[#1B4332] hover:text-[#163828] border border-[#1B4332]/30 rounded-lg px-3 py-2 hover:bg-[#1B4332]/5 transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 text-xs font-semibold text-ink hover:text-ink border border-ink/30 rounded-lg px-3 py-2 hover:bg-ink/5 transition-colors disabled:opacity-50"
         >
           <FileDown size={13} />
-          {downloading ? t('common.generating') : 'Muat Turun Borang Kalibrasi'}
+          {downloading ? t('common.generating') : t('settings.downloadCalibration')}
         </button>
 
         {/* Reset All */}
         {hasAnyOverride && !confirmResetAll && (
           <button
             onClick={() => setConfirmResetAll(true)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700 border border-red-200 rounded-lg px-3 py-2 hover:bg-red-50 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold text-danger hover:text-danger border border-danger/30 rounded-lg px-3 py-2 hover:bg-danger/5 transition-colors"
           >
             <RotateCcw size={13} />
             {t('settings.resetAll')}
@@ -632,20 +632,20 @@ export default function IngredientsSettings() {
         )}
       </div>
       {confirmResetAll && (
-        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-          <AlertTriangle size={16} className="text-red-500 shrink-0" />
-          <p className="flex-1 text-xs text-red-700 font-medium">
+        <div className="flex items-center gap-3 rounded-xl border border-danger/30 bg-danger/5 px-4 py-3">
+          <AlertTriangle size={16} className="text-danger shrink-0" />
+          <p className="flex-1 text-xs text-danger font-medium">
             {t('settings.resetAllConfirm')}
           </p>
           <button
             onClick={resetAll}
-            className="text-xs font-bold text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg border border-red-300 hover:bg-red-100 transition-colors whitespace-nowrap"
+            className="text-xs font-bold text-danger hover:text-danger px-3 py-1.5 rounded-lg border border-danger/40 hover:bg-danger/10 transition-colors whitespace-nowrap"
           >
             {t('common.deleteConfirmAction')}
           </button>
           <button
             onClick={() => setConfirmResetAll(false)}
-            className="text-xs font-semibold text-gray-500 hover:text-gray-700"
+            className="text-xs font-semibold text-ink-soft hover:text-ink"
           >
             {t('common.cancel')}
           </button>
@@ -653,26 +653,26 @@ export default function IngredientsSettings() {
       )}
 
       {/* Sub-tabs */}
-      <div className="flex border-b border-gray-200 overflow-x-auto gap-0 scrollbar-none -mx-4 px-4">
+      <div className="flex border-b border-line overflow-x-auto gap-0 scrollbar-none -mx-4 px-4">
         {TABS.map(({ id, label }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
             className={cn(
               'shrink-0 pb-2.5 pt-1 px-3 text-xs font-semibold transition-colors whitespace-nowrap relative',
-              tab === id ? 'text-[#1B4332]' : 'text-gray-400 hover:text-gray-600',
+              tab === id ? 'text-ink' : 'text-ink-soft hover:text-ink',
             )}
           >
             {label}
             {tab === id && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1B4332] rounded-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-ink rounded-full" />
             )}
           </button>
         ))}
       </div>
 
       {loading && (
-        <div className="py-12 text-center text-sm text-gray-400">{t('common.loading')}</div>
+        <div className="py-12 text-center text-sm text-ink-soft">{t('common.loading')}</div>
       )}
 
       {!loading && tab === 'main' && (

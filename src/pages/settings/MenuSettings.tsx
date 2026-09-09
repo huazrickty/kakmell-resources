@@ -38,12 +38,12 @@ function Toggle({ checked, onToggle, disabled }: { checked: boolean; onToggle: (
       disabled={disabled}
       className={cn(
         'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200',
-        checked ? 'bg-[#1B4332]' : 'bg-gray-200',
+        checked ? 'bg-ink' : 'bg-ink/10',
         disabled && 'opacity-40 cursor-not-allowed'
       )}
     >
       <span className={cn(
-        'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200',
+        'inline-block h-3.5 w-3.5 transform rounded-full bg-surface shadow-sm transition-transform duration-200',
         checked ? 'translate-x-[19px]' : 'translate-x-[3px]'
       )} />
     </button>
@@ -176,26 +176,26 @@ export default function MenuSettings() {
   }
 
   if (loading) {
-    return <div className="py-10 text-center text-sm text-gray-400">{t('common.loading')}</div>
+    return <div className="py-10 text-center text-sm text-ink-soft">{t('common.loading')}</div>
   }
 
   // Docs without menu_type are pre-migration wedding options
   const typeOptions = options.filter((o) => (o.menu_type ?? 'kahwin') === menuType)
 
   const typeTabs = (
-    <div className="flex border-b border-gray-200 overflow-x-auto gap-0 scrollbar-none -mx-4 px-4">
+    <div className="flex border-b border-line overflow-x-auto gap-0 scrollbar-none -mx-4 px-4">
       {MENU_TYPES.map((mt) => (
         <button
           key={mt}
           onClick={() => { setMenuType(mt); setEditingId(null); setDeletingId(null); setAddName('') }}
           className={cn(
             'shrink-0 pb-2.5 pt-1 px-3 text-xs font-semibold transition-colors whitespace-nowrap relative',
-            menuType === mt ? 'text-[#1B4332]' : 'text-gray-400 hover:text-gray-600',
+            menuType === mt ? 'text-ink' : 'text-ink-soft hover:text-ink',
           )}
         >
           {t(MENU_TYPE_LABEL_KEYS[mt])}
           {menuType === mt && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1B4332] rounded-full" />
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-ink rounded-full" />
           )}
         </button>
       ))}
@@ -208,31 +208,31 @@ export default function MenuSettings() {
       <div className="space-y-5">
         {typeTabs}
 
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden">
           {typeOptions.length === 0 ? (
-            <div className="px-4 py-4 text-sm text-gray-400 text-center">{t('settings.noMenuItems')}</div>
+            <div className="px-4 py-4 text-sm text-ink-soft text-center">{t('settings.noMenuItems')}</div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-line">
               {typeOptions
                 .slice()
                 .sort((a, b) => a.name_ms.localeCompare(b.name_ms))
                 .map((opt) =>
                   deletingId === opt.id ? (
-                    <div key={opt.id} className="flex items-center gap-3 px-4 py-2.5 bg-red-50">
-                      <AlertTriangle size={16} className="text-red-500 shrink-0" />
-                      <p className="flex-1 text-xs text-red-700 font-medium">
+                    <div key={opt.id} className="flex items-center gap-3 px-4 py-2.5 bg-danger/5">
+                      <AlertTriangle size={16} className="text-danger shrink-0" />
+                      <p className="flex-1 text-xs text-danger font-medium">
                         {t('settings.deleteMenuItemConfirm')}
                       </p>
                       <button
                         onClick={() => deleteOption(opt.id)}
                         disabled={busy === opt.id}
-                        className="text-xs font-bold text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg border border-red-300 hover:bg-red-100 transition-colors whitespace-nowrap disabled:opacity-40"
+                        className="text-xs font-bold text-danger hover:text-danger px-3 py-1.5 rounded-lg border border-danger/40 hover:bg-danger/10 transition-colors whitespace-nowrap disabled:opacity-40"
                       >
                         {t('common.deleteConfirmAction')}
                       </button>
                       <button
                         onClick={() => setDeletingId(null)}
-                        className="text-xs font-semibold text-gray-500 hover:text-gray-700"
+                        className="text-xs font-semibold text-ink-soft hover:text-ink"
                       >
                         {t('common.cancel')}
                       </button>
@@ -254,12 +254,12 @@ export default function MenuSettings() {
                             if (e.key === 'Enter') saveEdit(opt.id)
                             if (e.key === 'Escape') setEditingId(null)
                           }}
-                          className="flex-1 text-sm border-b border-[#1B4332] outline-none bg-transparent py-0.5 text-gray-900"
+                          className="flex-1 text-sm border-b border-ink outline-none bg-transparent py-0.5 text-ink"
                         />
                       ) : (
                         <span className={cn(
                           'flex-1 text-sm truncate',
-                          opt.is_active ? 'text-gray-900' : 'line-through text-gray-400'
+                          opt.is_active ? 'text-ink' : 'line-through text-ink-soft'
                         )}>
                           {opt.name_ms}
                         </span>
@@ -270,13 +270,13 @@ export default function MenuSettings() {
                           <button
                             onClick={() => saveEdit(opt.id)}
                             disabled={busy === opt.id}
-                            className="p-1 text-[#1B4332] hover:bg-green-50 rounded disabled:opacity-40"
+                            className="p-1 text-ink hover:bg-ok/10 rounded disabled:opacity-40"
                           >
                             <Check size={13} strokeWidth={2.5} />
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="p-1 text-gray-400 hover:bg-gray-50 rounded"
+                            className="p-1 text-ink-soft hover:bg-ink/[0.03] rounded"
                           >
                             <X size={13} strokeWidth={2.5} />
                           </button>
@@ -285,13 +285,13 @@ export default function MenuSettings() {
                         <div className="flex gap-1 shrink-0">
                           <button
                             onClick={() => { setEditingId(opt.id); setEditValue(opt.name_ms) }}
-                            className="p-1 text-gray-300 hover:text-gray-500 rounded transition-colors"
+                            className="p-1 text-ink-soft/50 hover:text-ink rounded transition-colors"
                           >
                             <Pencil size={13} strokeWidth={2} />
                           </button>
                           <button
                             onClick={() => setDeletingId(opt.id)}
-                            className="p-1 text-gray-300 hover:text-red-500 rounded transition-colors"
+                            className="p-1 text-ink-soft/50 hover:text-danger rounded transition-colors"
                           >
                             <Trash2 size={13} strokeWidth={2} />
                           </button>
@@ -305,8 +305,8 @@ export default function MenuSettings() {
         </div>
 
         {/* Add item */}
-        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-4">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+        <div className="rounded-xl border border-dashed border-line bg-ink/[0.02] p-4">
+          <p className="text-[10px] font-bold text-ink-soft uppercase tracking-widest mb-3">
             {t('settings.addOption')}
           </p>
           <div className="flex gap-2">
@@ -315,12 +315,12 @@ export default function MenuSettings() {
               onChange={(e) => setAddName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addOption()}
               placeholder={t('settings.itemPlaceholder')}
-              className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[#1B4332] focus:ring-1 focus:ring-[#1B4332]/20 placeholder-gray-400"
+              className="flex-1 text-sm border border-line rounded-lg px-3 py-2 bg-surface focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink/20 placeholder-ink-soft/50"
             />
             <button
               onClick={addOption}
               disabled={adding || !addName.trim()}
-              className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#1B4332] text-white hover:bg-[#163828] transition-colors disabled:opacity-40"
+              className="text-sm font-semibold px-4 py-2 rounded-lg bg-ink text-white hover:bg-ink/90 transition-colors disabled:opacity-40"
             >
               {adding ? '...' : t('settings.addButton')}
             </button>
@@ -340,21 +340,21 @@ export default function MenuSettings() {
           <div key={cat}>
             {/* ── Category header ─────────────────────────────────────── */}
             <div className="flex items-center gap-2.5 mb-2.5">
-              <div className="w-1 h-4 rounded-full bg-[#1B4332]" />
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+              <div className="w-1 h-4 rounded-full bg-ink" />
+              <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">
                 {CATEGORY_LABELS[cat]}
               </span>
-              <span className="text-[10px] text-gray-400">· {items.length}</span>
+              <span className="text-[10px] text-ink-soft">· {items.length}</span>
             </div>
 
             {/* ── Options list ─────────────────────────────────────────── */}
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden">
               {items.length === 0 ? (
-                <div className="px-4 py-3 text-xs text-gray-400 italic">
+                <div className="px-4 py-3 text-xs text-ink-soft italic">
                   {t('settings.noMenuItems')}
                 </div>
               ) : (
-                <div className="divide-y divide-gray-50">
+                <div className="divide-y divide-line">
                   {items.map((opt) => (
                     <div key={opt.id} className="flex items-center gap-3 px-4 py-2.5">
                       <Toggle
@@ -372,12 +372,12 @@ export default function MenuSettings() {
                             if (e.key === 'Enter') saveEdit(opt.id)
                             if (e.key === 'Escape') setEditingId(null)
                           }}
-                          className="flex-1 text-sm border-b border-[#1B4332] outline-none bg-transparent py-0.5 text-gray-900"
+                          className="flex-1 text-sm border-b border-ink outline-none bg-transparent py-0.5 text-ink"
                         />
                       ) : (
                         <span className={cn(
                           'flex-1 text-sm truncate',
-                          opt.is_active ? 'text-gray-900' : 'line-through text-gray-400'
+                          opt.is_active ? 'text-ink' : 'line-through text-ink-soft'
                         )}>
                           {opt.name_ms}
                         </span>
@@ -388,13 +388,13 @@ export default function MenuSettings() {
                           <button
                             onClick={() => saveEdit(opt.id)}
                             disabled={busy === opt.id}
-                            className="p-1 text-[#1B4332] hover:bg-green-50 rounded disabled:opacity-40"
+                            className="p-1 text-ink hover:bg-ok/10 rounded disabled:opacity-40"
                           >
                             <Check size={13} strokeWidth={2.5} />
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="p-1 text-gray-400 hover:bg-gray-50 rounded"
+                            className="p-1 text-ink-soft hover:bg-ink/[0.03] rounded"
                           >
                             <X size={13} strokeWidth={2.5} />
                           </button>
@@ -402,7 +402,7 @@ export default function MenuSettings() {
                       ) : (
                         <button
                           onClick={() => { setEditingId(opt.id); setEditValue(opt.name_ms) }}
-                          className="shrink-0 p-1 text-gray-300 hover:text-gray-500 rounded transition-colors"
+                          className="shrink-0 p-1 text-ink-soft/50 hover:text-ink rounded transition-colors"
                         >
                           <Pencil size={13} strokeWidth={2} />
                         </button>
@@ -417,15 +417,15 @@ export default function MenuSettings() {
       })}
 
       {/* ── Add new option ────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-4">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+      <div className="rounded-xl border border-dashed border-line bg-ink/[0.02] p-4">
+        <p className="text-[10px] font-bold text-ink-soft uppercase tracking-widest mb-3">
           {t('settings.addOption')}
         </p>
         <div className="flex gap-2 flex-wrap">
           <select
             value={addCategory}
             onChange={(e) => setAddCategory(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[#1B4332] text-gray-700"
+            className="text-sm border border-line rounded-lg px-3 py-2 bg-surface focus:outline-none focus:border-ink text-ink"
           >
             {CATEGORY_ORDER.map((c) => (
               <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>
@@ -436,12 +436,12 @@ export default function MenuSettings() {
             onChange={(e) => setAddName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addOption()}
             placeholder={t('settings.itemPlaceholder')}
-            className="flex-1 min-w-[160px] text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[#1B4332] focus:ring-1 focus:ring-[#1B4332]/20 placeholder-gray-400"
+            className="flex-1 min-w-[160px] text-sm border border-line rounded-lg px-3 py-2 bg-surface focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink/20 placeholder-ink-soft/50"
           />
           <button
             onClick={addOption}
             disabled={adding || !addName.trim()}
-            className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#1B4332] text-white hover:bg-[#163828] transition-colors disabled:opacity-40"
+            className="text-sm font-semibold px-4 py-2 rounded-lg bg-ink text-white hover:bg-ink/90 transition-colors disabled:opacity-40"
           >
             {adding ? '...' : t('settings.addButton')}
           </button>

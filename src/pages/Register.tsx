@@ -49,15 +49,15 @@ export default function Register() {
         <LanguageSwitcher />
       </div>
 
-      <div className="w-full max-w-md bg-white shadow-xl rounded-2xl border border-gray-100 p-8">
+      <div className="w-full max-w-md bg-surface shadow-xl rounded-2xl border border-line p-8">
         <div className="text-center mb-6">
           <img src="/logo.png" alt="KAKMELL RESOURCES" className="h-14 mx-auto mb-4 object-contain" />
-          <p className="text-sm text-gray-500">{t('auth.register.title')}</p>
+          <p className="text-sm text-ink-soft">{t('auth.register.title')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="fullName" className="text-gray-700">{t('auth.register.fullName')}</Label>
+            <Label htmlFor="fullName" className="text-ink">{t('auth.register.fullName')}</Label>
             <Input
               id="fullName"
               type="text"
@@ -65,12 +65,12 @@ export default function Register() {
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="focus-visible:ring-red-500 focus-visible:border-red-500"
+              className="focus-visible:ring-ink/30 focus-visible:border-ink"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="email" className="text-gray-700">{t('auth.register.email')}</Label>
+            <Label htmlFor="email" className="text-ink">{t('auth.register.email')}</Label>
             <Input
               id="email"
               type="email"
@@ -78,12 +78,12 @@ export default function Register() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="focus-visible:ring-red-500 focus-visible:border-red-500"
+              className="focus-visible:ring-ink/30 focus-visible:border-ink"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password" className="text-gray-700">{t('auth.register.password')}</Label>
+            <Label htmlFor="password" className="text-ink">{t('auth.register.password')}</Label>
             <Input
               id="password"
               type="password"
@@ -91,22 +91,22 @@ export default function Register() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="focus-visible:ring-red-500 focus-visible:border-red-500"
+              className="focus-visible:ring-ink/30 focus-visible:border-ink"
             />
           </div>
 
           <Button
             type="submit"
             disabled={loading}
-            className="mt-2 bg-red-600 hover:bg-red-700 text-white h-10"
+            className="mt-2 bg-primary hover:bg-primary-hi text-white h-10"
           >
             {loading ? '...' : t('auth.register.submit')}
           </Button>
         </form>
 
-        <p className="mt-5 text-center text-sm text-gray-500">
+        <p className="mt-5 text-center text-sm text-ink-soft">
           {t('auth.register.hasAccount')}{' '}
-          <Link to="/login" className="font-semibold text-red-600 hover:underline">
+          <Link to="/login" className="font-semibold text-danger hover:underline">
             {t('auth.register.login')}
           </Link>
         </p>

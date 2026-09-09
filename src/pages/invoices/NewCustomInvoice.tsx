@@ -9,6 +9,7 @@ import { useLanguage } from '@/context/LanguageContext'
 import { generateInvoicePDF, buildInvoiceFilename, getLogoBase64, fmtRM, type InvoiceDoc } from '@/lib/invoice-pdf'
 import { logActivity } from '@/lib/activity-logger'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui-kit'
 
 async function nextInvoiceNo(): Promise<string> {
   const snap = await getDocs(collection(db, 'invoices'))
@@ -140,24 +141,24 @@ export default function NewCustomInvoice() {
   if (!isAdmin) return <Navigate to="/dashboard" replace />
 
   return (
-    <div className="p-4 md:p-6 max-w-3xl mx-auto">
+    <div className="p-4 md:p-6 max-w-3xl mx-auto pb-28 md:pb-6">
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="text-gray-400 hover:text-gray-700 transition-colors"
+          className="text-ink-soft hover:text-ink transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{t('invoice.customTitle')}</h1>
-          <p className="text-sm text-gray-500">{t('invoice.customSubtitle')}</p>
+          <h1 className="text-xl font-bold text-ink">{t('invoice.customTitle')}</h1>
+          <p className="text-sm text-ink-soft">{t('invoice.customSubtitle')}</p>
         </div>
       </div>
 
       {/* FROM — read-only */}
-      <div className="bg-[#1B4332] rounded-xl px-5 py-4 mb-5">
+      <div className="bg-ink rounded-xl px-5 py-4 mb-5">
         <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mb-1.5">{t('invoice.from')}</p>
         <p className="text-white font-bold text-sm">KAKMELL RESOURCES</p>
         <p className="text-white/60 text-xs mt-0.5">
@@ -167,9 +168,9 @@ export default function NewCustomInvoice() {
       </div>
 
       {/* BILL TO + REFERENCE */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-4 mb-4 space-y-3">
+      <div className="bg-surface rounded-xl border border-line shadow-sm px-4 py-4 mb-4 space-y-3">
         <div>
-          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+          <label className="block text-[10px] font-bold text-ink-soft uppercase tracking-widest mb-1.5">
             {t('invoice.billedTo')}
           </label>
           <input
@@ -177,38 +178,38 @@ export default function NewCustomInvoice() {
             value={billedTo}
             onChange={e => setBilledTo(e.target.value)}
             placeholder={t('invoice.billToPlaceholder')}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold text-gray-900 focus:outline-none focus:border-[#1B4332] focus:ring-1 focus:ring-[#1B4332] placeholder:font-normal placeholder:text-gray-400"
+            className="w-full border border-line rounded-lg px-3 py-2 text-sm font-semibold text-ink focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink/25 placeholder:font-normal placeholder:text-ink-soft"
           />
         </div>
         <div>
-          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+          <label className="block text-[10px] font-bold text-ink-soft uppercase tracking-widest mb-1.5">
             {t('invoice.referenceLabel')}{' '}
-            <span className="text-gray-300 font-normal normal-case">{t('invoice.optional')}</span>
+            <span className="text-ink-soft/50 font-normal normal-case">{t('invoice.optional')}</span>
           </label>
           <input
             type="text"
             value={reference}
             onChange={e => setReference(e.target.value)}
             placeholder={t('invoice.referencePlaceholder')}
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[#1B4332] focus:ring-1 focus:ring-[#1B4332] placeholder:text-gray-400"
+            className="w-full border border-line rounded-lg px-3 py-2 text-sm text-ink focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink/25 placeholder:text-ink-soft"
           />
         </div>
       </div>
 
       {/* Line items table */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-4">
+      <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden mb-4">
         <div
-          className="grid items-center bg-gray-50 border-b border-gray-100 px-4 py-2.5"
+          className="grid items-center bg-ink/[0.03] border-b border-line px-4 py-2.5"
           style={{ gridTemplateColumns: '24px 1fr 72px 96px 28px' }}
         >
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">#</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('invoice.description')}</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">{t('invoice.qty')}</span>
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right pr-2">{t('invoice.unitPrice')}</span>
+          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">#</span>
+          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">{t('invoice.description')}</span>
+          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest text-right">{t('invoice.qty')}</span>
+          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest text-right pr-2">{t('invoice.unitPrice')}</span>
           <span />
         </div>
 
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-line">
           {items.map((li, i) => {
             const qty      = parseFloat(li.qty) || 0
             const unit     = parseFloat(li.unit_price) || 0
@@ -219,21 +220,21 @@ export default function NewCustomInvoice() {
                 className="grid items-center px-4 py-2.5 gap-1"
                 style={{ gridTemplateColumns: '24px 1fr 72px 96px 28px' }}
               >
-                <span className="text-xs text-gray-400 font-mono tabular-nums">{i + 1}</span>
+                <span className="text-xs text-ink-soft font-mono tabular-nums">{i + 1}</span>
 
                 <input
                   type="text"
                   value={li.description}
                   onChange={e => updateItem(li.id, 'description', e.target.value)}
                   placeholder={t('invoice.itemPlaceholder')}
-                  className="text-sm text-gray-800 py-1 px-1.5 rounded border border-transparent focus:border-gray-200 focus:outline-none w-full"
+                  className="text-sm text-ink py-1 px-1.5 rounded border border-transparent focus:border-line focus:outline-none w-full"
                 />
 
                 <input
                   type="number"
                   value={li.qty}
                   onChange={e => updateItem(li.id, 'qty', e.target.value)}
-                  className="text-sm text-right text-gray-800 py-1 px-1.5 rounded border border-transparent focus:border-gray-200 focus:outline-none w-full tabular-nums"
+                  className="text-sm text-right text-ink py-1 px-1.5 rounded border border-transparent focus:border-line focus:outline-none w-full tabular-nums"
                 />
 
                 <div>
@@ -243,10 +244,10 @@ export default function NewCustomInvoice() {
                     onChange={e => updateItem(li.id, 'unit_price', e.target.value)}
                     step="0.01"
                     placeholder="0.00"
-                    className="text-sm text-right text-gray-800 py-1 px-1.5 rounded border border-transparent focus:border-gray-200 focus:outline-none w-full tabular-nums"
+                    className="text-sm text-right text-ink py-1 px-1.5 rounded border border-transparent focus:border-line focus:outline-none w-full tabular-nums"
                   />
                   {unit > 0 && qty > 0 && (
-                    <p className="text-[10px] text-gray-400 text-right mt-0.5 pr-1.5 tabular-nums">
+                    <p className="text-[10px] text-ink-soft text-right mt-0.5 pr-1.5 tabular-nums">
                       = {fmtRM(rowTotal)}
                     </p>
                   )}
@@ -256,7 +257,7 @@ export default function NewCustomInvoice() {
                   <button
                     onClick={() => removeItem(li.id)}
                     disabled={items.length <= 1}
-                    className="text-gray-300 hover:text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="text-ink-soft/50 hover:text-danger transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -266,10 +267,10 @@ export default function NewCustomInvoice() {
           })}
         </div>
 
-        <div className="px-4 py-3 border-t border-gray-50">
+        <div className="px-4 py-3 border-t border-line">
           <button
             onClick={addItem}
-            className="flex items-center gap-1.5 text-xs font-semibold text-[#1B4332] hover:text-[#163828] transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold text-ink hover:text-ink transition-colors"
           >
             <Plus size={13} />
             {t('invoice.addItem')}
@@ -278,7 +279,7 @@ export default function NewCustomInvoice() {
       </div>
 
       {/* Gaji Pekerja toggle */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-4 mb-4">
+      <div className="bg-surface rounded-xl border border-line shadow-sm px-4 py-4 mb-4">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -286,8 +287,8 @@ export default function NewCustomInvoice() {
             className={cn(
               'w-4 h-4 rounded border-2 flex items-center justify-center transition-colors shrink-0',
               gajiToggle
-                ? 'bg-[#1B4332] border-[#1B4332]'
-                : 'border-gray-300 bg-white'
+                ? 'bg-ink border-ink'
+                : 'border-line bg-surface'
             )}
           >
             {gajiToggle && (
@@ -300,21 +301,21 @@ export default function NewCustomInvoice() {
               </svg>
             )}
           </button>
-          <span className="text-sm text-gray-700 font-medium">{t('invoice.addStaffWages')}</span>
+          <span className="text-sm text-ink font-medium">{t('invoice.addStaffWages')}</span>
         </div>
 
         {gajiToggle && (
           <div className="flex items-center justify-between gap-3 mt-3">
-            <span className="text-sm text-gray-500">{t('invoice.staffWagesHint')}</span>
+            <span className="text-sm text-ink-soft">{t('invoice.staffWagesHint')}</span>
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-sm text-gray-500">RM</span>
+              <span className="text-sm text-ink-soft">RM</span>
               <input
                 type="number"
                 value={gajiAmount}
                 onChange={e => setGajiAmount(e.target.value)}
                 step="0.01"
                 placeholder="0.00"
-                className="w-28 text-right border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-red-600 focus:outline-none focus:border-[#1B4332] tabular-nums"
+                className="w-28 text-right border border-line rounded-lg px-2.5 py-1.5 text-sm font-semibold text-danger focus:outline-none focus:border-ink tabular-nums"
               />
             </div>
           </div>
@@ -322,50 +323,41 @@ export default function NewCustomInvoice() {
       </div>
 
       {/* Totals */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-4 mb-6">
+      <div className="bg-surface rounded-xl border border-line shadow-sm px-4 py-4 mb-6">
         <div className="space-y-2 max-w-xs ml-auto">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">Subtotal</span>
-            <span className="font-semibold text-gray-900 tabular-nums">{fmtRM(subtotal)}</span>
+            <span className="text-ink-soft">Subtotal</span>
+            <span className="font-semibold text-ink tabular-nums">{fmtRM(subtotal)}</span>
           </div>
           {gajiToggle && gajiNum > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">{t('invoice.gajiPerkerja')}</span>
-              <span className="font-semibold text-red-600 tabular-nums">({fmtRM(gajiNum)})</span>
+              <span className="text-ink-soft">{t('invoice.gajiPerkerja')}</span>
+              <span className="font-semibold text-danger tabular-nums">({fmtRM(gajiNum)})</span>
             </div>
           )}
-          <div className="h-px bg-gray-100" />
+          <div className="h-px bg-ink/5" />
           <div className="flex items-center justify-between">
-            <span className="font-bold text-gray-900 text-base">{t('invoice.totalLabel')}</span>
-            <span className="font-black text-xl text-[#1B4332] tabular-nums">{fmtRM(total)}</span>
+            <span className="font-bold text-ink text-base">{t('invoice.totalLabel')}</span>
+            <span className="font-black text-xl text-ink tabular-nums">{fmtRM(total)}</span>
           </div>
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="flex flex-wrap items-center gap-3 justify-end">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-gray-500 hover:text-gray-700 font-medium px-4 py-2.5 text-sm transition-colors"
-        >
-          {t('common.cancel')}
-        </button>
-        <button
-          onClick={() => save(false)}
-          disabled={saving}
-          className="flex items-center gap-2 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50 shadow-sm"
-        >
-          <Save size={14} />
-          {t('invoice.saveDraft')}
-        </button>
-        <button
-          onClick={() => save(true)}
-          disabled={saving}
-          className="flex items-center gap-2 bg-[#1B4332] hover:bg-[#163828] text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50"
-        >
-          <FileDown size={14} />
-          {saving ? t('invoice.saving') : t('invoice.saveDownload')}
-        </button>
+      {/* Sticky action bar — thumb-reachable, above the bottom nav */}
+      <div className="fixed md:sticky left-0 right-0 md:left-auto md:right-auto bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-0 bg-bg/95 backdrop-blur border-t border-line px-4 py-3 md:mt-6 md:-mx-6 md:px-6 z-40">
+        <div className="max-w-3xl mx-auto flex gap-2">
+          <Button variant="ghost" onClick={() => navigate(-1)}>
+            {t('common.cancel')}
+          </Button>
+          <Button variant="secondary" className="flex-1" disabled={saving} onClick={() => save(false)}>
+            <Save size={15} />
+            {t('invoice.saveDraft')}
+          </Button>
+          <Button className="flex-1" disabled={saving} onClick={() => save(true)}>
+            <FileDown size={15} />
+            {saving ? t('invoice.saving') : t('invoice.saveDownload')}
+          </Button>
+        </div>
       </div>
     </div>
   )

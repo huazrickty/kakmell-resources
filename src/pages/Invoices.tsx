@@ -14,54 +14,28 @@ import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { useEvents } from '@/hooks/useEvents'
 import { fmtRM, tsToDate, type InvoiceDoc } from '@/lib/invoice-pdf'
-import { cn } from '@/lib/utils'
-
-// ── Types ──────────────────────────────────────────────────────────────────
+import { Button, Card, Badge, type BadgeStatus, Segmented, Input, EmptyState, BottomSheet } from '@/components/ui-kit'
 
 type FilterType = 'all' | 'week' | 'month' | 'year' | 'range'
 
-// ── Status styles ──────────────────────────────────────────────────────────
-
-const STATUS_BADGE: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-500 border-gray-200',
-  sent:  'bg-amber-50 text-amber-700 border-amber-200',
-  paid:  'bg-green-50 text-green-700 border-green-200',
+const STATUS_BADGE: Record<string, BadgeStatus> = {
+  draft: 'neutral',
+  sent:  'warn',
+  paid:  'ok',
 }
 
-const STATUS_BAR: Record<string, string> = {
-  draft: 'bg-gray-300',
-  sent:  'bg-amber-400',
-  paid:  'bg-green-500',
-}
-
-// ── Sub-components ─────────────────────────────────────────────────────────
-
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{label}</p>
-      <p className="text-xl font-black text-gray-900 leading-none tabular-nums">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+    <div className="flex flex-col gap-1 min-w-0">
+      <span className="text-lg font-bold leading-none text-ink tabular-nums truncate">{value}</span>
+      <span className="text-xs text-ink-soft">{label}</span>
     </div>
   )
 }
 
 function Skeleton() {
-  return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden animate-pulse flex">
-      <div className="w-1 shrink-0 bg-gray-200" />
-      <div className="flex-1 px-4 py-4 space-y-2">
-        <div className="h-3.5 bg-gray-100 rounded w-1/4" />
-        <div className="h-3 bg-gray-100 rounded w-1/2" />
-      </div>
-      <div className="px-4 py-4 flex items-center">
-        <div className="h-6 w-16 bg-gray-100 rounded-full" />
-      </div>
-    </div>
-  )
+  return <div className="h-[68px] bg-ink/5 rounded-xl animate-pulse" />
 }
-
-// ── Main ───────────────────────────────────────────────────────────────────
 
 export default function Invoices() {
   const navigate    = useNavigate()
@@ -75,7 +49,6 @@ export default function Invoices() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting]               = useState(false)
 
-  // Filter state
   const [filter, setFilter]         = useState<FilterType>('week')
   const [rangeFrom, setRangeFrom]   = useState('')
   const [rangeTo, setRangeTo]       = useState('')
@@ -112,7 +85,6 @@ export default function Invoices() {
     setAppliedRange({ from, to })
   }
 
-  // ── Filter logic ───────────────────────────────────────────────────────────
   const filteredInvoices = useMemo(() => {
     const now = new Date()
     switch (filter) {
@@ -141,12 +113,10 @@ export default function Invoices() {
     }
   }, [invoices, filter, appliedRange])
 
-  // ── Stats (filtered) ────────────────────────────────────────────────────────
   const totalBilled = filteredInvoices.reduce((s, inv) => s + (inv.total || 0), 0)
   const paidTotal   = filteredInvoices.filter(inv => inv.status === 'paid').reduce((s, inv) => s + (inv.total || 0), 0)
   const outstanding = filteredInvoices.filter(inv => inv.status !== 'paid').reduce((s, inv) => s + (inv.total || 0), 0)
 
-  // ── Filter summary label ────────────────────────────────────────────────────
   const filterSummary = useMemo(() => {
     const n = filteredInvoices.length
     const now = new Date()
@@ -161,125 +131,82 @@ export default function Invoices() {
     }
   }, [filteredInvoices.length, filter, appliedRange, t])
 
-  // ── Guard ──────────────────────────────────────────────────────────────────
   if (!isAdmin) return <Navigate to="/dashboard" replace />
 
-  const FILTER_PILLS: { key: FilterType; label: string }[] = [
-    { key: 'week',  label: t('invoice.filterWeek') },
-    { key: 'month', label: t('invoice.filterMonth') },
-    { key: 'year',  label: t('invoice.filterYear') },
-    { key: 'range', label: t('invoice.filterRange') },
-    { key: 'all',   label: t('invoice.filterAll') },
-  ]
+  const deleteTarget = confirmDeleteId ? invoices.find(i => i.id === confirmDeleteId) : null
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto">
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('invoice.title')}</h1>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
-            {invoices.length} {t('invoice.countLabel')}
-          </span>
-          {isAdmin && (
-            <button
-              onClick={() => navigate('/invoices/custom/new')}
-              className="flex items-center gap-1.5 bg-[#1B4332] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#163828] transition-colors"
-            >
-              <Plus size={13} />
-              {t('invoice.newCustom')}
-            </button>
-          )}
-        </div>
+      {/* Header — New Invoice is the one primary CTA on this screen */}
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-xl font-bold tracking-tight text-ink">{t('invoice.title')}</h1>
+        <Button size="sm" onClick={() => navigate('/invoices/custom/new')}>
+          <Plus size={15} />
+          {t('invoice.newCustom')}
+        </Button>
       </div>
 
-      {/* Stats row — reflects active filter */}
+      {/* Stats — plain tabular numbers */}
       {!loading && invoices.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-          <StatCard label={t('invoice.count')} value={String(filteredInvoices.length)} sub={t('invoice.countLabel')} />
-          <StatCard label={t('invoice.totalBilled')} value={fmtRM(totalBilled)} />
-          <StatCard label={t('invoice.statusPaid')} value={fmtRM(paidTotal)} />
-          <StatCard label={t('invoice.outstanding')} value={fmtRM(outstanding)} />
-        </div>
+        <Card className="mb-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Stat label={t('invoice.countLabel')} value={String(filteredInvoices.length)} />
+            <Stat label={t('invoice.totalBilled')} value={fmtRM(totalBilled)} />
+            <Stat label={t('invoice.statusPaid')} value={fmtRM(paidTotal)} />
+            <Stat label={t('invoice.outstanding')} value={fmtRM(outstanding)} />
+          </div>
+        </Card>
       )}
 
-      {/* Filter bar */}
+      {/* Filter */}
       {!loading && invoices.length > 0 && (
-        <div className="mb-4">
-          {/* Pills */}
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {FILTER_PILLS.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setFilter(key)}
-                className={cn(
-                  'shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors whitespace-nowrap',
-                  filter === key
-                    ? 'bg-red-600 text-white border-red-600'
-                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+        <div className="mb-4 space-y-3">
+          <Segmented
+            value={filter}
+            onChange={setFilter}
+            options={[
+              { value: 'week',  label: t('invoice.filterWeek') },
+              { value: 'month', label: t('invoice.filterMonth') },
+              { value: 'year',  label: t('invoice.filterYear') },
+              { value: 'range', label: t('invoice.filterRange') },
+              { value: 'all',   label: t('invoice.filterAll') },
+            ]}
+          />
 
-          {/* Date range inputs */}
           {filter === 'range' && (
-            <div className="flex flex-wrap items-center gap-2 mt-3">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-gray-500 shrink-0">{t('invoice.filterFrom')}</span>
-                <input
-                  type="date"
-                  value={rangeFrom}
-                  onChange={e => setRangeFrom(e.target.value)}
-                  className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-400"
-                />
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex-1 min-w-[130px]">
+                <p className="text-xs text-ink-soft mb-1">{t('invoice.filterFrom')}</p>
+                <Input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)} />
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-gray-500 shrink-0">{t('invoice.filterTo')}</span>
-                <input
-                  type="date"
-                  value={rangeTo}
-                  onChange={e => setRangeTo(e.target.value)}
-                  min={rangeFrom}
-                  className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-400"
-                />
+              <div className="flex-1 min-w-[130px]">
+                <p className="text-xs text-ink-soft mb-1">{t('invoice.filterTo')}</p>
+                <Input type="date" value={rangeTo} min={rangeFrom} onChange={e => setRangeTo(e.target.value)} />
               </div>
-              <button
-                onClick={applyRange}
-                disabled={!rangeFrom || !rangeTo}
-                className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors disabled:opacity-40"
-              >
+              <Button variant="secondary" disabled={!rangeFrom || !rangeTo} onClick={applyRange}>
                 {t('invoice.filterApply')}
-              </button>
+              </Button>
             </div>
           )}
 
-          {/* Summary */}
           {filterSummary && (
-            <p className="text-xs text-gray-400 mt-2">{filterSummary}</p>
+            <p className="text-xs text-ink-soft">{filterSummary}</p>
           )}
         </div>
       )}
 
-      {/* Invoice list */}
+      {/* List */}
       {loading ? (
         <div className="space-y-2.5">
           {[1, 2, 3].map(i => <Skeleton key={i} />)}
         </div>
       ) : filteredInvoices.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 px-6 py-16 text-center">
-          <FileText size={32} className="mx-auto text-gray-200 mb-3" />
-          <p className="text-sm text-gray-400">
-            {invoices.length === 0 ? t('invoice.noInvoices') : t('invoice.noInvoicesThisPeriod')}
-          </p>
-          {invoices.length === 0 && (
-            <p className="text-xs text-gray-300 mt-1">{t('invoice.createFromEvent')}</p>
-          )}
-        </div>
+        <Card flush>
+          <EmptyState
+            icon={FileText}
+            message={invoices.length === 0 ? t('invoice.noInvoices') : t('invoice.noInvoicesThisPeriod')}
+          />
+        </Card>
       ) : (
         <div className="space-y-2.5">
           {filteredInvoices.map((inv) => {
@@ -295,68 +222,64 @@ export default function Invoices() {
             return (
               <div
                 key={inv.id}
-                className="w-full bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:border-gray-200 transition-all flex"
+                className="flex bg-surface rounded-xl border border-line shadow-card overflow-hidden hover:border-ink/20 transition-colors"
               >
-                {/* Left status strip */}
-                <div className={cn('w-1 shrink-0', STATUS_BAR[statusKey])} />
-
-                {/* Main content — clickable */}
                 <div
-                  className="flex-1 px-4 py-3.5 min-w-0 cursor-pointer"
+                  className="flex-1 px-4 py-3 min-w-0 cursor-pointer"
                   onClick={() => navigate(`/invoices/${inv.id}`)}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-gray-900 tabular-nums">{inv.invoice_no}</p>
-                      <p className="text-xs text-gray-500 truncate mt-0.5">{evName}</p>
+                      <p className="text-sm font-bold text-ink tabular-nums">{inv.invoice_no}</p>
+                      <p className="text-xs text-ink-soft truncate mt-0.5">{evName}</p>
+                      <div className="mt-1.5">
+                        <Badge status={STATUS_BADGE[statusKey]}>{statusLabel}</Badge>
+                      </div>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="text-sm font-bold text-gray-900 tabular-nums">{fmtRM(inv.total)}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{format(date, 'd MMM yyyy')}</p>
+                      <p className="text-base font-bold text-ink tabular-nums">{fmtRM(inv.total)}</p>
+                      <p className="text-xs text-ink-soft mt-0.5 tabular-nums">{format(date, 'd MMM yyyy')}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Status badge */}
-                <div className="px-3 flex items-center shrink-0">
-                  <span className={cn('text-[10px] font-bold px-2.5 py-1 rounded-full border', STATUS_BADGE[statusKey])}>
-                    {statusLabel}
-                  </span>
-                </div>
-
-                {/* Delete */}
-                {isAdmin && (
-                  confirmDeleteId === inv.id ? (
-                    <div className="flex items-center gap-2 px-3 border-l border-red-100 bg-red-50 shrink-0">
-                      <button
-                        onClick={() => handleDelete(inv.id)}
-                        disabled={deleting}
-                        className="text-[11px] font-bold text-red-700 whitespace-nowrap disabled:opacity-50"
-                      >
-                        {deleting ? '...' : t('common.delete')}
-                      </button>
-                      <button
-                        onClick={() => setConfirmDeleteId(null)}
-                        className="text-[11px] text-gray-500 hover:text-gray-700"
-                      >
-                        {t('common.cancel')}
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setConfirmDeleteId(inv.id)}
-                      className="px-3 flex items-center text-gray-300 hover:text-red-500 border-l border-gray-50 hover:bg-red-50/50 transition-colors shrink-0"
-                      aria-label="Padam invois"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )
-                )}
+                <button
+                  onClick={() => setConfirmDeleteId(inv.id)}
+                  className="px-3 flex items-center text-ink-soft/50 hover:text-danger border-l border-line hover:bg-danger/5 transition-colors shrink-0 min-w-12"
+                  aria-label={t('invoice.delete')}
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             )
           })}
         </div>
       )}
+
+      {/* Delete confirm — BottomSheet destructive pattern */}
+      <BottomSheet
+        open={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        title={deleteTarget?.invoice_no}
+      >
+        <div className="space-y-3 pb-2">
+          <p className="text-sm text-ink-soft">{t('invoice.deleteConfirmText')}</p>
+          <div className="flex gap-3">
+            <Button variant="ghost" className="flex-1" onClick={() => setConfirmDeleteId(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              disabled={deleting}
+              onClick={() => confirmDeleteId && handleDelete(confirmDeleteId)}
+            >
+              <Trash2 size={15} />
+              {deleting ? '...' : t('common.deleteConfirmAction')}
+            </Button>
+          </div>
+        </div>
+      </BottomSheet>
     </div>
   )
 }

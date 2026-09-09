@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { format } from 'date-fns'
+import { format, addDays, parseISO } from 'date-fns'
 import {
   collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc,
   serverTimestamp, Timestamp,
@@ -7,14 +7,17 @@ import {
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import imageCompression from 'browser-image-compression'
 import {
-  CalendarDays, Camera, CheckCircle2, Clock, Loader2, RotateCcw, Image as ImageIcon, X, AlertTriangle,
+  Camera, CheckCircle2, Clock, Loader2, RotateCcw, Image as ImageIcon,
+  X, ChevronLeft, ChevronRight, MoreHorizontal, ListChecks,
 } from 'lucide-react'
 import { db, storage } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { logActivity } from '@/lib/activity-logger'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
+import {
+  Button, Card, Badge, Select, BottomSheet, EmptyState, Pill, ListRow,
+} from '@/components/ui-kit'
 
 interface Task {
   id: string
@@ -42,15 +45,15 @@ interface StaffOption {
 function StatusBadge({ status }: { status: 'pending' | 'done' }) {
   const { t } = useLanguage()
   return status === 'done' ? (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-600 uppercase tracking-wide">
+    <Badge status="ok">
       <CheckCircle2 size={11} strokeWidth={2.5} />
       {t('tasks.done')}
-    </span>
+    </Badge>
   ) : (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 uppercase tracking-wide">
+    <Badge status="warn">
       <Clock size={11} strokeWidth={2.5} />
       {t('tasks.pending')}
-    </span>
+    </Badge>
   )
 }
 
@@ -59,7 +62,8 @@ export default function Tasks() {
   const { t } = useLanguage()
   const isAdmin = userDoc?.role === 'admin'
 
-  const [date, setDate]               = useState(format(new Date(), 'yyyy-MM-dd'))
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const [date, setDate]               = useState(todayStr)
   const [tasks, setTasks]             = useState<Task[]>([])
   const [assignments, setAssignments] = useState<Record<string, Assignment>>({})
   const [staff, setStaff]             = useState<StaffOption[]>([])
@@ -74,9 +78,10 @@ export default function Tasks() {
   const [previewFile, setPreviewFile] = useState<File | null>(null)
   const [uploading, setUploading]     = useState(false)
 
-  // Undo confirm + photo lightbox
-  const [undoTask, setUndoTask] = useState<Task | null>(null)
-  const [viewUrl, setViewUrl]   = useState<string | null>(null)
+  // Overflow actions / undo confirm / lightbox
+  const [actionTask, setActionTask] = useState<Task | null>(null)
+  const [undoTask, setUndoTask]     = useState<Task | null>(null)
+  const [viewUrl, setViewUrl]       = useState<string | null>(null)
 
   // Active tasks (master list, defines order)
   useEffect(() => {
@@ -263,8 +268,6 @@ export default function Tasks() {
 
   if (!user) return null
 
-  // Admin: all active tasks (optionally filtered to own).
-  // Kitchen: only tasks with an assignment doc pointing at them.
   const rows = tasks.filter((task) => {
     const a = assignments[task.id]
     if (!isAdmin) return a?.assigned_to === user.uid
@@ -272,47 +275,7 @@ export default function Tasks() {
     return true
   })
 
-  function renderActions(task: Task, a: Assignment | undefined) {
-    if (a?.status === 'done') {
-      const canUndo = isAdmin || a.assigned_to === user!.uid
-      return (
-        <div className="flex items-center gap-1 shrink-0">
-          {a.photo_url && (
-            <button
-              onClick={() => setViewUrl(a.photo_url)}
-              title={t('tasks.viewPhoto')}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-[#1B4332] hover:bg-green-50 transition-colors"
-            >
-              <ImageIcon size={15} />
-            </button>
-          )}
-          {canUndo && (
-            <button
-              onClick={() => setUndoTask(task)}
-              disabled={busy === task.id}
-              title={t('tasks.undo')}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
-            >
-              <RotateCcw size={15} />
-            </button>
-          )}
-        </div>
-      )
-    }
-    if (a?.assigned_to === user!.uid) {
-      return (
-        <button
-          onClick={() => startCapture(task)}
-          disabled={uploading}
-          className="flex items-center gap-1.5 shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#1B4332] text-white hover:bg-[#163828] transition-colors disabled:opacity-40"
-        >
-          <Camera size={13} />
-          {t('tasks.complete')}
-        </button>
-      )
-    }
-    return null
-  }
+  const actionAssignment = actionTask ? assignments[actionTask.id] : undefined
 
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto">
@@ -326,38 +289,45 @@ export default function Tasks() {
         className="hidden"
       />
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {isAdmin ? t('tasks.title') : t('tasks.myTasks')}
-        </h1>
-      </div>
+      <h1 className="text-xl font-bold tracking-tight text-ink mb-4">
+        {isAdmin ? t('tasks.title') : t('tasks.myTasks')}
+      </h1>
 
-      {/* ── Date selector + filter ─────────────────────────────────────── */}
-      <div className="flex items-center gap-3 flex-wrap mb-5">
-        <label className="flex items-center gap-2 bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2">
-          <CalendarDays size={15} className="text-gray-400 shrink-0" />
-          <span className="text-xs font-semibold text-gray-500">{t('tasks.selectDate')}</span>
+      {/* ── Date strip: < date > + Today ───────────────────────────────── */}
+      <div className="flex items-center gap-2 flex-wrap mb-5">
+        <Card flush className="flex items-center">
+          <button
+            onClick={() => setDate(format(addDays(parseISO(date), -1), 'yyyy-MM-dd'))}
+            className="h-12 w-12 flex items-center justify-center text-ink-soft hover:text-ink hover:bg-ink/5 rounded-l-xl transition-colors"
+            aria-label="-1"
+          >
+            <ChevronLeft size={18} />
+          </button>
           <input
             type="date"
             value={date}
             onChange={(e) => e.target.value && setDate(e.target.value)}
-            className="text-sm text-gray-900 bg-transparent focus:outline-none"
+            className="h-12 bg-transparent text-sm font-semibold text-ink text-center focus:outline-none tabular-nums"
           />
-        </label>
+          <button
+            onClick={() => setDate(format(addDays(parseISO(date), 1), 'yyyy-MM-dd'))}
+            className="h-12 w-12 flex items-center justify-center text-ink-soft hover:text-ink hover:bg-ink/5 rounded-r-xl transition-colors"
+            aria-label="+1"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </Card>
+
+        {date !== todayStr && (
+          <Pill selected onClick={() => setDate(todayStr)}>
+            {t('dashboard.today')}
+          </Pill>
+        )}
 
         {isAdmin && (
-          <button
-            onClick={() => setOnlyMine((v) => !v)}
-            className={cn(
-              'px-3 py-2 rounded-full text-xs font-semibold border transition-colors',
-              onlyMine
-                ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
-            )}
-          >
+          <Pill selected={onlyMine} onClick={() => setOnlyMine((v) => !v)}>
             {t('tasks.assignedToMe')}
-          </button>
+          </Pill>
         )}
       </div>
 
@@ -365,148 +335,206 @@ export default function Tasks() {
       {loading ? (
         <div className="space-y-2">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm h-14 animate-pulse" />
+            <div key={i} className="bg-ink/5 rounded-xl h-14 animate-pulse" />
           ))}
         </div>
       ) : tasks.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 px-6 py-16 text-center">
-          <p className="text-sm text-gray-400">{t('tasks.noActiveTasks')}</p>
-        </div>
+        <Card flush>
+          <EmptyState icon={ListChecks} message={t('tasks.noActiveTasks')} />
+        </Card>
       ) : rows.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 px-6 py-16 text-center">
-          <p className="text-sm text-gray-400">{t('tasks.noTasksAssigned')}</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="divide-y divide-gray-50">
+        <Card flush>
+          <EmptyState icon={ListChecks} message={t('tasks.noTasksAssigned')} />
+        </Card>
+      ) : isAdmin ? (
+        /* ── Admin: dense assignment rows ─────────────────────────────── */
+        <Card flush>
+          <div className="divide-y divide-line">
             {rows.map((task) => {
               const a = assignments[task.id]
-              return isAdmin ? (
+              return (
                 <div key={task.id} className="flex items-center gap-3 px-4 py-3 flex-wrap">
-                  <span className="w-6 shrink-0 text-right text-[11px] tabular-nums text-gray-400">
+                  <span className="w-6 shrink-0 text-right text-xs tabular-nums text-ink-soft">
                     {task.order}
                   </span>
-                  <span className="flex-1 min-w-[140px] text-sm font-medium text-gray-900">
+                  <span className="flex-1 min-w-[140px] text-sm font-medium text-ink">
                     {task.name}
                   </span>
                   <StatusBadge status={a?.status ?? 'pending'} />
-                  {renderActions(task, a)}
-                  <select
-                    value={a?.assigned_to ?? ''}
-                    onChange={(e) => assign(task, e.target.value)}
-                    disabled={busy === task.id}
-                    className={cn(
-                      'shrink-0 text-xs border rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:border-[#1B4332] max-w-[160px] disabled:opacity-40',
-                      a?.assigned_to ? 'border-gray-200 text-gray-900 font-medium' : 'border-dashed border-gray-300 text-gray-400'
-                    )}
-                  >
-                    <option value="">{t('tasks.notAssigned')}</option>
-                    {staff.map((s) => (
-                      <option key={s.uid} value={s.uid}>{s.full_name}</option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div key={task.id} className="flex items-center gap-3 px-4 py-3">
-                  <span className="flex-1 min-w-0 text-sm font-medium text-gray-900 truncate">
-                    {task.name}
-                  </span>
-                  <StatusBadge status={a?.status ?? 'pending'} />
-                  {renderActions(task, a)}
+                  {a?.status === 'done' && (
+                    <button
+                      onClick={() => setActionTask(task)}
+                      className="h-9 w-9 flex items-center justify-center rounded-lg text-ink-soft hover:text-ink hover:bg-ink/5 transition-colors"
+                      aria-label={t('common.actions')}
+                    >
+                      <MoreHorizontal size={16} />
+                    </button>
+                  )}
+                  {a?.assigned_to === user.uid && a?.status !== 'done' && (
+                    <Button size="sm" onClick={() => startCapture(task)} disabled={uploading}>
+                      <Camera size={13} />
+                      {t('tasks.complete')}
+                    </Button>
+                  )}
+                  <div className="shrink-0 w-[160px]">
+                    <Select
+                      className="!h-9 text-xs"
+                      value={a?.assigned_to ?? ''}
+                      onChange={(e) => assign(task, e.target.value)}
+                      disabled={busy === task.id}
+                    >
+                      <option value="">{t('tasks.notAssigned')}</option>
+                      {staff.map((s) => (
+                        <option key={s.uid} value={s.uid}>{s.full_name}</option>
+                      ))}
+                    </Select>
+                  </div>
                 </div>
               )
             })}
           </div>
+        </Card>
+      ) : (
+        /* ── Kitchen: task cards ──────────────────────────────────────── */
+        <div className="space-y-3">
+          {rows.map((task) => {
+            const a = assignments[task.id]
+            const isDone = a?.status === 'done'
+            return (
+              <Card key={task.id}>
+                <div className="flex items-center gap-3">
+                  {isDone && a?.photo_url && (
+                    <button onClick={() => setViewUrl(a.photo_url)} className="shrink-0">
+                      <img
+                        src={a.photo_url}
+                        alt={task.name}
+                        className="h-12 w-12 rounded-lg object-cover border border-line"
+                      />
+                    </button>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base font-bold text-ink leading-snug">{task.name}</p>
+                    <div className="mt-1.5">
+                      <StatusBadge status={a?.status ?? 'pending'} />
+                    </div>
+                  </div>
+                  {isDone ? (
+                    <button
+                      onClick={() => setActionTask(task)}
+                      className="h-12 w-12 flex items-center justify-center rounded-lg text-ink-soft hover:text-ink hover:bg-ink/5 transition-colors shrink-0"
+                      aria-label={t('common.actions')}
+                    >
+                      <MoreHorizontal size={18} />
+                    </button>
+                  ) : (
+                    <Button onClick={() => startCapture(task)} disabled={uploading} className="shrink-0">
+                      <Camera size={15} />
+                      {t('tasks.complete')}
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            )
+          })}
         </div>
       )}
 
-      {/* ── Photo preview modal (Confirm / Retake) ─────────────────────── */}
-      {captureTask && previewUrl && (
-        <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <p className="text-sm font-semibold text-gray-900 truncate">{captureTask.name}</p>
-              <button
-                onClick={closeCapture}
-                disabled={uploading}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded disabled:opacity-40"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <img src={previewUrl} alt={captureTask.name} className="w-full max-h-[50vh] object-contain bg-gray-950" />
-            <p className="px-4 pt-3 text-xs text-gray-400">{t('tasks.photoRequired')}</p>
-            <div className="flex gap-2 p-4">
-              <button
-                onClick={() => startCapture(captureTask)}
-                disabled={uploading}
-                className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40 min-h-[44px]"
-              >
-                <Camera size={14} />
-                {t('tasks.retake')}
-              </button>
-              <button
-                onClick={confirmComplete}
-                disabled={uploading}
-                className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-lg bg-[#1B4332] text-white hover:bg-[#163828] transition-colors disabled:opacity-70 min-h-[44px]"
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    {t('tasks.uploading')}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 size={14} />
-                    {t('tasks.confirm')}
-                  </>
-                )}
-              </button>
-            </div>
+      {/* ── Photo preview sheet (Confirm / Retake) ─────────────────────── */}
+      <BottomSheet
+        open={!!captureTask && !!previewUrl}
+        onClose={closeCapture}
+        title={captureTask?.name}
+      >
+        <div className="space-y-3 pb-2">
+          {previewUrl && (
+            <img
+              src={previewUrl}
+              alt={captureTask?.name ?? ''}
+              className="w-full max-h-[45vh] object-contain rounded-lg bg-ink"
+            />
+          )}
+          <p className="text-xs text-ink-soft">{t('tasks.photoRequired')}</p>
+          <div className="flex gap-3">
+            <Button
+              variant="ghost"
+              className="flex-1"
+              disabled={uploading}
+              onClick={() => captureTask && startCapture(captureTask)}
+            >
+              <Camera size={15} />
+              {t('tasks.retake')}
+            </Button>
+            <Button className="flex-1" disabled={uploading} onClick={confirmComplete}>
+              {uploading ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  {t('tasks.uploading')}
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={15} />
+                  {t('tasks.confirm')}
+                </>
+              )}
+            </Button>
           </div>
         </div>
-      )}
+      </BottomSheet>
 
-      {/* ── Undo confirm modal ─────────────────────────────────────────── */}
-      {undoTask && (
-        <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center shrink-0">
-                <AlertTriangle size={17} className="text-red-500" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">{undoTask.name}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{t('tasks.undoConfirm')}</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setUndoTask(null)}
-                className="flex-1 text-sm font-semibold px-4 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors min-h-[44px]"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={confirmUndo}
-                className="flex-1 text-sm font-semibold px-4 py-2.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors min-h-[44px]"
-              >
-                {t('tasks.undo')}
-              </button>
-            </div>
+      {/* ── Done-task actions sheet (view photo / undo) ────────────────── */}
+      <BottomSheet
+        open={!!actionTask && !undoTask}
+        onClose={() => setActionTask(null)}
+        title={actionTask?.name}
+      >
+        <div className="pb-2 -mx-4 divide-y divide-line">
+          {actionAssignment?.photo_url && (
+            <ListRow
+              leading={<ImageIcon size={18} />}
+              label={t('tasks.viewPhoto')}
+              onClick={() => { setViewUrl(actionAssignment.photo_url); setActionTask(null) }}
+            />
+          )}
+          {(isAdmin || actionAssignment?.assigned_to === user.uid) && (
+            <ListRow
+              leading={<RotateCcw size={18} />}
+              label={t('tasks.undo')}
+              onClick={() => { setUndoTask(actionTask); setActionTask(null) }}
+            />
+          )}
+        </div>
+      </BottomSheet>
+
+      {/* ── Undo confirm sheet ─────────────────────────────────────────── */}
+      <BottomSheet
+        open={!!undoTask}
+        onClose={() => setUndoTask(null)}
+        title={undoTask?.name}
+      >
+        <div className="space-y-3 pb-2">
+          <p className="text-sm text-ink-soft">{t('tasks.undoConfirm')}</p>
+          <div className="flex gap-3">
+            <Button variant="ghost" className="flex-1" onClick={() => setUndoTask(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="destructive" className="flex-1" onClick={confirmUndo}>
+              <RotateCcw size={15} />
+              {t('tasks.undo')}
+            </Button>
           </div>
         </div>
-      )}
+      </BottomSheet>
 
-      {/* ── Photo lightbox ─────────────────────────────────────────────── */}
+      {/* ── Photo lightbox — ink scrim, white close ────────────────────── */}
       {viewUrl && (
         <div
-          className="fixed inset-0 z-[60] bg-black/85 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[80] bg-ink/90 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setViewUrl(null)}
         >
           <button
             onClick={() => setViewUrl(null)}
             className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+            aria-label={t('common.cancel')}
           >
             <X size={20} />
           </button>

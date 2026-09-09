@@ -69,24 +69,24 @@ const CAT_ICON: Record<string, React.ReactElement> = {
 }
 
 const CAT_COLOR: Record<string, string> = {
-  event:      'bg-green-50 text-green-600',
-  invoice:    'bg-amber-50 text-amber-600',
-  user:       'bg-purple-50 text-purple-600',
-  ingredient: 'bg-orange-50 text-orange-600',
-  task:       'bg-teal-50 text-teal-600',
-  menu:       'bg-rose-50 text-rose-600',
-  settings:   'bg-gray-100 text-gray-500',
+  event:      'bg-ok/10 text-ok',
+  invoice:    'bg-warn/10 text-warn',
+  user:       'bg-ink/5 text-ink-soft',
+  ingredient: 'bg-warn/10 text-warn',
+  task:       'bg-ok/10 text-ok',
+  menu:       'bg-danger/10 text-danger',
+  settings:   'bg-ink/5 text-ink-soft',
 }
 
 function SkeletonRows() {
   return (
-    <div className="divide-y divide-gray-50">
+    <div className="divide-y divide-line">
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="flex gap-3 px-4 py-3.5 animate-pulse">
-          <div className="w-8 h-8 rounded-full bg-gray-100 shrink-0" />
+          <div className="w-8 h-8 rounded-full bg-ink/5 shrink-0" />
           <div className="flex-1 space-y-2 py-0.5">
-            <div className="h-3 bg-gray-100 rounded w-3/4" />
-            <div className="h-2.5 bg-gray-100 rounded w-2/5" />
+            <div className="h-3 bg-ink/5 rounded w-3/4" />
+            <div className="h-2.5 bg-ink/5 rounded w-2/5" />
           </div>
         </div>
       ))}
@@ -172,12 +172,12 @@ export default function ActivityLog() {
       <div className="flex items-center gap-3 mb-5">
         <button
           onClick={() => navigate('/settings')}
-          className="text-gray-400 hover:text-gray-700 transition-colors"
+          className="text-ink-soft hover:text-ink transition-colors"
         >
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{t('activityLog.title')}</h1>
+          <h1 className="text-xl font-bold text-ink">{t('activityLog.title')}</h1>
         </div>
       </div>
 
@@ -191,8 +191,8 @@ export default function ActivityLog() {
               className={cn(
                 'px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors',
                 dateRange === r
-                  ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                  ? 'bg-ink text-white border-ink'
+                  : 'bg-surface text-ink-soft border-line hover:border-ink/30'
               )}
             >
               {dateLabels[r]}
@@ -207,8 +207,8 @@ export default function ActivityLog() {
               className={cn(
                 'px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors',
                 category === c
-                  ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                  ? 'bg-ink text-white border-ink'
+                  : 'bg-surface text-ink-soft border-line hover:border-ink/30'
               )}
             >
               {catLabels[c]}
@@ -218,28 +218,28 @@ export default function ActivityLog() {
       </div>
 
       {/* List */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden">
         {loading && entries.length === 0 ? (
           <SkeletonRows />
         ) : visible.length === 0 ? (
           <div className="px-4 py-16 text-center">
-            <p className="text-sm text-gray-400">{t('activityLog.noActivity')}</p>
+            <p className="text-sm text-ink-soft">{t('activityLog.noActivity')}</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-line">
             {visible.map(entry => {
               const ts = entry.timestamp?.toDate?.() ?? null
               return (
                 <div key={entry.id} className="flex gap-3 px-4 py-3.5">
                   <div className={cn(
                     'w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5',
-                    CAT_COLOR[entry.category] ?? 'bg-gray-100 text-gray-400'
+                    CAT_COLOR[entry.category] ?? 'bg-ink/5 text-ink-soft'
                   )}>
                     {CAT_ICON[entry.category] ?? <SettingsIcon size={15} />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900 leading-snug">{entry.description}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-400">
+                    <p className="text-sm text-ink leading-snug">{entry.description}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-ink-soft">
                       <span className="font-medium">{entry.performed_by_name}</span>
                       {ts && (
                         <>
@@ -256,10 +256,10 @@ export default function ActivityLog() {
         )}
 
         {hasMore && !loading && (
-          <div className="px-4 py-3 border-t border-gray-50 text-center">
+          <div className="px-4 py-3 border-t border-line text-center">
             <button
               onClick={loadMore}
-              className="text-sm font-semibold text-[#1B4332] hover:underline"
+              className="text-sm font-semibold text-ink hover:underline"
             >
               {t('activityLog.loadMore')}
             </button>
@@ -267,8 +267,8 @@ export default function ActivityLog() {
         )}
 
         {loading && entries.length > 0 && (
-          <div className="px-4 py-3 border-t border-gray-50 text-center">
-            <p className="text-xs text-gray-400">{t('activityLog.loading')}</p>
+          <div className="px-4 py-3 border-t border-line text-center">
+            <p className="text-xs text-ink-soft">{t('activityLog.loading')}</p>
           </div>
         )}
       </div>

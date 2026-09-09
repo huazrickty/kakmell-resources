@@ -37,3 +37,15 @@
     color: hsl(var(--foreground));
   }
 }
+
+@layer utilities {
+  /* Hide scrollbars on internally-scrolling controls (Segmented, tab strips).
+     This class was referenced across the app but never defined until now. */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { format, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns'
 import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore'
-import { Sun, Moon, MapPin, Users, ChevronDown } from 'lucide-react'
+import { Sun, Moon, MapPin, Users, ChevronDown, Check, CheckSquare } from 'lucide-react'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { useEvents, type EventDoc, type MenuSelection } from '@/hooks/useEvents'
 import { getHotDrinks, getColdDrinks } from '@/lib/menu-types'
 import { calculateIngredients } from '@/lib/ingredient-calculator'
+import { ProgressBar, Card, EmptyState } from '@/components/ui-kit'
 import { cn } from '@/lib/utils'
 
 const TODAY = format(new Date(), 'yyyy-MM-dd')
@@ -70,16 +71,15 @@ function EventChecklist({ event, uid }: EventChecklistProps) {
 
   const done  = checked.length
   const total = laukItems.length
-  const pct   = total > 0 ? (done / total) * 100 : 0
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden">
       {/* ── Card header ─────────────────────────────────────────────────── */}
-      <div className="px-4 py-3 border-b border-gray-50">
+      <div className="px-4 py-3 border-b border-line">
         <div className="flex items-start justify-between gap-2 mb-2.5">
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 text-sm leading-snug">{event.nama_majlis}</p>
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-gray-500 mt-0.5">
+            <p className="font-semibold text-ink text-sm leading-snug">{event.nama_majlis}</p>
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-ink-soft mt-0.5">
               {event.hall_name && (
                 <span className="flex items-center gap-1">
                   <MapPin size={10} strokeWidth={1.8} />
@@ -88,8 +88,8 @@ function EventChecklist({ event, uid }: EventChecklistProps) {
               )}
               <span className="flex items-center gap-1">
                 {event.sesi === 'siang'
-                  ? <Sun  size={10} strokeWidth={1.8} className="text-amber-500" />
-                  : <Moon size={10} strokeWidth={1.8} className="text-indigo-400" />}
+                  ? <Sun  size={10} strokeWidth={1.8} className="text-warn" />
+                  : <Moon size={10} strokeWidth={1.8} className="text-ink-soft" />}
                 {event.sesi === 'siang' ? 'Siang' : 'Malam'}
               </span>
               <span className="flex items-center gap-1">
@@ -98,70 +98,61 @@ function EventChecklist({ event, uid }: EventChecklistProps) {
               </span>
             </div>
           </div>
-          <span className="shrink-0 text-xs font-semibold text-gray-500 tabular-nums">
+          <span className="shrink-0 text-xs font-semibold text-ink-soft tabular-nums">
             {done}/{total} {t('checklist.done')}
           </span>
         </div>
 
-        {/* Progress bar */}
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className={cn(
-              'h-full rounded-full transition-all duration-300',
-              pct === 100 ? 'bg-green-500' : 'bg-[#1B4332]'
-            )}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
+        {/* Progress — N of M + ok-green fill, same pattern as Home tasks card */}
+        <ProgressBar value={total > 0 ? done / total : 0} />
       </div>
 
-      {/* ── Lauk pills ──────────────────────────────────────────────────── */}
-      <div className="px-4 py-3">
-        <div className="flex flex-wrap gap-2">
-          {laukItems.map((item) => {
-            const isDone = checked.includes(item)
-            return (
-              <button
-                key={item}
-                onClick={() => toggle(item)}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all select-none',
-                  isDone
-                    ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 active:bg-gray-50'
-                )}
-              >
-                {isDone && (
-                  <svg className="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                )}
+      {/* ── Lauk checklist rows ─────────────────────────────────────────── */}
+      <div className="divide-y divide-line">
+        {laukItems.map((item) => {
+          const isDone = checked.includes(item)
+          return (
+            <button
+              key={item}
+              onClick={() => toggle(item)}
+              className="flex w-full items-center gap-3 px-4 py-3 min-h-12 text-left hover:bg-ink/[0.02] active:bg-ink/[0.04] transition-colors select-none"
+            >
+              <span className={cn(
+                'flex h-5 w-5 items-center justify-center rounded border-2 shrink-0 transition-colors',
+                isDone ? 'bg-ink border-ink' : 'border-line',
+              )}>
+                {isDone && <Check size={13} strokeWidth={3} className="text-white" />}
+              </span>
+              <span className={cn(
+                'text-sm font-medium transition-colors',
+                isDone ? 'text-ink-soft line-through' : 'text-ink',
+              )}>
                 {item}
-              </button>
-            )
-          })}
-        </div>
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       {/* ── Ingredient toggle ────────────────────────────────────────────── */}
       {ingr && (
-        <div className="border-t border-gray-50">
+        <div className="border-t border-line">
           <button
             onClick={() => setShowIngr((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-gray-400 hover:bg-gray-50/50 transition-colors"
+            className="w-full flex items-center justify-between px-4 py-2.5 min-h-11 text-xs font-semibold text-ink-soft hover:bg-ink/[0.02] transition-colors"
           >
             <span>{showIngr ? t('checklist.hideIngredients') : t('checklist.showIngredients')}</span>
             <ChevronDown
               size={13}
-              className={cn('text-gray-300 transition-transform duration-200', showIngr && 'rotate-180')}
+              className={cn('text-ink-soft/50 transition-transform duration-200', showIngr && 'rotate-180')}
             />
           </button>
 
           {showIngr && (
-            <div className="px-4 pb-4 pt-1 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-gray-50">
+            <div className="px-4 pb-4 pt-1 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-line">
               {/* Left: Bahan Utama */}
               <div>
-                <p className="text-[10px] font-bold text-[#1B4332] uppercase tracking-widest mb-1.5">
+                <p className="text-[10px] font-bold text-ink uppercase tracking-widest mb-1.5">
                   {t('ingredients.mainItems')}
                 </p>
                 <div className="space-y-1">
@@ -173,8 +164,8 @@ function EventChecklist({ event, uid }: EventChecklistProps) {
                     ['Gula',   `${ingr.main.gula_liter} L`],
                   ] as [string, string][]).map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between text-xs gap-2">
-                      <span className="text-gray-400">{k}</span>
-                      <span className="font-semibold text-gray-700 tabular-nums">{v}</span>
+                      <span className="text-ink-soft">{k}</span>
+                      <span className="font-semibold text-ink tabular-nums">{v}</span>
                     </div>
                   ))}
                 </div>
@@ -182,7 +173,7 @@ function EventChecklist({ event, uid }: EventChecklistProps) {
 
               {/* Right: Dalca */}
               <div>
-                <p className="text-[10px] font-bold text-[#1B4332] uppercase tracking-widest mb-1.5">
+                <p className="text-[10px] font-bold text-ink uppercase tracking-widest mb-1.5">
                   {t('ingredients.dalca')}
                 </p>
                 <div className="space-y-1">
@@ -193,8 +184,8 @@ function EventChecklist({ event, uid }: EventChecklistProps) {
                     ['Karot',       ingr.dalca.karot],
                   ] as [string, string][]).map(([k, v]) => (
                     <div key={k} className="flex items-center justify-between text-xs gap-2">
-                      <span className="text-gray-400">{k}</span>
-                      <span className="font-semibold text-gray-700 tabular-nums">{v}</span>
+                      <span className="text-ink-soft">{k}</span>
+                      <span className="font-semibold text-ink tabular-nums">{v}</span>
                     </div>
                   ))}
                 </div>
@@ -235,8 +226,8 @@ export default function Checklist() {
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('checklist.title')}</h1>
-        <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
+        <h1 className="text-2xl font-bold text-ink">{t('checklist.title')}</h1>
+        <span className="text-xs font-semibold text-ink-soft bg-ink/5 px-2.5 py-1 rounded-full">
           {isToday ? t('checklist.todayEvents') : t('checklist.weekEvents')}
         </span>
       </div>
@@ -244,15 +235,15 @@ export default function Checklist() {
       {loading && (
         <div className="space-y-4">
           {[1, 2].map((i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm h-32 animate-pulse" />
+            <div key={i} className="bg-surface rounded-xl border border-line shadow-sm h-32 animate-pulse" />
           ))}
         </div>
       )}
 
       {!loading && displayEvents.length === 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 px-6 py-16 text-center">
-          <p className="text-sm text-gray-400">{t('checklist.noEventsToday')}</p>
-        </div>
+        <Card flush>
+          <EmptyState icon={CheckSquare} message={t('checklist.noEventsToday')} />
+        </Card>
       )}
 
       {!loading && displayEvents.length > 0 && (

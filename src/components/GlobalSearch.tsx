@@ -30,12 +30,12 @@ interface GlobalSearchProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  upcoming:  'bg-red-50 text-red-600 border-red-100',
-  completed: 'bg-green-50 text-green-700 border-green-100',
-  cancelled: 'bg-gray-100 text-gray-500 border-gray-200',
-  draft:     'bg-gray-100 text-gray-600 border-gray-200',
-  sent:      'bg-amber-50 text-amber-700 border-amber-100',
-  paid:      'bg-green-50 text-green-700 border-green-100',
+  upcoming:  'bg-danger/5 text-danger border-danger/20',
+  completed: 'bg-ok/10 text-ok border-ok/20',
+  cancelled: 'bg-ink/5 text-ink-soft border-line',
+  draft:     'bg-ink/5 text-ink-soft border-line',
+  sent:      'bg-warn/10 text-warn border-warn/20',
+  paid:      'bg-ok/10 text-ok border-ok/20',
 }
 
 function fmtRM(n: number): string {
@@ -114,26 +114,26 @@ export default function GlobalSearch({ isOpen, onClose, isAdmin }: GlobalSearchP
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden"
+        className="bg-surface rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100">
-          <Search size={18} className="text-gray-400 shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-line">
+          <Search size={18} className="text-ink-soft shrink-0" />
           <input
             ref={inputRef}
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder={isAdmin ? t('search.placeholder') : t('search.placeholderKitchen')}
-            className="flex-1 text-sm text-gray-900 placeholder-gray-400 bg-transparent outline-none"
+            className="flex-1 text-sm text-ink placeholder-ink-soft/50 bg-transparent outline-none"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+            <button onClick={() => setSearchQuery('')} className="text-ink-soft hover:text-ink">
               <X size={16} />
             </button>
           )}
-          <kbd className="hidden sm:inline-flex text-[10px] font-medium text-gray-400 bg-gray-100 rounded px-1.5 py-0.5">
+          <kbd className="hidden sm:inline-flex text-[10px] font-medium text-ink-soft bg-ink/5 rounded px-1.5 py-0.5">
             Esc
           </kbd>
         </div>
@@ -142,14 +142,14 @@ export default function GlobalSearch({ isOpen, onClose, isAdmin }: GlobalSearchP
         <div className="max-h-[60vh] overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-[#1B4332]" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-ink" />
             </div>
           ) : q.length < 2 ? (
-            <div className="px-4 py-10 text-center text-xs text-gray-400">
+            <div className="px-4 py-10 text-center text-xs text-ink-soft">
               {t('search.escToClose')}
             </div>
           ) : filteredEvents.length === 0 && filteredInvoices.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-gray-400">
+            <div className="px-4 py-10 text-center text-sm text-ink-soft">
               {t('search.noResults')}
             </div>
           ) : (
@@ -158,25 +158,25 @@ export default function GlobalSearch({ isOpen, onClose, isAdmin }: GlobalSearchP
               {filteredEvents.length > 0 && (
                 <div>
                   <div className="px-4 py-2 flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('nav.events')}</span>
-                    <span className="text-[10px] text-gray-300">({filteredEvents.length})</span>
+                    <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">{t('nav.events')}</span>
+                    <span className="text-[10px] text-ink-soft/50">({filteredEvents.length})</span>
                   </div>
                   {filteredEvents.map(event => (
                     <button
                       key={event.id}
                       onClick={() => { navigate(`/events/${event.id}`); onClose() }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-ink/[0.03] transition-colors text-left"
                     >
-                      <CalendarDays size={15} className="text-gray-400 shrink-0" />
+                      <CalendarDays size={15} className="text-ink-soft shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{event.nama_majlis}</p>
-                        <p className="text-xs text-gray-500 truncate">
+                        <p className="text-sm font-medium text-ink truncate">{event.nama_majlis}</p>
+                        <p className="text-xs text-ink-soft truncate">
                           {event.hall_name}
                           {event.tarikh?.toDate && ` · ${format(event.tarikh.toDate(), 'd MMM yyyy')}`}
                           {event.sesi && ` · ${event.sesi}`}
                         </p>
                       </div>
-                      <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[event.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                      <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[event.status] ?? 'bg-ink/5 text-ink-soft'}`}>
                         {event.status}
                       </span>
                     </button>
@@ -186,23 +186,23 @@ export default function GlobalSearch({ isOpen, onClose, isAdmin }: GlobalSearchP
 
               {/* Invoices group — admin only */}
               {isAdmin && filteredInvoices.length > 0 && (
-                <div className={filteredEvents.length > 0 ? 'border-t border-gray-50 mt-1' : ''}>
+                <div className={filteredEvents.length > 0 ? 'border-t border-line mt-1' : ''}>
                   <div className="px-4 py-2 flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('nav.invoices')}</span>
-                    <span className="text-[10px] text-gray-300">({filteredInvoices.length})</span>
+                    <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">{t('nav.invoices')}</span>
+                    <span className="text-[10px] text-ink-soft/50">({filteredInvoices.length})</span>
                   </div>
                   {filteredInvoices.map(inv => (
                     <button
                       key={inv.id}
                       onClick={() => { navigate(`/invoices/${inv.id}`); onClose() }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-ink/[0.03] transition-colors text-left"
                     >
-                      <Receipt size={15} className="text-gray-400 shrink-0" />
+                      <Receipt size={15} className="text-ink-soft shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{inv.invoice_no}</p>
-                        <p className="text-xs text-gray-500 truncate">{inv.billed_to} · {fmtRM(inv.total)}</p>
+                        <p className="text-sm font-medium text-ink">{inv.invoice_no}</p>
+                        <p className="text-xs text-ink-soft truncate">{inv.billed_to} · {fmtRM(inv.total)}</p>
                       </div>
-                      <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[inv.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                      <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[inv.status] ?? 'bg-ink/5 text-ink-soft'}`}>
                         {inv.status}
                       </span>
                     </button>

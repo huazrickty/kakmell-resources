@@ -40,6 +40,10 @@ export default defineConfig({
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/__/],
         cleanupOutdatedCaches: true,
+        // Explicit: new deployments take over immediately — a stale precached
+        // stylesheet must never serve a build's markup with old CSS
+        skipWaiting: true,
+        clientsClaim: true,
       },
       devOptions: {
         enabled: false,

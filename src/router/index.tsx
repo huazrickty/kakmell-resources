@@ -15,8 +15,10 @@ import Invoices from '@/pages/Invoices'
 import NewInvoice from '@/pages/invoices/NewInvoice'
 import NewCustomInvoice from '@/pages/invoices/NewCustomInvoice'
 import InvoiceDetail from '@/pages/invoices/InvoiceDetail'
-import Settings from '@/pages/Settings'
+import More from '@/pages/More'
+import MoreSection from '@/pages/more/MoreSection'
 import ActivityLog from '@/pages/settings/ActivityLog'
+import UIKit from '@/pages/dev/UIKit'
 
 function LoadingScreen() {
   return (
@@ -75,8 +77,12 @@ export const router = createBrowserRouter([
           { path: '/invoices/custom/new', element: <NewCustomInvoice /> },
           { path: '/invoices/:id',        element: <InvoiceDetail /> },
           { path: '/invoices',    element: <Invoices /> },
-          { path: '/settings',            element: <Settings /> },
+          { path: '/more',          element: <More /> },
+          { path: '/more/:section', element: <MoreSection /> },
+          // Old Settings entry point retired — everything lives under /more now
+          { path: '/settings',            element: <Navigate to="/more" replace /> },
           { path: '/settings/activity-log', element: <ActivityLog /> },
+          { path: '/dev/ui-kit', element: <UIKit /> },
         ],
       },
     ],

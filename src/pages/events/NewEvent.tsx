@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore'
+import { ChevronDown, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
@@ -9,103 +10,39 @@ import { useHalls } from '@/hooks/useHalls'
 import { useMenuOptions } from '@/hooks/useMenuOptions'
 import { useMenuTypeItems } from '@/hooks/useMenuTypeItems'
 import { MENU_TYPES, MENU_TYPE_LABEL_KEYS, type MenuType } from '@/lib/menu-types'
+import { calculateIngredients } from '@/lib/ingredient-calculator'
+import { Button, Card, Input, Textarea, Select, SectionHeader, Pill, Segmented } from '@/components/ui-kit'
 import { cn } from '@/lib/utils'
 import { logActivity } from '@/lib/activity-logger'
 
-// ── Sub-components ──────────────────────────────────────────
-
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+    <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wide mb-1.5">
       {children}
     </label>
   )
 }
 
-function TextInput({
-  value,
-  onChange,
-  placeholder,
-  type = 'text',
-  required,
-  min,
-}: {
-  value: string | number
-  onChange: (v: string) => void
-  placeholder?: string
-  type?: string
-  required?: boolean
-  min?: number
-}) {
-  return (
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      required={required}
-      min={min}
-      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-white"
-    />
-  )
-}
-
-function MenuPill({
-  label,
-  selected,
-  onClick,
-}: {
-  label: string
-  selected: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'px-4 py-2.5 rounded-lg border text-sm font-medium transition-all text-left',
-        selected
-          ? 'border-red-600 bg-red-50 text-red-700'
-          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-      )}
-    >
-      {label}
-    </button>
-  )
-}
-
+// Minimal step indicator: "1 — 2" ink dots + bar
 function StepIndicator({ step }: { step: 1 | 2 }) {
-  const { t } = useLanguage()
   return (
-    <div className="flex items-center mb-8">
-      <div className="flex items-center gap-2 shrink-0">
-        <div className="w-7 h-7 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">
-          1
-        </div>
-        <span className={cn('text-sm font-medium', step === 1 ? 'text-gray-900' : 'text-gray-400')}>
-          {t('events.stepDetails')}
-        </span>
-      </div>
-      <div className={cn('flex-1 h-px mx-4 transition-colors', step === 2 ? 'bg-red-600' : 'bg-gray-200')} />
-      <div className="flex items-center gap-2 shrink-0">
-        <div
-          className={cn(
-            'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors',
-            step === 2 ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-500'
-          )}
-        >
-          2
-        </div>
-        <span className={cn('text-sm font-medium', step === 2 ? 'text-gray-900' : 'text-gray-400')}>
-          {t('events.menuSelection')}
-        </span>
-      </div>
+    <div className="flex items-center gap-2 mb-6">
+      <span className={cn(
+        'h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold tabular-nums',
+        'bg-ink text-white',
+      )}>
+        1
+      </span>
+      <span className={cn('h-0.5 w-8 rounded-full', step === 2 ? 'bg-ink' : 'bg-line')} />
+      <span className={cn(
+        'h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold tabular-nums',
+        step === 2 ? 'bg-ink text-white' : 'bg-ink/10 text-ink-soft',
+      )}>
+        2
+      </span>
     </div>
   )
 }
-
-// ── Main component ───────────────────────────────────────────
 
 export default function NewEvent() {
   const navigate = useNavigate()
@@ -116,6 +53,7 @@ export default function NewEvent() {
 
   const [step, setStep] = useState<1 | 2>(1)
   const [submitting, setSubmitting] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   const [step1, setStep1] = useState({
     nama_majlis: '',
@@ -226,311 +164,287 @@ export default function NewEvent() {
     }
   }
 
+  // Live ingredient preview (kahwin) — display only, same calculator as detail
+  const previewIngr = menuType === 'kahwin' && step1.pax
+    ? calculateIngredients(Number(step1.pax), step2.acar)
+    : null
+
+  const KAHWIN_CATEGORIES = [
+    { key: 'nasi' as const,   label: 'Nasi' },
+    { key: 'ayam' as const,   label: 'Ayam' },
+    { key: 'daging' as const, label: 'Daging' },
+    { key: 'acar' as const,   label: 'Acar' },
+    { key: 'bubur' as const,  label: 'Bubur' },
+  ]
+
   return (
-    <div className="p-4 md:p-6 max-w-2xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('events.new')}</h1>
-      </div>
+    <div className="p-4 md:p-6 max-w-2xl mx-auto pb-28 md:pb-6">
+      <h1 className="text-xl font-bold tracking-tight text-ink mb-4">{t('events.new')}</h1>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-        <StepIndicator step={step} />
+      <StepIndicator step={step} />
 
-        {/* ── Step 1: Event Details ── */}
-        {step === 1 && (
-          <div className="space-y-5">
-            {/* Nama Majlis */}
+      {/* ── Step 1: Event details ─────────────────────────────────────── */}
+      {step === 1 && (
+        <Card className="space-y-5">
+          <div>
+            <FieldLabel>{t('events.eventName')}</FieldLabel>
+            <Input
+              value={step1.nama_majlis}
+              onChange={(e) => setStep1((s) => ({ ...s, nama_majlis: e.target.value }))}
+              placeholder={t('events.namePlaceholder')}
+            />
+          </div>
+
+          <div>
+            <FieldLabel>{t('events.hall')}</FieldLabel>
+            <Select
+              value={step1.hall_name}
+              onChange={(e) => setStep1((s) => ({ ...s, hall_name: e.target.value }))}
+              disabled={hallsLoading}
+            >
+              <option value="">
+                {hallsLoading ? t('common.loading') : t('events.selectHall')}
+              </option>
+              {halls.map((h) => (
+                <option key={h} value={h}>{h}</option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <FieldLabel>{t('events.eventName')}</FieldLabel>
-              <TextInput
-                value={step1.nama_majlis}
-                onChange={(v) => setStep1((s) => ({ ...s, nama_majlis: v }))}
-                placeholder={t('events.namePlaceholder')}
-                required
+              <FieldLabel>{t('events.date')}</FieldLabel>
+              <Input
+                type="date"
+                value={step1.tarikh}
+                onChange={(e) => setStep1((s) => ({ ...s, tarikh: e.target.value }))}
               />
             </div>
-
-            {/* Dewan */}
             <div>
-              <FieldLabel>{t('events.hall')}</FieldLabel>
-              <select
-                value={step1.hall_name}
-                onChange={(e) => setStep1((s) => ({ ...s, hall_name: e.target.value }))}
-                disabled={hallsLoading}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-white"
-              >
-                <option value="">
-                  {hallsLoading ? t('common.loading') : t('events.selectHall')}
-                </option>
-                {halls.map((h) => (
-                  <option key={h} value={h}>
-                    {h}
-                  </option>
-                ))}
-              </select>
+              <FieldLabel>{t('events.session')}</FieldLabel>
+              <Segmented
+                value={step1.sesi}
+                onChange={(sesi) => setStep1((s) => ({ ...s, sesi }))}
+                options={[
+                  { value: 'siang', label: t('events.sessionMorning') },
+                  { value: 'malam', label: t('events.sessionEvening') },
+                ]}
+              />
             </div>
+          </div>
 
-            {/* Tarikh + Sesi */}
-            <div className="grid grid-cols-2 gap-4">
+          <div>
+            <FieldLabel>{t('events.pax')}</FieldLabel>
+            <Input
+              type="number"
+              min={1}
+              value={step1.pax}
+              onChange={(e) => setStep1((s) => ({ ...s, pax: e.target.value === '' ? '' : Number(e.target.value) }))}
+              placeholder={t('events.paxPlaceholder')}
+            />
+          </div>
+
+          <div>
+            <FieldLabel>{t('common.remarks')}</FieldLabel>
+            <Textarea
+              value={step1.remarks}
+              onChange={(e) => setStep1((s) => ({ ...s, remarks: e.target.value }))}
+              rows={3}
+              placeholder={t('events.remarksPlaceholder')}
+            />
+          </div>
+        </Card>
+      )}
+
+      {/* ── Step 2: Menu selection ────────────────────────────────────── */}
+      {step === 2 && (
+        <div className="space-y-6">
+          {/* Menu type */}
+          <div>
+            <FieldLabel>{t('events.menuType')}</FieldLabel>
+            <Segmented
+              value={menuType}
+              onChange={changeMenuType}
+              options={MENU_TYPES.map((mt) => ({ value: mt, label: t(MENU_TYPE_LABEL_KEYS[mt]) }))}
+            />
+          </div>
+
+          {/* Non-kahwin: tick list */}
+          {menuType !== 'kahwin' && (
+            typeItemsLoading ? (
+              <div className="text-sm text-ink-soft text-center py-8">{t('common.loading')}</div>
+            ) : typeItems.length === 0 ? (
+              <div className="text-sm text-ink-soft text-center py-8">{t('events.noItemsForType')}</div>
+            ) : (
               <div>
-                <FieldLabel>{t('events.date')}</FieldLabel>
-                <TextInput
-                  type="date"
-                  value={step1.tarikh}
-                  onChange={(v) => setStep1((s) => ({ ...s, tarikh: v }))}
-                  required
-                />
+                <SectionHeader>{t('events.selectItems')}</SectionHeader>
+                <Card flush>
+                  <div className="divide-y divide-line">
+                    {typeItems.map((item) => {
+                      const checked = selectedItems.includes(item)
+                      return (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => toggleItem(item)}
+                          className="flex w-full items-center gap-3 px-4 py-3 min-h-12 text-left hover:bg-ink/[0.02] transition-colors"
+                        >
+                          <span className={cn(
+                            'flex h-5 w-5 items-center justify-center rounded border-2 shrink-0 transition-colors',
+                            checked ? 'bg-ink border-ink' : 'border-line',
+                          )}>
+                            {checked && <Check size={13} strokeWidth={3} className="text-white" />}
+                          </span>
+                          <span className="text-sm font-medium text-ink">{item}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Card>
               </div>
+            )
+          )}
+
+          {/* Kahwin: category sections + drinks + preview */}
+          {menuType === 'kahwin' && (menuLoading ? (
+            <div className="text-sm text-ink-soft text-center py-8">{t('common.loading')}</div>
+          ) : (
+            <>
+              {KAHWIN_CATEGORIES.map(({ key, label }) => (
+                options[key].length > 0 && (
+                  <div key={key}>
+                    <SectionHeader>{label}</SectionHeader>
+                    <div className="flex flex-wrap gap-2">
+                      {options[key].map((opt) => (
+                        <Pill
+                          key={opt}
+                          selected={step2[key] === opt}
+                          onClick={() => setStep2((s) => ({ ...s, [key]: opt }))}
+                        >
+                          {opt}
+                        </Pill>
+                      ))}
+                    </div>
+                  </div>
+                )
+              ))}
+
               <div>
-                <FieldLabel>{t('events.session')}</FieldLabel>
-                <div className="flex gap-2">
-                  {(['siang', 'malam'] as const).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setStep1((prev) => ({ ...prev, sesi: s }))}
-                      className={cn(
-                        'flex-1 py-2.5 rounded-lg text-sm font-semibold border transition-colors',
-                        step1.sesi === s
-                          ? 'bg-red-600 text-white border-red-600'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                      )}
+                <SectionHeader>{t('events.hotDrinks')}</SectionHeader>
+                <div className="flex flex-wrap gap-2">
+                  {(options.air_panas.length > 0 ? options.air_panas : ['Teh O', 'Kopi O', 'Air Sirap']).map((opt) => (
+                    <Pill
+                      key={opt}
+                      selected={step2.hot_drinks.includes(opt)}
+                      onClick={() => toggleDrink('hot_drinks', opt)}
                     >
-                      {s === 'siang' ? t('events.sessionMorning') : t('events.sessionEvening')}
-                    </button>
+                      {opt}
+                    </Pill>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* Pax */}
-            <div>
-              <FieldLabel>{t('events.pax')}</FieldLabel>
-              <TextInput
-                type="number"
-                value={step1.pax}
-                onChange={(v) => setStep1((s) => ({ ...s, pax: v === '' ? '' : Number(v) }))}
-                placeholder={t('events.paxPlaceholder')}
-                min={1}
-                required
-              />
-            </div>
-
-            {/* Catatan */}
-            <div>
-              <FieldLabel>{t('common.remarks')}</FieldLabel>
-              <textarea
-                value={step1.remarks}
-                onChange={(e) => setStep1((s) => ({ ...s, remarks: e.target.value }))}
-                rows={3}
-                placeholder={t('events.remarksPlaceholder')}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-white resize-none"
-              />
-            </div>
-
-            {/* Navigation */}
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={handleNext}
-                className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors"
-              >
-                {t('events.next')} →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Step 2: Menu Selection ── */}
-        {step === 2 && (
-          <div className="space-y-6">
-            {/* Jenis Menu */}
-            <div>
-              <FieldLabel>{t('events.menuType')}</FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                {MENU_TYPES.map((mt) => (
-                  <MenuPill
-                    key={mt}
-                    label={t(MENU_TYPE_LABEL_KEYS[mt])}
-                    selected={menuType === mt}
-                    onClick={() => changeMenuType(mt)}
-                  />
-                ))}
+              <div>
+                <SectionHeader>{t('events.coldDrinks')}</SectionHeader>
+                <div className="flex flex-wrap gap-2">
+                  {(options.air_sejuk.length > 0 ? options.air_sejuk : ['Air Anggur/Kordial', 'Air Sirap']).map((opt) => (
+                    <Pill
+                      key={opt}
+                      selected={step2.cold_drinks.includes(opt)}
+                      onClick={() => toggleDrink('cold_drinks', opt)}
+                    >
+                      {opt}
+                    </Pill>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Non-kahwin: flat item tick list, no calculator */}
-            {menuType !== 'kahwin' && (
-              typeItemsLoading ? (
-                <div className="text-sm text-gray-400 text-center py-8">{t('common.loading')}</div>
-              ) : typeItems.length === 0 ? (
-                <div className="text-sm text-gray-400 text-center py-8">{t('events.noItemsForType')}</div>
-              ) : (
-                <div>
-                  <FieldLabel>{t('events.selectItems')}</FieldLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {typeItems.map((item) => (
-                      <MenuPill
-                        key={item}
-                        label={item}
-                        selected={selectedItems.includes(item)}
-                        onClick={() => toggleItem(item)}
-                      />
-                    ))}
+              {/* Ingredient preview — collapsed by default */}
+              <Card flush>
+                <button
+                  type="button"
+                  onClick={() => setShowPreview((v) => !v)}
+                  className="flex w-full items-center justify-between px-4 py-3 min-h-12 text-sm font-semibold text-ink"
+                >
+                  <span>{t('events.previewIngredients')}</span>
+                  <ChevronDown
+                    size={16}
+                    className={cn('text-ink-soft transition-transform duration-200', showPreview && 'rotate-180')}
+                  />
+                </button>
+                {showPreview && (
+                  <div className="border-t border-line px-4 py-3">
+                    {!previewIngr ? (
+                      <p className="text-sm text-ink-soft py-2">{t('events.customPax')}</p>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-xs text-ink-soft mb-2">
+                          {t('ingredients.bracket')}: <span className="font-semibold text-ink tabular-nums">{previewIngr.bracket} pax</span>
+                        </p>
+                        {([
+                          ['Beras',  `${previewIngr.main.beras_bag} bag`],
+                          ['Ayam',   `${previewIngr.main.ayam_ekor} ekor`],
+                          ['Daging', `${previewIngr.main.daging_kg} kg`],
+                          ['Oren',   `${previewIngr.main.oren_biji} biji`],
+                          ['Gula',   `${previewIngr.main.gula_liter} L`],
+                          ['Kacang Dall', previewIngr.dalca.kacang_dall],
+                          ['Terung',      previewIngr.dalca.terung],
+                          ['Kentang',     previewIngr.dalca.kentang],
+                          ['Karot',       previewIngr.dalca.karot],
+                          ['Nenas',  `${previewIngr.acar.nenas_biji} biji`],
+                        ] as [string, string][]).map(([k, v]) => (
+                          <div key={k} className="flex items-baseline justify-between py-1 border-b border-line last:border-0">
+                            <span className="text-sm text-ink-soft">{k}</span>
+                            <span className="text-sm font-bold text-ink tabular-nums">{v}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </div>
-              )
-            )}
+                )}
+              </Card>
+            </>
+          ))}
 
-            {menuType === 'kahwin' && (menuLoading ? (
-              <div className="text-sm text-gray-400 text-center py-8">{t('common.loading')}</div>
-            ) : (
-              <>
-                {/* Nasi */}
-                <div>
-                  <FieldLabel>Nasi</FieldLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {options.nasi.map((opt) => (
-                      <MenuPill
-                        key={opt}
-                        label={opt}
-                        selected={step2.nasi === opt}
-                        onClick={() => setStep2((s) => ({ ...s, nasi: opt }))}
-                      />
-                    ))}
-                  </div>
-                </div>
+          {/* Menu Tambahan */}
+          <div>
+            <FieldLabel>{t('events.menuTambahan')}</FieldLabel>
+            <Textarea
+              value={menuTambahan}
+              onChange={(e) => setMenuTambahan(e.target.value)}
+              rows={2}
+              maxLength={300}
+              placeholder={t('events.menuTambahanPlaceholder')}
+            />
+            <p className="text-xs text-ink-soft text-right mt-1 tabular-nums">
+              {menuTambahan.length}/300
+            </p>
+          </div>
+        </div>
+      )}
 
-                {/* Ayam */}
-                <div>
-                  <FieldLabel>Ayam</FieldLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {options.ayam.map((opt) => (
-                      <MenuPill
-                        key={opt}
-                        label={opt}
-                        selected={step2.ayam === opt}
-                        onClick={() => setStep2((s) => ({ ...s, ayam: opt }))}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Daging */}
-                <div>
-                  <FieldLabel>Daging</FieldLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {options.daging.map((opt) => (
-                      <MenuPill
-                        key={opt}
-                        label={opt}
-                        selected={step2.daging === opt}
-                        onClick={() => setStep2((s) => ({ ...s, daging: opt }))}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Acar */}
-                <div>
-                  <FieldLabel>Acar</FieldLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {options.acar.map((opt) => (
-                      <MenuPill
-                        key={opt}
-                        label={opt}
-                        selected={step2.acar === opt}
-                        onClick={() => setStep2((s) => ({ ...s, acar: opt }))}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Bubur */}
-                <div>
-                  <FieldLabel>Bubur</FieldLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {options.bubur.map((opt) => (
-                      <MenuPill
-                        key={opt}
-                        label={opt}
-                        selected={step2.bubur === opt}
-                        onClick={() => setStep2((s) => ({ ...s, bubur: opt }))}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Minuman Panas — multi-select */}
-                <div>
-                  <FieldLabel>{t('events.hotDrinks')}</FieldLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {(options.air_panas.length > 0 ? options.air_panas : ['Teh O', 'Kopi O', 'Air Sirap']).map((opt) => (
-                      <MenuPill
-                        key={opt}
-                        label={opt}
-                        selected={step2.hot_drinks.includes(opt)}
-                        onClick={() => toggleDrink('hot_drinks', opt)}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Minuman Sejuk — multi-select */}
-                <div>
-                  <FieldLabel>{t('events.coldDrinks')}</FieldLabel>
-                  <div className="flex flex-wrap gap-2">
-                    {(options.air_sejuk.length > 0 ? options.air_sejuk : ['Air Anggur/Kordial', 'Air Sirap']).map((opt) => (
-                      <MenuPill
-                        key={opt}
-                        label={opt}
-                        selected={step2.cold_drinks.includes(opt)}
-                        onClick={() => toggleDrink('cold_drinks', opt)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </>
-            ))}
-
-            {/* Menu Tambahan — optional free-text note, all menu types */}
-            <div>
-              <FieldLabel>{t('events.menuTambahan')}</FieldLabel>
-              <textarea
-                value={menuTambahan}
-                onChange={(e) => setMenuTambahan(e.target.value)}
-                rows={2}
-                maxLength={300}
-                placeholder={t('events.menuTambahanPlaceholder')}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-white resize-none"
-              />
-              <p className="text-[10px] text-gray-400 text-right mt-0.5 tabular-nums">
-                {menuTambahan.length}/300
-              </p>
-            </div>
-
-            {/* Navigation */}
-            <div className="flex items-center justify-between pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setStep(1)
-                  window.scrollTo({ top: 0, behavior: 'smooth' })
-                }}
-                className="text-gray-500 hover:text-gray-700 font-medium px-4 py-2.5 transition-colors"
+      {/* ── Sticky action bar — thumb-reachable, above the bottom nav ──── */}
+      <div className="fixed md:sticky left-0 right-0 md:left-auto md:right-auto bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-0 bg-bg/95 backdrop-blur border-t border-line px-4 py-3 md:mt-6 md:-mx-6 md:px-6 z-40">
+        <div className="max-w-2xl mx-auto flex gap-3">
+          {step === 2 ? (
+            <>
+              <Button
+                variant="ghost"
+                className="flex-1"
+                onClick={() => { setStep(1); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
               >
                 ← {t('common.back')}
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors"
-              >
+              </Button>
+              <Button className="flex-1" disabled={submitting} onClick={handleSubmit}>
                 {submitting ? t('common.loading') : t('events.new')}
-              </button>
-            </div>
-          </div>
-        )}
+              </Button>
+            </>
+          ) : (
+            <Button className="w-full" onClick={handleNext}>
+              {t('events.next')} →
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   )

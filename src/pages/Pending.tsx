@@ -13,7 +13,7 @@ export default function Pending() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-[#1B4332]" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-ink" />
       </div>
     )
   }
@@ -27,8 +27,8 @@ export default function Pending() {
     <div className="flex min-h-screen items-center justify-center bg-[#FAFAF8] p-4">
       <Card className="w-full max-w-md text-center">
         <CardHeader className="items-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1B4332]/10 mb-2">
-            <Clock className="h-7 w-7 text-[#1B4332]" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-ink/10 mb-2">
+            <Clock className="h-7 w-7 text-ink" />
           </div>
           <CardTitle className="text-lg">{t('auth.pending.title')}</CardTitle>
         </CardHeader>
@@ -42,7 +42,7 @@ export default function Pending() {
           <Button
             variant="outline"
             onClick={handleSignOut}
-            className="text-[#1B4332] border-[#1B4332]/30 hover:bg-[#1B4332]/5"
+            className="text-ink border-ink/30 hover:bg-ink/5"
           >
             {t('auth.pending.signOut')}
           </Button>

@@ -1,6 +1,8 @@
 import { format } from 'date-fns'
-import { Sun, Moon, MapPin, Users } from 'lucide-react'
+import { MapPin, Sun, Moon } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
+import { Badge, type BadgeStatus } from '@/components/ui-kit'
+import { resolveMenuType, MENU_TYPE_LABELS_BM } from '@/lib/menu-types'
 import { cn } from '@/lib/utils'
 import type { EventDoc } from '@/hooks/useEvents'
 
@@ -9,22 +11,10 @@ interface Props {
   onClick?: () => void
 }
 
-const STATUS_STYLES = {
-  upcoming:  'bg-red-50 text-red-700 border border-red-200',
-  completed: 'bg-green-50 text-green-700 border border-green-200',
-  cancelled: 'bg-gray-100 text-gray-500 border border-gray-200',
-}
-
-const DATE_STYLES = {
-  upcoming:  'text-red-600',
-  completed: 'text-gray-400',
-  cancelled: 'text-gray-300 line-through',
-}
-
-const BORDER_STYLES = {
-  upcoming:  'border-l-4 border-red-600',
-  completed: 'border-l-4 border-gray-200',
-  cancelled: 'border-l-4 border-gray-100',
+const STATUS_BADGE: Record<EventDoc['status'], BadgeStatus> = {
+  upcoming:  'warn',
+  completed: 'ok',
+  cancelled: 'neutral',
 }
 
 const STATUS_LABEL_KEYS = {
@@ -38,32 +28,35 @@ export default function EventSummaryCard({ event, onClick }: Props) {
   const date = event.tarikh.toDate()
   const day = format(date, 'd')
   const month = format(date, 'MMM').toUpperCase()
+  const menuType = resolveMenuType(event.menu_type)
+  const isPast = event.status !== 'upcoming'
 
   return (
     <div
       onClick={onClick}
       className={cn(
-        'flex bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow overflow-hidden',
-        onClick && 'cursor-pointer',
-        BORDER_STYLES[event.status]
+        'flex bg-surface rounded-xl shadow-card border border-line overflow-hidden',
+        onClick && 'cursor-pointer hover:border-ink/20 active:bg-ink/[0.02] transition-colors',
       )}
     >
       {/* Date stamp */}
-      <div className={cn('flex flex-col items-center justify-center w-16 shrink-0 py-4', DATE_STYLES[event.status])}>
-        <span className="text-2xl font-bold leading-none">{day}</span>
-        <span className="text-[10px] font-semibold tracking-widest mt-0.5">{month}</span>
+      <div className={cn(
+        'flex flex-col items-center justify-center w-16 shrink-0 py-4',
+        isPast ? 'text-ink-soft/50' : 'text-ink',
+        event.status === 'cancelled' && 'line-through',
+      )}>
+        <span className="text-xl font-bold leading-none tabular-nums">{day}</span>
+        <span className="text-xs font-semibold tracking-wide mt-0.5">{month}</span>
       </div>
 
-      {/* Divider */}
-      <div className="w-px bg-gray-100 my-3" />
+      <div className="w-px bg-line my-3" />
 
       {/* Content */}
-      <div className="flex-1 min-w-0 px-4 py-3 flex flex-col justify-center gap-1.5">
-        <p className="font-semibold text-gray-900 text-sm leading-snug truncate">
+      <div className="flex-1 min-w-0 px-4 py-3 flex flex-col justify-center gap-1">
+        <p className="font-bold text-ink text-sm leading-snug truncate">
           {event.nama_majlis}
         </p>
-
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-soft">
           {event.hall_name && (
             <span className="flex items-center gap-1">
               <MapPin size={11} strokeWidth={1.8} />
@@ -71,27 +64,24 @@ export default function EventSummaryCard({ event, onClick }: Props) {
             </span>
           )}
           <span className="flex items-center gap-1">
-            {event.sesi === 'siang' ? (
-              <Sun size={11} strokeWidth={1.8} className="text-amber-500" />
-            ) : (
-              <Moon size={11} strokeWidth={1.8} className="text-indigo-400" />
-            )}
+            {event.sesi === 'siang'
+              ? <Sun size={11} strokeWidth={1.8} />
+              : <Moon size={11} strokeWidth={1.8} />}
             {t(event.sesi === 'siang' ? 'events.sessionMorning' : 'events.sessionEvening')}
           </span>
-          <span className="flex items-center gap-1">
-            <Users size={11} strokeWidth={1.8} />
-            {event.pax} pax
-          </span>
         </div>
-
-        <span
-          className={cn(
-            'self-start text-[10px] font-semibold px-2 py-0.5 rounded-full',
-            STATUS_STYLES[event.status]
+        <div className="flex items-center gap-2 mt-0.5">
+          <Badge status={STATUS_BADGE[event.status]}>{t(STATUS_LABEL_KEYS[event.status])}</Badge>
+          {menuType !== 'kahwin' && (
+            <Badge status="neutral">{MENU_TYPE_LABELS_BM[menuType]}</Badge>
           )}
-        >
-          {t(STATUS_LABEL_KEYS[event.status])}
-        </span>
+        </div>
+      </div>
+
+      {/* Pax — right-aligned, big tabular */}
+      <div className="flex flex-col items-end justify-center pr-4 shrink-0">
+        <span className="text-lg font-bold text-ink tabular-nums leading-none">{event.pax}</span>
+        <span className="text-xs text-ink-soft mt-0.5">pax</span>
       </div>
     </div>
   )

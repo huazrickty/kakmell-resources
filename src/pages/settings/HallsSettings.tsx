@@ -22,12 +22,12 @@ function Toggle({ checked, onToggle, disabled }: { checked: boolean; onToggle: (
       disabled={disabled}
       className={cn(
         'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200',
-        checked ? 'bg-[#1B4332]' : 'bg-gray-200',
+        checked ? 'bg-ink' : 'bg-ink/10',
         disabled && 'opacity-40 cursor-not-allowed'
       )}
     >
       <span className={cn(
-        'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200',
+        'inline-block h-3.5 w-3.5 transform rounded-full bg-surface shadow-sm transition-transform duration-200',
         checked ? 'translate-x-[19px]' : 'translate-x-[3px]'
       )} />
     </button>
@@ -95,7 +95,7 @@ export default function HallsSettings() {
   }
 
   if (loading) {
-    return <div className="py-10 text-center text-sm text-gray-400">{t('common.loading')}</div>
+    return <div className="py-10 text-center text-sm text-ink-soft">{t('common.loading')}</div>
   }
 
   const active   = halls.filter((h) => h.is_active)
@@ -106,16 +106,16 @@ export default function HallsSettings() {
       {/* ── Active halls ────────────────────────────────────────────────── */}
       <div>
         <div className="flex items-center gap-2.5 mb-2.5">
-          <div className="w-1 h-4 rounded-full bg-[#1B4332]" />
-          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+          <div className="w-1 h-4 rounded-full bg-ink" />
+          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">
             {t('settings.active')} · {active.length}
           </span>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden">
           {active.length === 0 ? (
-            <div className="px-4 py-4 text-sm text-gray-400 text-center">{t('settings.noHalls')}</div>
+            <div className="px-4 py-4 text-sm text-ink-soft text-center">{t('settings.noHalls')}</div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-line">
               {active.map((h) => <HallRow key={h.id} hall={h} busy={busy} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} onToggle={toggle} onSaveEdit={saveEdit} />)}
             </div>
           )}
@@ -126,13 +126,13 @@ export default function HallsSettings() {
       {inactive.length > 0 && (
         <div>
           <div className="flex items-center gap-2.5 mb-2.5">
-            <div className="w-1 h-4 rounded-full bg-gray-300" />
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <div className="w-1 h-4 rounded-full bg-ink/20" />
+            <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">
               {t('settings.inactive')} · {inactive.length}
             </span>
           </div>
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden opacity-70">
-            <div className="divide-y divide-gray-50">
+          <div className="bg-surface rounded-xl border border-line shadow-sm overflow-hidden opacity-70">
+            <div className="divide-y divide-line">
               {inactive.map((h) => <HallRow key={h.id} hall={h} busy={busy} editingId={editingId} editValue={editValue} setEditingId={setEditingId} setEditValue={setEditValue} onToggle={toggle} onSaveEdit={saveEdit} />)}
             </div>
           </div>
@@ -140,8 +140,8 @@ export default function HallsSettings() {
       )}
 
       {/* ── Add new hall ─────────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/50 p-4">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+      <div className="rounded-xl border border-dashed border-line bg-ink/[0.02] p-4">
+        <p className="text-[10px] font-bold text-ink-soft uppercase tracking-widest mb-3">
           {t('settings.addHall')}
         </p>
         <div className="flex gap-2">
@@ -150,12 +150,12 @@ export default function HallsSettings() {
             onChange={(e) => setAddName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addHall()}
             placeholder={t('settings.hallPlaceholder')}
-            className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[#1B4332] focus:ring-1 focus:ring-[#1B4332]/20 placeholder-gray-400"
+            className="flex-1 text-sm border border-line rounded-lg px-3 py-2 bg-surface focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink/20 placeholder-ink-soft/50"
           />
           <button
             onClick={addHall}
             disabled={adding || !addName.trim()}
-            className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#1B4332] text-white hover:bg-[#163828] transition-colors disabled:opacity-40"
+            className="text-sm font-semibold px-4 py-2 rounded-lg bg-ink text-white hover:bg-ink/90 transition-colors disabled:opacity-40"
           >
             {adding ? '...' : t('settings.addButton')}
           </button>
@@ -194,12 +194,12 @@ function HallRow({ hall, busy, editingId, editValue, setEditingId, setEditValue,
             if (e.key === 'Enter') onSaveEdit(hall.id)
             if (e.key === 'Escape') setEditingId(null)
           }}
-          className="flex-1 text-sm border-b border-[#1B4332] outline-none bg-transparent py-0.5 text-gray-900"
+          className="flex-1 text-sm border-b border-ink outline-none bg-transparent py-0.5 text-ink"
         />
       ) : (
         <span className={cn(
           'flex-1 text-sm truncate',
-          hall.is_active ? 'text-gray-900 font-medium' : 'text-gray-400'
+          hall.is_active ? 'text-ink font-medium' : 'text-ink-soft'
         )}>
           {hall.name}
         </span>
@@ -210,18 +210,18 @@ function HallRow({ hall, busy, editingId, editValue, setEditingId, setEditValue,
           <button
             onClick={() => onSaveEdit(hall.id)}
             disabled={busy === hall.id}
-            className="p-1 text-[#1B4332] hover:bg-green-50 rounded disabled:opacity-40"
+            className="p-1 text-ink hover:bg-ok/10 rounded disabled:opacity-40"
           >
             <Check size={13} strokeWidth={2.5} />
           </button>
-          <button onClick={() => setEditingId(null)} className="p-1 text-gray-400 hover:bg-gray-50 rounded">
+          <button onClick={() => setEditingId(null)} className="p-1 text-ink-soft hover:bg-ink/[0.03] rounded">
             <X size={13} strokeWidth={2.5} />
           </button>
         </div>
       ) : (
         <button
           onClick={() => { setEditingId(hall.id); setEditValue(hall.name) }}
-          className="shrink-0 p-1 text-gray-300 hover:text-gray-500 rounded transition-colors"
+          className="shrink-0 p-1 text-ink-soft/50 hover:text-ink rounded transition-colors"
         >
           <Pencil size={13} strokeWidth={2} />
         </button>

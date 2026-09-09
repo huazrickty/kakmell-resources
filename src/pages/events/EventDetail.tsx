@@ -6,7 +6,12 @@ import { format } from 'date-fns'
 import {
   ArrowLeft, Sun, Moon, MapPin, Users, Calendar,
   Printer, Pencil, Trash2, CheckCircle, XCircle, RotateCcw,
+  MoreHorizontal, Receipt,
 } from 'lucide-react'
+import {
+  Button, Badge, type BadgeStatus, Input as KInput, Textarea as KTextarea,
+  Select as KSelect, Segmented, Pill as KPill, BottomSheet, ListRow,
+} from '@/components/ui-kit'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -26,35 +31,37 @@ import { logActivity } from '@/lib/activity-logger'
 
 function InfoCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="bg-gray-50 rounded-xl p-3.5">
-      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-      <div className="text-sm font-semibold text-gray-900">{children}</div>
+    <div className="bg-ink/[0.03] rounded-xl p-3.5">
+      <p className="text-xs font-semibold text-ink-soft uppercase tracking-wide mb-1">{label}</p>
+      <div className="text-sm font-semibold text-ink">{children}</div>
     </div>
   )
 }
 
-function SectionHeader({ title }: { title: string }) {
+// Numbered ingredient row — mirrors the weekly PDF structure
+function NumRow({ num, label, value }: { num: number; label: string; value?: string }) {
   return (
-    <div className="flex items-center gap-3 mt-6 mb-0.5">
-      <span className="text-[10px] font-bold text-red-600 uppercase tracking-[0.15em] shrink-0">{title}</span>
-      <div className="flex-1 h-px bg-red-100" />
+    <div className="flex items-baseline gap-2 py-2.5 border-b border-line last:border-0">
+      <span className="w-6 shrink-0 text-sm font-bold text-ink tabular-nums">{num}.</span>
+      <span className="flex-1 text-sm font-bold text-ink">{label}</span>
+      {value && <span className="text-sm font-bold text-ink tabular-nums">{value}</span>}
     </div>
   )
 }
 
-function IngRow({ label, value }: { label: string; value: string | number | null | undefined }) {
+function BranchRow({ label, value }: { label: string; value: string | null | undefined }) {
   if (value === null || value === undefined || value === '') return null
   return (
-    <div className="flex justify-between items-baseline py-2.5 border-b border-gray-50 last:border-0">
-      <span className="text-sm text-gray-600">{label}</span>
-      <span className="text-sm font-bold text-gray-900 tabular-nums">{value}</span>
+    <div className="flex items-baseline gap-2 py-1.5 pl-8 border-b border-line/60 last:border-0">
+      <span className="flex-1 text-sm text-ink-soft">└ {label}</span>
+      <span className="text-sm font-bold text-ink tabular-nums">{value}</span>
     </div>
   )
 }
 
 function MenuChip({ label }: { label: string }) {
   return (
-    <span className="inline-flex px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-semibold border border-red-100">
+    <span className="inline-flex px-3 py-1 rounded-full bg-ink/5 text-ink text-xs font-semibold">
       {label}
     </span>
   )
@@ -62,24 +69,15 @@ function MenuChip({ label }: { label: string }) {
 
 function Pill({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'px-3 py-2 rounded-lg border text-sm font-medium transition-all',
-        selected
-          ? 'border-red-600 bg-red-50 text-red-700'
-          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-      )}
-    >
+    <KPill selected={selected} onClick={onClick}>
       {label}
-    </button>
+    </KPill>
   )
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+    <label className="block text-xs font-semibold text-ink-soft uppercase tracking-wide mb-1.5">
       {children}
     </label>
   )
@@ -279,6 +277,7 @@ export default function EventDetail() {
 
   const [tab, setTab] = useState<'details' | 'ingredients'>('details')
   const [isEditing, setIsEditing] = useState(false)
+  const [actionsOpen, setActionsOpen] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -402,7 +401,7 @@ export default function EventDetail() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-red-600" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-line border-t-ink" />
       </div>
     )
   }
@@ -410,10 +409,10 @@ export default function EventDetail() {
   if (!event) {
     return (
       <div className="p-6 max-w-3xl mx-auto text-center py-24">
-        <p className="text-gray-400 text-sm">{t('events.eventNotFound')}</p>
+        <p className="text-ink-soft text-sm">{t('events.eventNotFound')}</p>
         <button
           onClick={() => navigate('/events')}
-          className="mt-4 text-red-600 text-sm font-medium hover:underline"
+          className="mt-4 text-danger text-sm font-medium hover:underline"
         >
           ← {t('nav.events')}
         </button>
@@ -434,45 +433,52 @@ export default function EventDetail() {
     <div className="p-4 md:p-6 max-w-3xl mx-auto">
 
       {/* Header */}
-      <div className="flex items-start gap-3 mb-5">
+      <div className="flex items-start gap-2 mb-5">
         <button
           onClick={() => navigate('/events')}
-          className="mt-1 text-gray-400 hover:text-gray-700 transition-colors shrink-0"
-          aria-label="Back"
+          className="mt-0.5 h-9 w-9 -ml-2 flex items-center justify-center rounded-lg text-ink-soft hover:text-ink hover:bg-ink/5 transition-colors shrink-0"
+          aria-label={t('common.back')}
         >
           <ArrowLeft size={20} />
         </button>
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-bold text-gray-900 leading-snug">{event.nama_majlis}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h1 className="text-xl font-bold tracking-tight text-ink leading-snug">{event.nama_majlis}</h1>
+          <p className="text-sm text-ink-soft mt-0.5">
             {format(event.tarikh.toDate(), 'd MMMM yyyy')} · {event.sesi === 'siang' ? 'Siang' : 'Malam'}
           </p>
+          <div className="mt-1.5">
+            <Badge status={({ upcoming: 'warn', completed: 'ok', cancelled: 'neutral' } as Record<string, BadgeStatus>)[event.status]}>
+              {statusLabel}
+            </Badge>
+          </div>
         </div>
-        <span className={cn(
-          'shrink-0 mt-1 text-[10px] font-bold px-2.5 py-1 rounded-full border',
-          event.status === 'upcoming'  && 'bg-red-50 text-red-700 border-red-200',
-          event.status === 'completed' && 'bg-green-50 text-green-700 border-green-200',
-          event.status === 'cancelled' && 'bg-gray-100 text-gray-500 border-gray-200',
-        )}>
-          {statusLabel}
-        </span>
+        {isAdmin && (
+          <button
+            onClick={() => { setActionsOpen(true); setDeleteConfirm(false) }}
+            className="mt-0.5 h-9 w-9 flex items-center justify-center rounded-lg text-ink-soft hover:text-ink hover:bg-ink/5 transition-colors shrink-0"
+            aria-label={t('common.actions')}
+          >
+            <MoreHorizontal size={20} />
+          </button>
+        )}
       </div>
 
       {/* Tab bar — non-kahwin has no ingredient calculator, so no tabs */}
       {isKahwin && (
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-5">
+      <div className="flex border-b border-line mb-5">
         {(['details', 'ingredients'] as const).map((tabKey) => (
           <button
             key={tabKey}
             onClick={() => { setTab(tabKey); setIsEditing(false); setDeleteConfirm(false) }}
             className={cn(
-              'flex-1 py-2 text-sm font-semibold rounded-lg transition-all',
-              tab === tabKey
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+              'relative px-4 pb-3 pt-1 min-h-11 text-sm font-semibold transition-colors',
+              tab === tabKey ? 'text-ink' : 'text-ink-soft hover:text-ink'
             )}
           >
             {tabKey === 'details' ? t('events.tabDetails') : t('events.tabIngredients')}
+            {tab === tabKey && (
+              <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-ink" />
+            )}
           </button>
         ))}
       </div>
@@ -482,7 +488,7 @@ export default function EventDetail() {
           Details Tab
       ════════════════════════════════════════ */}
       {(tab === 'details' || !isKahwin) && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
+        <div className="bg-surface rounded-xl border border-line shadow-sm p-5 md:p-6">
 
           {!isEditing ? (
             <>
@@ -490,28 +496,28 @@ export default function EventDetail() {
               <div className="grid grid-cols-2 gap-2.5 mb-5">
                 <InfoCell label={t('events.hall')}>
                   <span className="flex items-center gap-1.5">
-                    <MapPin size={13} strokeWidth={1.8} className="text-gray-400 shrink-0" />
+                    <MapPin size={13} strokeWidth={1.8} className="text-ink-soft shrink-0" />
                     {event.hall_name || '—'}
                   </span>
                 </InfoCell>
                 <InfoCell label={t('events.date')}>
                   <span className="flex items-center gap-1.5">
-                    <Calendar size={13} strokeWidth={1.8} className="text-gray-400 shrink-0" />
+                    <Calendar size={13} strokeWidth={1.8} className="text-ink-soft shrink-0" />
                     {format(event.tarikh.toDate(), 'd MMM yyyy')}
                   </span>
                 </InfoCell>
                 <InfoCell label={t('events.session')}>
                   <span className="flex items-center gap-1.5">
                     {event.sesi === 'siang'
-                      ? <Sun size={13} strokeWidth={1.8} className="text-amber-500 shrink-0" />
-                      : <Moon size={13} strokeWidth={1.8} className="text-indigo-400 shrink-0" />
+                      ? <Sun size={13} strokeWidth={1.8} className="text-warn shrink-0" />
+                      : <Moon size={13} strokeWidth={1.8} className="text-ink-soft shrink-0" />
                     }
                     {event.sesi === 'siang' ? t('events.sessionMorning') : t('events.sessionEvening')}
                   </span>
                 </InfoCell>
                 <InfoCell label={t('events.pax')}>
                   <span className="flex items-center gap-1.5">
-                    <Users size={13} strokeWidth={1.8} className="text-gray-400 shrink-0" />
+                    <Users size={13} strokeWidth={1.8} className="text-ink-soft shrink-0" />
                     {event.pax} pax
                   </span>
                 </InfoCell>
@@ -532,19 +538,19 @@ export default function EventDetail() {
                 ].filter((row) => row.vals.length > 0)
                 return items.length > 0 || drinkRows.length > 0 ? (
                   <div className="mb-5">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2.5">
+                    <p className="text-[10px] font-semibold text-ink-soft uppercase tracking-widest mb-2.5">
                       {t('events.selectedMenu')}
                     </p>
                     <div className="space-y-2">
                       {items.map(({ cat, val }) => (
                         <div key={cat} className="flex items-center gap-2.5">
-                          <span className="text-xs text-gray-400 w-20 shrink-0">{cat}</span>
+                          <span className="text-xs text-ink-soft w-20 shrink-0">{cat}</span>
                           <MenuChip label={val} />
                         </div>
                       ))}
                       {drinkRows.map(({ cat, vals }) => (
                         <div key={cat} className="flex items-start gap-2.5">
-                          <span className="text-xs text-gray-400 w-20 shrink-0 pt-1">{cat}</span>
+                          <span className="text-xs text-ink-soft w-20 shrink-0 pt-1">{cat}</span>
                           <div className="flex flex-wrap gap-1.5">
                             {vals.map((val) => <MenuChip key={val} label={val} />)}
                           </div>
@@ -555,12 +561,12 @@ export default function EventDetail() {
                 ) : null
               })() : (
                 <div className="mb-5">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2.5">
+                  <p className="text-[10px] font-semibold text-ink-soft uppercase tracking-widest mb-2.5">
                     {t('events.selectedMenu')}
                   </p>
                   <div className="flex items-center gap-2.5 mb-3">
-                    <span className="text-xs text-gray-400 w-20 shrink-0">{t('events.menuType')}</span>
-                    <span className="inline-flex px-3 py-1 rounded-full bg-[#1B4332]/10 text-[#1B4332] text-xs font-semibold border border-[#1B4332]/20">
+                    <span className="text-xs text-ink-soft w-20 shrink-0">{t('events.menuType')}</span>
+                    <span className="inline-flex px-3 py-1 rounded-full bg-ink/10 text-ink text-xs font-semibold border border-ink/20">
                       {t(MENU_TYPE_LABEL_KEYS[menuType])}
                     </span>
                   </div>
@@ -571,7 +577,7 @@ export default function EventDetail() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-300 italic">{t('events.noItemsForType')}</p>
+                    <p className="text-sm text-ink-soft/50 italic">{t('events.noItemsForType')}</p>
                   )}
                 </div>
               )}
@@ -579,171 +585,75 @@ export default function EventDetail() {
               {/* Menu Tambahan */}
               {event.menu_tambahan && (
                 <div className="mb-5">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+                  <p className="text-[10px] font-semibold text-ink-soft uppercase tracking-widest mb-1.5">
                     {t('events.menuTambahan')}
                   </p>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{event.menu_tambahan}</p>
+                  <p className="text-sm text-ink whitespace-pre-wrap">{event.menu_tambahan}</p>
                 </div>
               )}
 
               {/* Remarks */}
               <div className="mb-5">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+                <p className="text-[10px] font-semibold text-ink-soft uppercase tracking-widest mb-1.5">
                   {t('common.remarks')}
                 </p>
                 {event.remarks ? (
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{event.remarks}</p>
+                  <p className="text-sm text-ink whitespace-pre-wrap">{event.remarks}</p>
                 ) : (
-                  <p className="text-sm text-gray-300 italic">{t('events.noRemarks')}</p>
+                  <p className="text-sm text-ink-soft/50 italic">{t('events.noRemarks')}</p>
                 )}
               </div>
 
-              {/* Admin actions */}
-              {isAdmin && (
-                <div className="border-t border-gray-100 pt-4 space-y-3">
-
-                  {/* Status change */}
-                  {event.status === 'upcoming' && (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => handleStatusChange('completed')}
-                        className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
-                      >
-                        <CheckCircle size={14} strokeWidth={2} />
-                        {t('events.markCompleted')}
-                      </button>
-                      <button
-                        onClick={() => handleStatusChange('cancelled')}
-                        className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg bg-gray-50 text-gray-500 hover:bg-gray-100 transition-colors"
-                      >
-                        <XCircle size={14} strokeWidth={2} />
-                        {t('events.markCancelled')}
-                      </button>
-                    </div>
-                  )}
-                  {(event.status === 'completed' || event.status === 'cancelled') && (
-                    <button
-                      onClick={() => handleStatusChange('upcoming')}
-                      className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors"
-                    >
-                      <RotateCcw size={14} strokeWidth={2} />
-                      {t('events.reopen')}
-                    </button>
-                  )}
-
-                  {/* Invoice button */}
-                  <div>
-                    <button
-                      onClick={() => navigate(existingInvoiceId
-                        ? `/invoices/${existingInvoiceId}`
-                        : `/invoices/new?eventId=${id}`
-                      )}
-                      className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-[#1B4332] text-white hover:bg-[#163828] transition-colors w-full justify-center"
-                    >
-                      {existingInvoiceId ? t('invoice.viewInvoice') : t('invoice.createInvoice')}
-                    </button>
-                  </div>
-
-                  {/* Edit + Delete row */}
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <button
-                      onClick={enterEditMode}
-                      className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
-                    >
-                      <Pencil size={14} strokeWidth={2} />
-                      {t('events.editEvent')}
-                    </button>
-
-                    {!deleteConfirm ? (
-                      <button
-                        onClick={() => setDeleteConfirm(true)}
-                        className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 size={14} strokeWidth={2} />
-                        {t('events.deleteEvent')}
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">{t('events.deleteConfirmPrompt')}</span>
-                        <button
-                          onClick={handleDelete}
-                          disabled={deleting}
-                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 transition-colors"
-                        >
-                          {deleting ? '...' : t('common.deleteConfirmAction')}
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(false)}
-                          className="text-xs font-medium px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
-                        >
-                          {t('common.cancel')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* Admin actions live in the header overflow sheet */}
             </>
           ) : (
 
             /* ── Edit form ── */
             <div className="space-y-4">
-              <h2 className="text-base font-bold text-gray-900">{t('events.editEvent')}</h2>
+              <h2 className="text-base font-bold text-ink">{t('events.editEvent')}</h2>
 
               {/* Nama Majlis */}
               <div>
                 <FieldLabel>{t('events.eventName')}</FieldLabel>
-                <input
+                <KInput
                   type="text"
                   value={editForm.nama_majlis}
                   onChange={(e) => setEditForm((f) => ({ ...f, nama_majlis: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
                 />
               </div>
 
               {/* Hall */}
               <div>
                 <FieldLabel>{t('events.hall')}</FieldLabel>
-                <select
+                <KSelect
                   value={editForm.hall_name}
                   onChange={(e) => setEditForm((f) => ({ ...f, hall_name: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-white"
                 >
                   <option value="">{t('events.selectHall')}</option>
                   {halls.map((h) => <option key={h} value={h}>{h}</option>)}
-                </select>
+                </KSelect>
               </div>
 
               {/* Tarikh + Sesi */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <FieldLabel>{t('events.date')}</FieldLabel>
-                  <input
+                  <KInput
                     type="date"
                     value={editForm.tarikh}
                     onChange={(e) => setEditForm((f) => ({ ...f, tarikh: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
                   />
                 </div>
                 <div>
                   <FieldLabel>{t('events.session')}</FieldLabel>
-                  <div className="flex gap-2">
-                    {(['siang', 'malam'] as const).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setEditForm((f) => ({ ...f, sesi: s }))}
-                        className={cn(
-                          'flex-1 py-2.5 rounded-lg text-sm font-semibold border transition-colors',
-                          editForm.sesi === s
-                            ? 'bg-red-600 text-white border-red-600'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                        )}
-                      >
-                        {s === 'siang' ? t('events.sessionMorning') : t('events.sessionEvening')}
-                      </button>
-                    ))}
-                  </div>
+                  <Segmented
+                    value={editForm.sesi}
+                    onChange={(sesi) => setEditForm((f) => ({ ...f, sesi }))}
+                    options={[
+                      { value: 'siang', label: t('events.sessionMorning') },
+                      { value: 'malam', label: t('events.sessionEvening') },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -751,25 +661,23 @@ export default function EventDetail() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <FieldLabel>{t('events.pax')}</FieldLabel>
-                  <input
+                  <KInput
                     type="number"
                     value={editForm.pax}
                     min={1}
                     onChange={(e) => setEditForm((f) => ({ ...f, pax: Number(e.target.value) }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
                   />
                 </div>
                 <div>
                   <FieldLabel>{t('common.status')}</FieldLabel>
-                  <select
+                  <KSelect
                     value={editForm.status}
                     onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value as typeof f.status }))}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-white"
                   >
                     <option value="upcoming">{t('events.statusUpcoming')}</option>
                     <option value="completed">{t('events.statusCompleted')}</option>
                     <option value="cancelled">{t('events.statusCancelled')}</option>
-                  </select>
+                  </KSelect>
                 </div>
               </div>
 
@@ -854,15 +762,14 @@ export default function EventDetail() {
               {/* Menu Tambahan */}
               <div>
                 <FieldLabel>{t('events.menuTambahan')}</FieldLabel>
-                <textarea
+                <KTextarea
                   value={editForm.menu_tambahan}
                   onChange={(e) => setEditForm((f) => ({ ...f, menu_tambahan: e.target.value }))}
                   rows={2}
                   maxLength={300}
                   placeholder={t('events.menuTambahanPlaceholder')}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 resize-none"
                 />
-                <p className="text-[10px] text-gray-400 text-right mt-0.5 tabular-nums">
+                <p className="text-xs text-ink-soft text-right mt-1 tabular-nums">
                   {editForm.menu_tambahan.length}/300
                 </p>
               </div>
@@ -870,29 +777,21 @@ export default function EventDetail() {
               {/* Remarks */}
               <div>
                 <FieldLabel>{t('common.remarks')}</FieldLabel>
-                <textarea
+                <KTextarea
                   value={editForm.remarks}
                   onChange={(e) => setEditForm((f) => ({ ...f, remarks: e.target.value }))}
                   rows={3}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 resize-none"
                 />
               </div>
 
               {/* Actions */}
               <div className="flex gap-3 pt-2">
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors"
-                >
-                  {saving ? t('common.loading') : t('common.save')}
-                </button>
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="text-gray-500 hover:text-gray-700 font-medium px-4 py-2.5 text-sm transition-colors"
-                >
+                <Button variant="ghost" className="flex-1" onClick={() => setIsEditing(false)}>
                   {t('common.cancel')}
-                </button>
+                </Button>
+                <Button className="flex-1" disabled={saving} onClick={handleSave}>
+                  {saving ? t('common.loading') : t('common.save')}
+                </Button>
               </div>
             </div>
           )}
@@ -904,69 +803,164 @@ export default function EventDetail() {
       ════════════════════════════════════════ */}
       {tab === 'ingredients' && isKahwin && (
         <div>
-          {/* Print action */}
           <div className="flex items-center justify-between mb-4">
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-ink-soft">
               {t('events.calculatedFrom')}{' '}
-              <span className="font-semibold text-gray-600">{event.pax} pax</span>
+              <span className="font-semibold text-ink tabular-nums">{event.pax} pax</span>
             </p>
-            <button
-              onClick={() => printIngredients(event, ingr, menu, t('events.printPopupBlocked'))}
-              className="flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
-            >
-              <Printer size={14} strokeWidth={2} />
-              {t('events.print')}
-            </button>
+            {ingr && (
+              <Badge status="neutral">{ingr.bracket} pax</Badge>
+            )}
           </div>
 
           {!ingr ? (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-              <p className="text-sm text-gray-400">{t('events.customPax')}</p>
+            <div className="bg-surface rounded-xl border border-line shadow-card p-8 text-center">
+              <p className="text-sm text-ink-soft">{t('events.customPax')}</p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
-              {/* Bracket */}
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-400">{t('ingredients.bracket')}</span>
-                <span className="text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-full">
-                  {ingr.bracket} pax
-                </span>
-              </div>
-
-              {/* Bahan Utama */}
-              <SectionHeader title={t('ingredients.mainItems')} />
-              <IngRow label="Beras" value={`${ingr.main.beras_bag} bag`} />
-              <IngRow label="Ayam" value={`${ingr.main.ayam_ekor} ekor`} />
-              <IngRow label="Daging" value={`${ingr.main.daging_kg} kg`} />
-              <IngRow label="Oren" value={`${ingr.main.oren_biji} biji`} />
-              <IngRow label="Gula" value={`${ingr.main.gula_liter} L`} />
-
-              {/* Kotak Daging */}
-              <SectionHeader title={t('ingredients.dagingBox')} />
-              <IngRow label="Slice (potong)" value={`${ingr.daging_box.slice_boxes} kotak`} />
-              <IngRow label="Trim" value={ingr.daging_box.trim_boxes === 0 ? '—' : `${ingr.daging_box.trim_boxes} kotak`} />
-              <IngRow label="Lebihan" value={`${ingr.daging_box.variance_kg > 0 ? '+' : ''}${ingr.daging_box.variance_kg} kg`} />
-
-              {/* Dalca */}
-              <SectionHeader title={t('ingredients.dalca')} />
-              <IngRow label="Kacang Dall" value={ingr.dalca.kacang_dall} />
-              <IngRow label="Terung" value={ingr.dalca.terung} />
-              <IngRow label="Kentang" value={ingr.dalca.kentang} />
-              <IngRow label="Karot" value={ingr.dalca.karot} />
-
-              {/* Bubur */}
-              <SectionHeader title={t('ingredients.bubur')} />
-              <IngRow label="Pulut Hitam" value={`${ingr.bubur.pulut_hitam.beras_pulut_kg}kg + ${ingr.bubur.pulut_hitam.santan_kg}kg santan + ${ingr.bubur.pulut_hitam.sagu_kg}kg sagu`} />
-              <IngRow label="Kacang Hijau" value={`${ingr.bubur.kacang_hijau.kacang_kg}kg + ${ingr.bubur.kacang_hijau.santan_kg}kg santan + ${ingr.bubur.kacang_hijau.sagu_kg}kg sagu`} />
-              <IngRow label="Bubur Jagung" value={`${ingr.bubur.jagung.beg} beg (${ingr.bubur.jagung.beras_kg}kg) + ${ingr.bubur.jagung.santan_kg}kg santan + ${ingr.bubur.jagung.sagu_kg}kg sagu`} />
-
-              {/* Acar */}
-              <SectionHeader title={menu.acar === 'Pencuk' ? 'Pencuk (Acar Jelatah)' : 'Paceri Nenas'} />
-              <IngRow label="Timun" value={ingr.acar.timun_kg !== null ? `${ingr.acar.timun_kg} kg` : null} />
-              <IngRow label="Nenas" value={`${ingr.acar.nenas_biji} biji`} />
+            /* Numbered list mirroring the weekly PDF structure */
+            <div className="bg-surface rounded-xl border border-line shadow-card p-4 md:p-5">
+              {(() => {
+                let n = 0
+                const next = () => ++n
+                const fmtSaguV = (kg: number) => kg < 1 ? `${Math.round(kg * 1000)} g` : `${kg} kg`
+                const drinks = [...getHotDrinks(menu), ...getColdDrinks(menu)]
+                const b = menu.bubur
+                return (
+                  <>
+                    <NumRow num={next()} label={menu.nasi || 'Nasi'} value={`${ingr.main.beras_bag} bag`} />
+                    <NumRow num={next()} label={menu.ayam || 'Ayam'} value={`${ingr.main.ayam_ekor} ekor`} />
+                    <NumRow num={next()} label={menu.daging || 'Daging'} value={`${ingr.main.daging_kg} kg`} />
+                    <BranchRow label="Slice" value={`${ingr.daging_box.slice_boxes} kotak`} />
+                    <BranchRow label="Trimming" value={ingr.daging_box.trim_boxes === 0 ? '—' : `${ingr.daging_box.trim_boxes} kotak`} />
+                    <BranchRow label="Lebihan" value={`${ingr.daging_box.variance_kg > 0 ? '+' : ''}${ingr.daging_box.variance_kg} kg`} />
+                    <NumRow num={next()} label="Dalca" />
+                    <BranchRow label="Kacang Dall" value={ingr.dalca.kacang_dall} />
+                    <BranchRow label="Terung" value={ingr.dalca.terung} />
+                    <BranchRow label="Kentang" value={ingr.dalca.kentang} />
+                    <BranchRow label="Karot" value={ingr.dalca.karot} />
+                    {menu.acar === 'Pencuk' ? (
+                      <>
+                        <NumRow num={next()} label="Pencuk (Acar Jelatah)" />
+                        {ingr.acar.timun_kg !== null && <BranchRow label="Timun" value={`${ingr.acar.timun_kg} kg`} />}
+                        <BranchRow label="Nenas" value={`${ingr.acar.nenas_biji} biji`} />
+                      </>
+                    ) : (
+                      <NumRow num={next()} label="Paceri Nenas" value={`${ingr.acar.nenas_biji} biji`} />
+                    )}
+                    {b === 'Bubur Pulut Hitam' && (
+                      <>
+                        <NumRow num={next()} label="Bubur Pulut Hitam" />
+                        <BranchRow label="Pulut Hitam" value={`${ingr.bubur.pulut_hitam.beras_pulut_kg} kg`} />
+                        <BranchRow label="Santan" value={`${ingr.bubur.pulut_hitam.santan_kg} kg`} />
+                        <BranchRow label="Sagu" value={fmtSaguV(ingr.bubur.pulut_hitam.sagu_kg)} />
+                      </>
+                    )}
+                    {b === 'Bubur Kacang Hijau' && (
+                      <>
+                        <NumRow num={next()} label="Bubur Kacang Hijau" />
+                        <BranchRow label="Kacang Hijau" value={`${ingr.bubur.kacang_hijau.kacang_kg} kg`} />
+                        <BranchRow label="Santan" value={`${ingr.bubur.kacang_hijau.santan_kg} kg`} />
+                        <BranchRow label="Sagu" value={fmtSaguV(ingr.bubur.kacang_hijau.sagu_kg)} />
+                      </>
+                    )}
+                    {b === 'Bubur Jagung' && (
+                      <>
+                        <NumRow num={next()} label="Bubur Jagung" />
+                        <BranchRow label="Jagung" value={`${ingr.bubur.jagung.beras_kg} kg (${ingr.bubur.jagung.beg} beg)`} />
+                        <BranchRow label="Santan" value={`${ingr.bubur.jagung.santan_kg} kg`} />
+                        <BranchRow label="Sagu" value={fmtSaguV(ingr.bubur.jagung.sagu_kg)} />
+                      </>
+                    )}
+                    {drinks.length > 0 && <NumRow num={next()} label={drinks.join(' · ')} />}
+                    <NumRow num={next()} label="Buah Oren" value={`${ingr.main.oren_biji} biji`} />
+                    <NumRow num={next()} label="Air Gula" value={`${ingr.main.gula_liter} L`} />
+                  </>
+                )
+              })()}
             </div>
           )}
         </div>
+      )}
+
+      {/* ── Admin actions sheet ──────────────────────────────────────────── */}
+      {isAdmin && (
+        <BottomSheet
+          open={actionsOpen}
+          onClose={() => { setActionsOpen(false); setDeleteConfirm(false) }}
+          title={t('common.actions')}
+        >
+          {!deleteConfirm ? (
+            <div className="pb-2 -mx-4 divide-y divide-line">
+              <ListRow
+                leading={<Pencil size={18} />}
+                label={t('events.editEvent')}
+                chevron={false}
+                onClick={() => { setActionsOpen(false); setTab('details'); enterEditMode() }}
+              />
+              {isKahwin && (
+                <ListRow
+                  leading={<Printer size={18} />}
+                  label={t('events.print')}
+                  chevron={false}
+                  onClick={() => { setActionsOpen(false); printIngredients(event, ingr, menu, t('events.printPopupBlocked')) }}
+                />
+              )}
+              <ListRow
+                leading={<Receipt size={18} />}
+                label={existingInvoiceId ? t('invoice.viewInvoice') : t('invoice.createInvoice')}
+                chevron={false}
+                onClick={() => navigate(existingInvoiceId
+                  ? `/invoices/${existingInvoiceId}`
+                  : `/invoices/new?eventId=${id}`
+                )}
+              />
+              {event.status === 'upcoming' && (
+                <>
+                  <ListRow
+                    leading={<CheckCircle size={18} />}
+                    label={t('events.markCompleted')}
+                    chevron={false}
+                    onClick={() => { setActionsOpen(false); handleStatusChange('completed') }}
+                  />
+                  <ListRow
+                    leading={<XCircle size={18} />}
+                    label={t('events.markCancelled')}
+                    chevron={false}
+                    onClick={() => { setActionsOpen(false); handleStatusChange('cancelled') }}
+                  />
+                </>
+              )}
+              {(event.status === 'completed' || event.status === 'cancelled') && (
+                <ListRow
+                  leading={<RotateCcw size={18} />}
+                  label={t('events.reopen')}
+                  chevron={false}
+                  onClick={() => { setActionsOpen(false); handleStatusChange('upcoming') }}
+                />
+              )}
+              <ListRow
+                leading={<Trash2 size={18} className="text-danger" />}
+                label={<span className="text-danger">{t('events.deleteEvent')}</span>}
+                chevron={false}
+                onClick={() => setDeleteConfirm(true)}
+              />
+            </div>
+          ) : (
+            <div className="space-y-3 pb-2">
+              <p className="text-sm text-ink-soft">{t('events.deleteConfirmPrompt')}</p>
+              <div className="flex gap-3">
+                <Button variant="ghost" className="flex-1" onClick={() => setDeleteConfirm(false)}>
+                  {t('common.cancel')}
+                </Button>
+                <Button variant="destructive" className="flex-1" disabled={deleting} onClick={handleDelete}>
+                  <Trash2 size={15} />
+                  {deleting ? '...' : t('common.deleteConfirmAction')}
+                </Button>
+              </div>
+            </div>
+          )}
+        </BottomSheet>
       )}
     </div>
   )
