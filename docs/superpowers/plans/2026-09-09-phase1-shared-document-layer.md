@@ -811,10 +811,21 @@ grep -rn "10.50\|GAJI_TABLE\|snap.size + 1\|nextInvoiceNo\|STATUS_BADGE\|functio
 6. `/invoices` list: badges and labels unchanged in EN and BM; filters unchanged. `/invoices/:id`: status strip colour, badge, date `DD/MM/YYYY`, mark sent/paid, delete.
 7. Global search still opens invoices.
 
-### Diff summary (fill in at completion)
-| | Files | Note |
+### Diff summary — COMPLETED 2026-09-09 (`bdec9d8..5b4cef1`, branch `refactor/shared-document-layer`)
+
+Commits: `60fbe93` T1 pricing · `551aecf` T2 date-utils · `58100bd` T3 pdf-common · `d61fc1f` T4 document-number · `bb2cb72` T5 LineItemsEditor · `207eff3` T6 DocumentStatusBadge · `5b4cef1` T7 dead Functions (+3 docs commits).
+
+| | Files | Detail |
 |---|---|---|
-| New | 10 | 5 lib + 2 tests-lib + 1 hook + 2 components + 1 script |
-| Modified | 11 | 4 invoice pages, 3 pdf libs, Dashboard, IngredientsSettings, rules, package.json |
-| Deleted | 1 (+3 exports) | functions calculator, dead callables |
-| Net LOC | expected ≈ −150 | measured with `git diff --stat` at end |
+| New (code) | 10 | `src/lib/{pricing,date-utils,document-number,document-number.firestore,document-status,pdf-common}.ts`, `src/hooks/useLineItems.ts`, `src/components/{LineItemsEditor,DocumentStatusBadge}.tsx`, `scripts/seed-counters.ts` |
+| New (tests) | 3 | `pricing`, `date-utils`, `document-number` — 17 tests |
+| Modified | 12 | `NewInvoice`, `NewCustomInvoice`, `InvoiceDetail`, `Invoices`, `invoice-pdf`, `weekly-export-pdf`, `calibration-form-pdf`, `Dashboard`, `IngredientsSettings`, `firestore.rules`, `package.json`, `functions/src/index.ts` |
+| Deleted | 1 (+3 exports) | `functions/src/ingredient-calculator.ts`; `createInvoice`, `updateInvoiceStatus`, `generateWeeklyExportData` |
+| LOC (code, excl. tests/docs/script) | **+676 / −703 → net −27** | shared modules absorb the duplicates; pages shrink (NewInvoice −176, NewCustomInvoice −139, functions −241) |
+| LOC incl. tests | +785 / −703 | |
+
+Final gates: `pnpm build` ✓ · `pnpm test` 5 files / 96 passed (baseline 79) · `pnpm lint` 25 problems = baseline (all pre-existing; none in new files) · `functions` tsc ✓ · all grep gates empty · PDF byte-diff (before `551aecf` vs after `58100bd`, `/CreationDate` + `/ID` stripped, frozen clock, fixed fixtures): invoice / weekly / calibration **all identical**; negative control (1 byte flipped) detected; no commit after `58100bd` touched the PDF libs.
+
+Known, deliberate DOM-only differences (paint identical): custom-invoice description/qty inputs carry inert `disabled:*` classes; custom-invoice row index wrapped in `<div class="shrink-0">`.
+
+Not done in this phase (by design): `functions/` eslint is broken pre-existing (`--ext` flag with flat config; unknown rule `no-unassigned-vars`) — untouched. Stale `functions/lib/ingredient-calculator.js` build orphan is gitignored — delete manually if desired.
