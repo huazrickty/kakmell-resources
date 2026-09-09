@@ -6,7 +6,8 @@ import { ArrowLeft, Download, Send, CheckCheck, Building2, Trash2, MoreHorizonta
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
-import { generateInvoicePDF, buildInvoiceFilename, getLogoBase64, fmtRM, tsToDate, type InvoiceDoc } from '@/lib/invoice-pdf'
+import { generateInvoicePDF, buildInvoiceFilename, getLogoBase64, fmtRM, type InvoiceDoc } from '@/lib/invoice-pdf'
+import { tsToDate, fmtDateDMY } from '@/lib/date-utils'
 import { logActivity } from '@/lib/activity-logger'
 import { Button, Badge, type BadgeStatus, BottomSheet, ListRow } from '@/components/ui-kit'
 import { cn } from '@/lib/utils'
@@ -21,13 +22,6 @@ const STATUS_STRIP: Record<string, string> = {
   draft: 'bg-ink/15',
   sent:  'bg-warn',
   paid:  'bg-ok',
-}
-
-function fmtDate(d: Date): string {
-  const dd = String(d.getDate()).padStart(2, '0')
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const yyyy = d.getFullYear()
-  return `${dd}/${mm}/${yyyy}`
 }
 
 export default function InvoiceDetail() {
@@ -208,7 +202,7 @@ export default function InvoiceDetail() {
               <div className="space-y-1 text-xs">
                 <div className="flex sm:justify-end gap-2">
                   <span className="text-ink-soft">Date:</span>
-                  <span className="text-ink tabular-nums">{fmtDate(invDate)}</span>
+                  <span className="text-ink tabular-nums">{fmtDateDMY(invDate)}</span>
                 </div>
                 <div className="flex sm:justify-end gap-2">
                   <span className="text-ink-soft">Invoice #:</span>

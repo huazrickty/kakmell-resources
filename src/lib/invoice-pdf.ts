@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf'
+import { tsToDate, fmtDateDMY } from './date-utils'
 
 export interface InvoiceLineItem {
   description: string
@@ -28,18 +29,6 @@ export interface InvoiceDoc {
 
 export const fmtRM = (n: number): string =>
   'RM ' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-
-export function tsToDate(ts: any): Date {
-  if (!ts) return new Date()
-  if (ts instanceof Date) return ts
-  if (typeof ts.toDate === 'function') return ts.toDate()
-  if (typeof ts.seconds === 'number') return new Date(ts.seconds * 1000)
-  return new Date(ts)
-}
-
-function fmtDate(d: Date): string {
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
-}
 
 function fmtFilenameDate(d: Date): string {
   const dd = String(d.getDate()).padStart(2, '0')
@@ -135,7 +124,7 @@ export async function generateInvoicePDF(
   ry += 5.5
 
   reg(7.5); pdf.setTextColor(107, 114, 128)
-  pdf.text(`Date: ${fmtDate(invDate)}`, W - M, ry, { align: 'right' }); ry += 4
+  pdf.text(`Date: ${fmtDateDMY(invDate)}`, W - M, ry, { align: 'right' }); ry += 4
   pdf.text(`Invoice #: ${invoice.invoice_no}`, W - M, ry, { align: 'right' }); ry += 4
   pdf.text('Customer ID: CUST-001', W - M, ry, { align: 'right' })
   y = Math.max(y, ry) + 6

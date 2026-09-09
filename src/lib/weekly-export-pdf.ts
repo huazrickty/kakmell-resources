@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf'
 import type { IngredientResult } from './ingredient-calculator'
 import { getHotDrinks, getColdDrinks, resolveMenuType, MENU_TYPE_LABELS_BM } from './menu-types'
+import { tsToDate } from './date-utils'
 
 export interface WeeklyEventEntry {
   event: {
@@ -22,16 +23,6 @@ export interface WeeklyEventEntry {
 
 const BULAN = ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogs', 'Sep', 'Okt', 'Nov', 'Dis']
 const HARI  = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu']
-
-function tsToDate(ts: any): Date {
-  if (!ts) return new Date()
-  if (ts instanceof Date) return ts
-  if (typeof ts.toDate === 'function') return ts.toDate()
-  if (typeof ts === 'string') return new Date(ts)
-  if (typeof ts._seconds === 'number') return new Date(ts._seconds * 1000)
-  if (typeof ts.seconds === 'number') return new Date(ts.seconds * 1000)
-  return new Date(ts)
-}
 
 function fmtDay(d: Date): string {
   return `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`
