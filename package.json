@@ -15,6 +15,7 @@
     "seed:drinks": "tsx scripts/seedDrinks.ts",
     "migrate:menutypes": "tsx scripts/migrateMenuTypes.ts",
     "seed:historical": "tsx scripts/run-seed-historical.ts",
+    "seed:counters": "tsx scripts/seed-counters.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "fix:aisyah": "tsx scripts/fix-aisyah-acar.ts",

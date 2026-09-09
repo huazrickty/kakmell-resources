@@ -14,12 +14,7 @@ import { logActivity } from '@/lib/activity-logger'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui-kit'
 import { getKateringUnitPrice, getGajiPekerja, getBerkatSuggestion, fmtUnitPriceInput, MAKAN_BERADAB_PRICE } from '@/lib/pricing'
-
-async function nextInvoiceNo(): Promise<string> {
-  const snap = await getDocs(collection(db, 'invoices'))
-  const num  = snap.size + 1
-  return `INV-${new Date().getFullYear()}-${String(num).padStart(3, '0')}`
-}
+import { nextDocumentNumber } from '@/lib/document-number.firestore'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -127,7 +122,9 @@ export default function NewInvoice() {
     if (!user || !event) return
     setSaving(true)
     try {
-      const invoiceNo  = await nextInvoiceNo()
+      // Year from the document date. This form has no date field yet (invoice_date
+      // is serverTimestamp()), so "now" IS the document date — pass it explicitly.
+      const invoiceNo  = await nextDocumentNumber('invoice', new Date().getFullYear())
       const lineItems  = items.filter(li => li.toggled).map(li => ({
         description: li.description,
         qty:         parseFloat(li.qty) || 0,

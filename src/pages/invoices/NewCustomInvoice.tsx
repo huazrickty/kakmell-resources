@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
-import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { toast } from 'sonner'
 import { ArrowLeft, Trash2, Plus, FileDown, Save } from 'lucide-react'
 import { db } from '@/lib/firebase'
@@ -11,12 +11,7 @@ import { getLogoBase64 } from '@/lib/pdf-common'
 import { logActivity } from '@/lib/activity-logger'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui-kit'
-
-async function nextInvoiceNo(): Promise<string> {
-  const snap = await getDocs(collection(db, 'invoices'))
-  const num  = snap.size + 1
-  return `INV-${new Date().getFullYear()}-${String(num).padStart(3, '0')}`
-}
+import { nextDocumentNumber } from '@/lib/document-number.firestore'
 
 interface FormItem {
   id: string
@@ -71,7 +66,9 @@ export default function NewCustomInvoice() {
 
     setSaving(true)
     try {
-      const invoiceNo = await nextInvoiceNo()
+      // Year from the document date. This form has no date field yet (invoice_date
+      // is serverTimestamp()), so "now" IS the document date — pass it explicitly.
+      const invoiceNo = await nextDocumentNumber('invoice', new Date().getFullYear())
       const lineItems = activeItems.map(li => ({
         description:  li.description,
         qty:          parseFloat(li.qty) || 0,

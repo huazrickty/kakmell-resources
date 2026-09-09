@@ -88,6 +88,13 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // ── counters ───────────────────────────────────────────────────────────
+    // Running numbers for documents: counters/invoice, counters/quotation
+    // Fields are years → last issued sequence, e.g. { "2026": 12 }
+    match /counters/{kind} {
+      allow read, write: if isAdmin();
+    }
+
     // ── tasks ──────────────────────────────────────────────────────────────
     match /tasks/{taskId} {
       allow read: if isApproved();
