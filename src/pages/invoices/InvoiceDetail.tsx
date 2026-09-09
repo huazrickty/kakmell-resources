@@ -9,21 +9,11 @@ import { useLanguage } from '@/context/LanguageContext'
 import { generateInvoicePDF, buildInvoiceFilename, fmtRM, type InvoiceDoc } from '@/lib/invoice-pdf'
 import { getLogoBase64 } from '@/lib/pdf-common'
 import { tsToDate, fmtDateDMY } from '@/lib/date-utils'
+import { getStatusMeta } from '@/lib/document-status'
 import { logActivity } from '@/lib/activity-logger'
-import { Button, Badge, type BadgeStatus, BottomSheet, ListRow } from '@/components/ui-kit'
+import { Button, BottomSheet, ListRow } from '@/components/ui-kit'
+import { DocumentStatusBadge } from '@/components/DocumentStatusBadge'
 import { cn } from '@/lib/utils'
-
-const STATUS_BADGE: Record<string, BadgeStatus> = {
-  draft: 'neutral',
-  sent:  'warn',
-  paid:  'ok',
-}
-
-const STATUS_STRIP: Record<string, string> = {
-  draft: 'bg-ink/15',
-  sent:  'bg-warn',
-  paid:  'bg-ok',
-}
 
 export default function InvoiceDetail() {
   const { id }      = useParams<{ id: string }>()
@@ -148,11 +138,6 @@ export default function InvoiceDetail() {
 
   const invDate    = tsToDate(invoice.invoice_date)
   const statusKey  = invoice.status as 'draft' | 'sent' | 'paid'
-  const statusLabel = {
-    draft: t('invoice.statusDraft'),
-    sent:  t('invoice.statusSent'),
-    paid:  t('invoice.statusPaid'),
-  }[statusKey]
 
   const regularItems = invoice.line_items.filter(li => !li.is_deduction)
 
@@ -169,7 +154,7 @@ export default function InvoiceDetail() {
           {t('invoice.title')}
         </button>
         <div className="flex items-center gap-2">
-          <Badge status={STATUS_BADGE[statusKey]}>{statusLabel}</Badge>
+          <DocumentStatusBadge kind="invoice" status={invoice.status} />
           <button
             onClick={() => { setActionsOpen(true); setDeleteConfirm(false) }}
             className="h-11 w-11 flex items-center justify-center rounded-lg text-ink-soft hover:text-ink hover:bg-ink/5 transition-colors"
@@ -182,7 +167,7 @@ export default function InvoiceDetail() {
 
       {/* ── Invoice document ──────────────────────────────────────────────── */}
       <div className="bg-surface rounded-xl border border-line shadow-card overflow-hidden mb-5">
-        <div className={cn('h-1', STATUS_STRIP[statusKey])} />
+        <div className={cn('h-1', getStatusMeta('invoice', invoice.status).strip)} />
 
         <div className="p-6 md:p-8">
           {/* Header block */}

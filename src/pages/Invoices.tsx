@@ -15,15 +15,10 @@ import { useLanguage } from '@/context/LanguageContext'
 import { useEvents } from '@/hooks/useEvents'
 import { fmtRM, type InvoiceDoc } from '@/lib/invoice-pdf'
 import { tsToDate } from '@/lib/date-utils'
-import { Button, Card, Badge, type BadgeStatus, Segmented, Input, EmptyState, BottomSheet } from '@/components/ui-kit'
+import { Button, Card, Segmented, Input, EmptyState, BottomSheet } from '@/components/ui-kit'
+import { DocumentStatusBadge } from '@/components/DocumentStatusBadge'
 
 type FilterType = 'all' | 'week' | 'month' | 'year' | 'range'
-
-const STATUS_BADGE: Record<string, BadgeStatus> = {
-  draft: 'neutral',
-  sent:  'warn',
-  paid:  'ok',
-}
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -211,12 +206,6 @@ export default function Invoices() {
       ) : (
         <div className="space-y-2.5">
           {filteredInvoices.map((inv) => {
-            const statusKey   = inv.status as 'draft' | 'sent' | 'paid'
-            const statusLabel = {
-              draft: t('invoice.statusDraft'),
-              sent:  t('invoice.statusSent'),
-              paid:  t('invoice.statusPaid'),
-            }[statusKey]
             const date   = tsToDate(inv.invoice_date)
             const evName = inv.event_id ? (eventNameMap[inv.event_id] ?? '—') : (inv.reference || inv.billed_to || '—')
 
@@ -234,7 +223,7 @@ export default function Invoices() {
                       <p className="text-sm font-bold text-ink tabular-nums">{inv.invoice_no}</p>
                       <p className="text-xs text-ink-soft truncate mt-0.5">{evName}</p>
                       <div className="mt-1.5">
-                        <Badge status={STATUS_BADGE[statusKey]}>{statusLabel}</Badge>
+                        <DocumentStatusBadge kind="invoice" status={inv.status} />
                       </div>
                     </div>
                     <div className="shrink-0 text-right">
