@@ -1,5 +1,15 @@
 import jsPDF from 'jspdf'
 import { tsToDate, fmtDateDMY } from './date-utils'
+import {
+  A4_PORTRAIT,
+  PAGE_MARGIN,
+  COLOR,
+  COMPANY,
+  fonts,
+  drawLogo,
+  drawCompanyAddress,
+  drawFooterNote,
+} from './pdf-common'
 
 export interface InvoiceLineItem {
   description: string
@@ -72,23 +82,6 @@ export function buildInvoiceFilename(
   return `${name}.pdf`
 }
 
-export function getLogoBase64(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width  = img.naturalWidth
-      canvas.height = img.naturalHeight
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(img, 0, 0)
-      resolve(canvas.toDataURL('image/png'))
-    }
-    img.onerror = reject
-    img.src = '/logo.png'
-  })
-}
-
 // ── PDF generation ─────────────────────────────────────────────────────────
 
 export async function generateInvoicePDF(
@@ -98,48 +91,44 @@ export async function generateInvoicePDF(
   filename?: string,
 ): Promise<void> {
   const pdf = new jsPDF('p', 'mm', 'a4')
-  const W = 210
-  const M = 14
+  const W = A4_PORTRAIT.w
+  const M = PAGE_MARGIN
 
-  const bold = (sz: number) => { pdf.setFont('helvetica', 'bold'); pdf.setFontSize(sz) }
-  const reg  = (sz: number) => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(sz) }
+  const { bold, reg } = fonts(pdf)
 
   const invDate = tsToDate(invoice.invoice_date)
 
   // ── Logo ──────────────────────────────────────────────────────────────────
   let y = M
-  pdf.addImage(logoBase64, 'PNG', M, y, 45, 15)
+  drawLogo(pdf, logoBase64, { x: M, y, w: 45, h: 15 })
   y += 18
 
   // ── Left: Company address ─────────────────────────────────────────────────
-  reg(7.5); pdf.setTextColor(107, 114, 128)
-  pdf.text('NO 58, JALAN JAMBU 4, TAMAN KOTA MASAI,', M, y); y += 4
-  pdf.text('81700 PASIR GUDANG, JOHOR', M, y); y += 4
-  pdf.text('Phone: +6018-397 0769', M, y)
+  y = drawCompanyAddress(pdf, M, y)
 
   // ── Right: Invoice details ─────────────────────────────────────────────────
   let ry = M + 2
-  bold(14); pdf.setTextColor(17, 24, 39)
+  bold(14); pdf.setTextColor(...COLOR.ink)
   pdf.text('INVOICE', W - M, ry, { align: 'right' })
   ry += 5.5
 
-  reg(7.5); pdf.setTextColor(107, 114, 128)
+  reg(7.5); pdf.setTextColor(...COLOR.gray)
   pdf.text(`Date: ${fmtDateDMY(invDate)}`, W - M, ry, { align: 'right' }); ry += 4
   pdf.text(`Invoice #: ${invoice.invoice_no}`, W - M, ry, { align: 'right' }); ry += 4
   pdf.text('Customer ID: CUST-001', W - M, ry, { align: 'right' })
   y = Math.max(y, ry) + 6
 
   // ── Red separator line (2pt) ──────────────────────────────────────────────
-  pdf.setDrawColor(196, 32, 42); pdf.setLineWidth(0.71)
+  pdf.setDrawColor(...COLOR.brandRed); pdf.setLineWidth(0.71)
   pdf.line(M, y, W - M, y); y += 5
 
   // ── Bill To ───────────────────────────────────────────────────────────────
-  reg(7); pdf.setTextColor(156, 163, 175)
+  reg(7); pdf.setTextColor(...COLOR.grayLight)
   pdf.text('BILL TO:', M, y); y += 4.5
-  bold(9); pdf.setTextColor(17, 24, 39)
+  bold(9); pdf.setTextColor(...COLOR.ink)
   pdf.text(invoice.billed_to, M, y); y += 4.5
   if (eventName) {
-    reg(7.5); pdf.setTextColor(107, 114, 128)
+    reg(7.5); pdf.setTextColor(...COLOR.gray)
     pdf.text(`Event: ${eventName}`, M, y); y += 4.5
   }
   y += 4.5
@@ -152,10 +141,10 @@ export async function generateInvoicePDF(
   const TAX_X  = M + 158
   const TOT_X  = W - M
 
-  pdf.setFillColor(17, 24, 39)
+  pdf.setFillColor(...COLOR.ink)
   pdf.rect(M, y - 3.5, W - M * 2, 7.5, 'F')
 
-  bold(7); pdf.setTextColor(255, 255, 255)
+  bold(7); pdf.setTextColor(...COLOR.white)
   pdf.text('ITEM#',       ITEM_X + 1, y + 1)
   pdf.text('DESCRIPTION', DESC_X,     y + 1)
   pdf.text('QTY',         QTY_X,      y + 1, { align: 'right' })
@@ -169,22 +158,22 @@ export async function generateInvoicePDF(
   for (let i = 0; i < items.length; i++) {
     const li = items[i]
     if (i % 2 === 0) {
-      pdf.setFillColor(249, 249, 249)
+      pdf.setFillColor(...COLOR.rowAlt)
       pdf.rect(M, y - 2.5, W - M * 2, 7, 'F')
     }
     reg(7.5)
-    pdf.setTextColor(156, 163, 175); pdf.text(String(i + 1), ITEM_X + 1, y + 1.5)
-    pdf.setTextColor(17, 24, 39)
+    pdf.setTextColor(...COLOR.grayLight); pdf.text(String(i + 1), ITEM_X + 1, y + 1.5)
+    pdf.setTextColor(...COLOR.ink)
     const descText = pdf.splitTextToSize(li.description, 96)
     pdf.text(descText[0], DESC_X, y + 1.5)
-    pdf.setTextColor(107, 114, 128); pdf.text(String(li.qty), QTY_X, y + 1.5, { align: 'right' })
-    pdf.setTextColor(17, 24, 39); pdf.text(fmtRM(li.unit_price), UNIT_X, y + 1.5)
-    pdf.setTextColor(156, 163, 175); pdf.text('-', TAX_X, y + 1.5)
-    pdf.setTextColor(17, 24, 39); pdf.text(fmtRM(li.total), TOT_X, y + 1.5, { align: 'right' })
+    pdf.setTextColor(...COLOR.gray); pdf.text(String(li.qty), QTY_X, y + 1.5, { align: 'right' })
+    pdf.setTextColor(...COLOR.ink); pdf.text(fmtRM(li.unit_price), UNIT_X, y + 1.5)
+    pdf.setTextColor(...COLOR.grayLight); pdf.text('-', TAX_X, y + 1.5)
+    pdf.setTextColor(...COLOR.ink); pdf.text(fmtRM(li.total), TOT_X, y + 1.5, { align: 'right' })
     y += 7
   }
 
-  pdf.setDrawColor(229, 231, 235); pdf.setLineWidth(0.2)
+  pdf.setDrawColor(...COLOR.line); pdf.setLineWidth(0.2)
   pdf.line(M, y, W - M, y); y += 8
 
   // ── Totals ────────────────────────────────────────────────────────────────
@@ -200,38 +189,29 @@ export async function generateInvoicePDF(
     ['S & H:',     '-'],
   ]
   for (const [lbl, val] of totRows) {
-    reg(7.5); pdf.setTextColor(107, 114, 128); pdf.text(lbl, TLX, y)
-    pdf.setTextColor(17, 24, 39); pdf.text(val, TVX, y, { align: 'right' })
+    reg(7.5); pdf.setTextColor(...COLOR.gray); pdf.text(lbl, TLX, y)
+    pdf.setTextColor(...COLOR.ink); pdf.text(val, TVX, y, { align: 'right' })
     y += TH
   }
   if (invoice.gaji_pekerja > 0) {
-    reg(7.5); pdf.setTextColor(107, 114, 128); pdf.text('GAJI PEKERJA:', TLX, y)
-    pdf.setTextColor(196, 32, 42); pdf.text(`(${fmtRM(invoice.gaji_pekerja)})`, TVX, y, { align: 'right' })
+    reg(7.5); pdf.setTextColor(...COLOR.gray); pdf.text('GAJI PEKERJA:', TLX, y)
+    pdf.setTextColor(...COLOR.brandRed); pdf.text(`(${fmtRM(invoice.gaji_pekerja)})`, TVX, y, { align: 'right' })
     y += TH
   }
 
-  pdf.setDrawColor(209, 213, 219); pdf.setLineWidth(0.3)
+  pdf.setDrawColor(...COLOR.lineDark); pdf.setLineWidth(0.3)
   pdf.line(TLX, y, TVX, y); y += 4.5
 
-  bold(9); pdf.setTextColor(17, 24, 39); pdf.text('TOTAL:', TLX, y)
-  bold(11); pdf.setTextColor(196, 32, 42); pdf.text(fmtRM(invoice.total), TVX, y, { align: 'right' })
+  bold(9); pdf.setTextColor(...COLOR.ink); pdf.text('TOTAL:', TLX, y)
+  bold(11); pdf.setTextColor(...COLOR.brandRed); pdf.text(fmtRM(invoice.total), TVX, y, { align: 'right' })
 
   // ── Footer ────────────────────────────────────────────────────────────────
-  const footY = 268
-  pdf.setDrawColor(229, 231, 235); pdf.setLineWidth(0.2)
-  pdf.line(M, footY, W - M, footY)
-
-  let fy = footY + 5
-  bold(8); pdf.setTextColor(17, 24, 39)
-  pdf.text('Thank You For Your Business!', M, fy); fy += 5
-  bold(7.5); pdf.setTextColor(17, 24, 39)
-  pdf.text('KAKMELL RESOURCES', M, fy); fy += 4.5
-  reg(7.5)
-  pdf.text('32601052091', M, fy); fy += 4.5
-  pdf.text('HONG LEONG BANK', M, fy)
-
-  reg(6.5); pdf.setTextColor(156, 163, 175)
-  pdf.text('Page 1 of 1', W - M, footY + 5, { align: 'right' })
+  drawFooterNote(pdf, { y: 268, x: M, right: W - M, pageLabel: 'Page 1 of 1', lines: [
+    { text: 'Thank You For Your Business!', bold: true, size: 8,   gapAfter: 5   },
+    { text: COMPANY.name,                   bold: true, size: 7.5, gapAfter: 4.5 },
+    { text: COMPANY.bankAccount,                        size: 7.5, gapAfter: 4.5 },
+    { text: COMPANY.bankName,                           size: 7.5, gapAfter: 0   },
+  ]})
 
   pdf.save(filename ?? `${invoice.invoice_no}.pdf`)
 }

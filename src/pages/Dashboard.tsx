@@ -13,7 +13,7 @@ import { Button, Card, SectionHeader, ListRow, ProgressBar } from '@/components/
 import EventSummaryCard from '@/components/EventSummaryCard'
 import { calculateIngredients } from '@/lib/ingredient-calculator'
 import { generateWeeklyPDF, fmtWeekRange, type WeeklyEventEntry } from '@/lib/weekly-export-pdf'
-import { getLogoBase64 } from '@/lib/invoice-pdf'
+import { getLogoBase64 } from '@/lib/pdf-common'
 import { db } from '@/lib/firebase'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 

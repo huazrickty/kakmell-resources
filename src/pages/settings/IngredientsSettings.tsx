@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Edit2, RotateCcw, Check, X, AlertTriangle, FileDown } from 'lucide-react'
 import { generateCalibrationForm } from '@/lib/calibration-form-pdf'
-import { getLogoBase64 } from '@/lib/invoice-pdf'
+import { getLogoBase64 } from '@/lib/pdf-common'
 
 // ── Category tab type ──────────────────────────────────────────────────────
 

@@ -1,8 +1,9 @@
 import jsPDF from 'jspdf'
+import { A4_LANDSCAPE, fonts, drawLogo } from './pdf-common'
 
 // ── Layout constants (landscape A4) ────────────────────────────────────────
-const W = 297
-const H = 210
+const W = A4_LANDSCAPE.w
+const H = A4_LANDSCAPE.h
 const M = 12
 const USABLE_W = W - 2 * M   // 273mm
 
@@ -77,9 +78,7 @@ function fmtDate(): string {
 export async function generateCalibrationForm(logoBase64: string): Promise<void> {
   const pdf = new jsPDF('l', 'mm', 'a4')
 
-  const bold   = (sz: number) => { pdf.setFont('helvetica', 'bold');   pdf.setFontSize(sz) }
-  const reg    = (sz: number) => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(sz) }
-  const italic = (sz: number) => { pdf.setFont('helvetica', 'italic'); pdf.setFontSize(sz) }
+  const { bold, reg, italic } = fonts(pdf)
 
   // ── Page header — returns y of first content row ───────────────────────
   function drawHeader(page: number, sectionTitle: string): number {
@@ -87,7 +86,7 @@ export async function generateCalibrationForm(logoBase64: string): Promise<void>
 
     // ── Top strip: company + logo ─────────────────────────────────────
     if (logoBase64) {
-      pdf.addImage(logoBase64, 'PNG', W - M - 36, y, 36, 13)
+      drawLogo(pdf, logoBase64, { x: W - M - 36, y, w: 36, h: 13 })
     }
 
     bold(15)

@@ -2,6 +2,7 @@ import jsPDF from 'jspdf'
 import type { IngredientResult } from './ingredient-calculator'
 import { getHotDrinks, getColdDrinks, resolveMenuType, MENU_TYPE_LABELS_BM } from './menu-types'
 import { tsToDate } from './date-utils'
+import { A4_PORTRAIT, PAGE_MARGIN, COLOR, fonts, drawLogo } from './pdf-common'
 
 export interface WeeklyEventEntry {
   event: {
@@ -56,10 +57,10 @@ export async function generateWeeklyPDF(
   exportType: 'all' | 'upcoming' | 'selected' = 'all',
 ): Promise<void> {
   const pdf = new jsPDF('p', 'mm', 'a4')
-  const W   = 210
-  const MX  = 14                        // horizontal margin
+  const W   = A4_PORTRAIT.w
+  const MX  = PAGE_MARGIN               // horizontal margin
   const MT  = 12                        // top margin
-  const RED: [number, number, number] = [196, 32, 42]
+  const RED = COLOR.brandRed
 
   // Page layout (mm)
   const FOOTER_Y      = 285             // footer text baseline
@@ -86,8 +87,7 @@ export async function generateWeeklyPDF(
   const BRANCH_X = MX + 14
   const VAL_X    = W - MX
 
-  const bold = (sz: number) => { pdf.setFont('helvetica', 'bold'); pdf.setFontSize(sz) }
-  const reg  = (sz: number) => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(sz) }
+  const { bold, reg } = fonts(pdf)
 
   // Dotted leader between label and value — measured, never touches text.
   // x1 = end of label, x2 = start of value; drawn only if there is real room.
@@ -104,7 +104,7 @@ export async function generateWeeklyPDF(
 
   // ── Page header — always drawn; content starts at CONTENT_START ─────────
   function drawPageHeader(): void {
-    pdf.addImage(logoBase64, 'PNG', MX, MT, 38, 13)
+    drawLogo(pdf, logoBase64, { x: MX, y: MT, w: 38, h: 13 })
     bold(9)
     pdf.setTextColor(17, 24, 39)
     pdf.text(reportTitle, W - MX, MT + 5, { align: 'right' })
