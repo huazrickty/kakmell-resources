@@ -41,3 +41,39 @@ Groups: 10 · documents involved: 23
 | INV-2026-255 | `WUtPZVHJVgr4A2AXefsk` | 28/08/2026 | event `DKF1i6EeOdDpmK6Blu6E` | RM 5,590.00 | draft |
 
 Open a document in the app at `/invoices/<doc ID>`.
+
+---
+
+## 2026-09-11 — Invoices issued by a stale client after the counter rollout
+
+Phase 1 (transactional numbering via `counters/invoice`) was deployed to hosting on
+2026-09-09 ~20:44 MYT with `counters/invoice.2026 = 267` (the highest number then).
+Four real invoices were created on **2026-09-10 15:07–15:09 MYT** with the numbers below,
+although the counter had already advanced to 272 by then:
+
+| invoice_no | doc ID | created (UTC) | event | total | status |
+|---|---|---|---|---|---|
+| INV-2026-268 | `akB25VmcyBoFXzLhBrak` | 2026-09-10 07:07 | `rJU1moxn8FySknchak7j` | RM 500.00 | draft |
+| INV-2026-269 | `Ste3rqsVK68Y6gGl7zDQ` | 2026-09-10 07:08 | `K0PsBJ3ArgmTQg8BiakE` | RM 6,680.00 | draft |
+| INV-2026-270 | `jGMT6jzIUhPiZXVXp6Af` | 2026-09-10 07:08 | `KPlHqVttwyeTZwz8olQH` | RM 4,600.00 | draft |
+| INV-2026-271 | `zC3dvxCwbRf6iRnqcs4U` | 2026-09-10 07:09 | `9bu6mkXRpfJyJzEblKOp` | RM 6,680.00 | draft |
+
+**Cause.** The numbers follow the retired `count(all invoices) + 1` scheme (267 docs + 1 = 268 …),
+i.e. they were issued by the **previous app bundle** still running on the admin's device.
+The PWA service worker (`registerType: 'autoUpdate'`, `skipWaiting`, `clientsClaim`) only
+swaps bundles after the app/tab is fully closed and reopened; an app left open keeps the old code.
+
+**Data.** Nothing was changed. 268–271 are valid and unique.
+
+**Risk.** As long as the stale bundle is in use it keeps issuing `count + 1`
+(next would have been 272) while the new bundle issues `counter + 1`. With the counter at 275
+the two sequences would have collided after only four more invoices.
+
+**Mitigation applied (2026-09-11).** `counters/invoice.2026` raised from **275 → 300** in a
+Firestore transaction (`max(current, 300)`, never lowered). Next number from the new bundle:
+**INV-2026-301**. The stale bundle would need 29 more invoices to reach it.
+`pnpm seed:counters` keeps the same guard and reports `(counter ahead — kept)`.
+
+**To close the gap for good** (follow-up, not done): the app should detect a waiting service
+worker and prompt "versi baru tersedia — muat semula" (vite-plugin-pwa `registerType: 'prompt'`
++ `useRegisterSW`); and the admin device must fully close and reopen the app after each deploy.
