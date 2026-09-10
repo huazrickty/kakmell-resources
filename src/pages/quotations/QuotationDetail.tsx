@@ -269,7 +269,7 @@ export default function QuotationDetail() {
               )}
               <div className="h-px bg-line" />
               <div className="flex items-center justify-between pt-0.5">
-                <span className="font-bold text-ink">JUMLAH / TOTAL:</span>
+                <span className="font-bold text-ink whitespace-nowrap">JUMLAH / TOTAL:</span>
                 <span className="font-bold text-xl text-ink tabular-nums">{fmtRM(q.total)}</span>
               </div>
             </div>
