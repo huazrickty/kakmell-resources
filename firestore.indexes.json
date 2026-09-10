@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "halls",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "quotations",
       "queryScope": "COLLECTION",
       "fields": [
