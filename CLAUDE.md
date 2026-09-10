@@ -13,7 +13,7 @@ Built for non-IT users. Simple, beautiful, mobile-first.
 - This app = purely internal kitchen operations tool
 
 ## 🏗️ Tech Stack
-- **Frontend**: React 18 + Vite 5 (SPA)
+- **Frontend**: React 19 + Vite 5 (SPA)
 - **Package Manager**: pnpm
 - **Language**: TypeScript
 - **UI**: Tailwind CSS v3 + shadcn/ui
@@ -22,7 +22,7 @@ Built for non-IT users. Simple, beautiful, mobile-first.
 - **Firebase Admin SDK**: in Functions (server-side role management)
 - **PDF**: jsPDF (client-side generation)
 - **PWA**: vite-plugin-pwa
-- **Routing**: React Router v6
+- **Routing**: React Router v7 (`createBrowserRouter`, route guards in `src/router/index.tsx`)
 - **State**: React Context (auth + language)
 
 ## 👥 Roles (2 only)
@@ -95,14 +95,16 @@ Note: Checklist synced real-time across all kitchen staff via Firestore
 
 ### invoices/{invoiceId}
 ```
-event_id: string
-invoice_no: string          // INV-YYYY-NNN, auto-increment
+event_id: string | null     // null for custom invoices
+type?: 'custom'             // custom invoice (no event)
+reference?: string          // custom invoice free-text reference
+invoice_no: string          // INV-YYYY-NNN from counters/invoice (per-year, transactional)
 invoice_date: timestamp
-billed_to: string           // "ZB GROUP SDN BHD" (fixed)
+billed_to: string           // "ZB GROUP SDN BHD" for event invoices; free text for custom
 line_items: array of {
   description: string
   qty: number
-  unit_price: number
+  unit_price: number        // may be NEGATIVE for a discount line carried from a quotation
   total: number
   is_deduction: boolean
 }
@@ -112,6 +114,36 @@ total: number
 status: string              // draft | sent | paid
 created_at: timestamp
 ```
+
+### quotations/{quotationId}  (Sebut Harga — admin only)
+```
+quotation_no: string        // QUO-YYYY-NNN from counters/quotation
+quotation_date: timestamp
+valid_until: timestamp      // default quotation_date + 14 days, editable
+event_id: string | null
+event_name: string          // SNAPSHOT at creation — never re-read from the event
+pax: number                 // SNAPSHOT; 0 when unknown
+customer: { name: string, phone?: string, address?: string }   // free-text customer
+line_items: same shape as invoices.line_items
+subtotal: number
+discount?: number           // RM, 0..subtotal
+total: number               // subtotal - discount
+status: string              // draft | sent | accepted | rejected  ('expired' is DERIVED from valid_until, never stored)
+revision_of?: string        // parent quotation id (one event can have many quotes / revisions)
+converted_invoice_id?: string  // set by NewInvoice/NewCustomInvoice when ?quotationId= is used
+notes?: string
+created_by: string
+created_at: timestamp
+updated_at: timestamp
+```
+Composite index: `quotations (event_id ASC, created_at DESC)`.
+
+### counters/{kind}  (kind = invoice | quotation; admin only)
+```
+{ "2024": 7, "2025": 98, "2026": 272 }   // year → last issued sequence
+```
+Numbers are issued by `nextDocumentNumber(kind, year)` in a Firestore transaction.
+Gaps are expected (burned numbers are never reused). Seed/repair with `pnpm seed:counters` (dry-run) / `--write`.
 
 ## 🔥 Firebase Functions (Gen 2)
 
@@ -125,23 +157,22 @@ created_at: timestamp
 - Used by Developer Settings
 - Requires caller to be admin OR have dev password verified
 
-### generateWeeklyExport(weekStart)
-- Fetches all events for given week
-- Returns structured data for PDF generation client-side
-- Stores generated PDF in Firebase Storage
+### cleanupOldTaskAssignments (onSchedule, daily 03:00 MYT) + cleanupOldTaskAssignmentsManual (onCall, admin)
+- Deletes `daily_assignments/{date}` older than 30 days and the matching `task-photos/{date}/` Storage objects
 
-### generateEventPDF(eventId)
-- Fetches event + calculates ingredients server-side
-- Returns PDF blob or Storage URL
+Note: all PDFs (invoice, quotation, weekly export, calibration form) are generated **client-side** with jsPDF.
+The former `createInvoice` / `updateInvoiceStatus` / `generateWeeklyExportData` callables were removed (never called by the client).
 
 ## 🧮 Ingredient Calculator — HARDCODED in /src/lib/ingredient-calculator.ts
 
 Bracket lookup table (NOT in Firestore — hardcoded for speed + offline):
 
 ### getBracket(pax): number
-Round UP to: 300, 400, 500, 600, 700, 800, 900, 1000
-- pax < 300 → 300
-- pax > 1000 → -1 (flag custom)
+Round UP to: 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000
+- pax ≤ 100 → 100
+- pax > 1000 → -1 (calculateIngredients returns null — flag custom)
+- Admin overrides per bracket live in Firestore `ingredient_overrides` (see `ingredient-calculator-dynamic.ts`).
+  The tables below are the historical reference; `src/lib/ingredient-calculator.ts` is the source of truth.
 
 ### Main Items Lookup:
 | Pax  | Beras(bag) | Ayam(ekor) | Daging(kg) | Paceri(biji) | Oren(biji) | Gula(L) |
@@ -194,12 +225,12 @@ Round UP to: 300, 400, 500, 600, 700, 800, 900, 1000
 - **Tax:** 0% always
 - **Currency:** RM
 
-### Line Items Logic
-1. **Katering** — auto from event: `pax × RM10.00`
-2. **Makan Beradab** — optional, flat RM100
-3. **Berkat** — manual input (auto-suggest: ≤500 → RM100, 600–800 → RM200, ≥1000 → RM300)
-4. **Laksa Penang** — optional, `qty × RM3.50`
-5. **Custom add-ons** — admin adds manually (description + qty + unit price)
+### Line Items Logic (all prices live in `src/lib/pricing.ts` — never hardcode in pages)
+1. **Katering** — auto from event: `pax × getKateringUnitPrice(pax)` → **RM15.00 if pax < 300, else RM10.50** (editable)
+2. **Makan Beradab** — optional toggle, flat `MAKAN_BERADAB_PRICE` = RM100
+3. **Berkat** — `getBerkatSuggestion(pax)`: ≤500 → RM100, ≤800 → RM200, else RM300 (editable)
+4. **Custom add-ons** — admin adds manually (description + qty + unit price)
+5. **Gaji Pekerja** — `getGajiPekerja(pax)` from the table below, shown as a deduction (invoice only, never on quotations)
 
 ### Gaji Pekerja Lookup (kawin events, round UP to nearest bracket)
 | Pax  | Gaji Pekerja |
@@ -257,6 +288,26 @@ TOTAL:           [amount]
 "NORMILA (018-3970769)"
 "Make all checks payable to KAKMELL RESOURCES"
 ```
+
+## 🧩 Shared Document Layer (invoice + quotation compose these — do NOT duplicate)
+
+| Module | Exports | Purpose |
+|---|---|---|
+| `src/lib/pricing.ts` | `MAKAN_BERADAB_PRICE`, `getKateringUnitPrice(pax)`, `GAJI_TABLE`, `getGajiPekerja(pax)`, `getBerkatSuggestion(pax)`, `fmtUnitPriceInput(n)` | The only place RM prices live |
+| `src/lib/date-utils.ts` | `tsToDate(ts)`, `fmtDateDMY(d)` | Timestamp/Date coercion, DD/MM/YYYY |
+| `src/lib/document-number.ts` | `DocumentKind`, `DOCUMENT_PREFIX`, `formatDocumentNumber(kind, year, seq)`, `parseDocumentNumber(no)`, `nextSequence(counter, year)` | Pure numbering (unit-tested) |
+| `src/lib/document-number.firestore.ts` | `nextDocumentNumber(kind, year)` | Transactional counter `counters/{kind}`; `year` = document date, never the clock |
+| `src/lib/document-status.ts` + `src/components/DocumentStatusBadge.tsx` | `DOCUMENT_STATUS`, `getStatusMeta(kind, status)`, `<DocumentStatusBadge kind status />` | Badge tone / i18n label / colour strip per status |
+| `src/lib/pdf-common.ts` | `A4_PORTRAIT`, `A4_LANDSCAPE`, `PAGE_MARGIN`, `COLOR`, `COMPANY`, `fonts(pdf)`, `getLogoBase64()`, `drawLogo`, `drawCompanyAddress`, `drawFooterNote` | jsPDF primitives shared by all PDFs |
+| `src/lib/invoice-pdf.ts` | `InvoiceLineItem`, `InvoiceDoc`, `fmtRM`, `sanitizePart`, `fmtFilenameDate`, `buildInvoiceFilename`, `generateInvoicePDF` | Invoice PDF |
+| `src/lib/quotations.ts` | `QuotationDoc`, `QuotationStatus`, `VALIDITY_DAYS`, `defaultValidUntil`, `effectiveStatus`, `computeTotals`, `quoteToInvoicePayload`, `buildQuotationFilename` | Quotation types + pure rules |
+| `src/lib/quotation-pdf.ts` | `generateQuotationPDF(q, logo, filename?)` | Quotation PDF (no bank details, no gaji) |
+| `src/hooks/useLineItems.ts` | `FormItem`, `newBlankItem`, `itemTotal`, `isActive`, `fromLineItems`, `useLineItems(initial, {minItems})` | Editable line-item state |
+| `src/components/LineItemsEditor.tsx` | `<LineItemsEditor items onUpdate onRemove onAdd canRemove addButtonVariant />` | Line-item table UI |
+| `src/hooks/useQuotations.ts` | `useQuotations({eventId?, limit?, enabled?})`, `useQuotation(id)`, `useRevisionChildren(id)` | Bounded quotation reads |
+| `src/lib/activity-logger.ts` | `logActivity({...})` | categories: event, invoice, quotation, user, ingredient, settings, task, menu |
+
+Rules: prices only from `pricing.ts`; numbers only from `nextDocumentNumber`; new PDFs build on `pdf-common`; line items only via `useLineItems` + `LineItemsEditor`; a quotation discount converts to a **negative** invoice line (`Diskaun (QUO-…)`) — never dropped.
 
 ## 🍽️ Menu Options (seed to Firestore)
 - nasi: Nasi Briyani, Nasi Minyak, Nasi Jagung
