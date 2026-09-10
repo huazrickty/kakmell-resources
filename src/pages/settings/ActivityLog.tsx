@@ -4,14 +4,14 @@ import {
   collection, query, orderBy, where, limit, getDocs, startAfter,
   Timestamp, type QueryConstraint, type QueryDocumentSnapshot, type DocumentData,
 } from 'firebase/firestore'
-import { ArrowLeft, CalendarDays, Receipt, Users, Package, ListChecks, UtensilsCrossed, Settings as SettingsIcon } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Receipt, FileText, Users, Package, ListChecks, UtensilsCrossed, Settings as SettingsIcon } from 'lucide-react'
 import { db } from '@/lib/firebase'
 import { useLanguage } from '@/context/LanguageContext'
 import { type Lang } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 type DateRange = 'today' | '7d' | '30d' | 'all'
-type Category  = 'all' | 'event' | 'invoice' | 'user' | 'ingredient' | 'task' | 'menu' | 'settings'
+type Category  = 'all' | 'event' | 'invoice' | 'quotation' | 'user' | 'ingredient' | 'task' | 'menu' | 'settings'
 
 interface ActivityEntry {
   id: string
@@ -61,6 +61,7 @@ function getStartDate(range: DateRange): Date | null {
 const CAT_ICON: Record<string, React.ReactElement> = {
   event:      <CalendarDays size={15} />,
   invoice:    <Receipt size={15} />,
+  quotation:  <FileText size={15} />,
   user:       <Users size={15} />,
   ingredient: <Package size={15} />,
   task:       <ListChecks size={15} />,
@@ -71,6 +72,7 @@ const CAT_ICON: Record<string, React.ReactElement> = {
 const CAT_COLOR: Record<string, string> = {
   event:      'bg-ok/10 text-ok',
   invoice:    'bg-warn/10 text-warn',
+  quotation:  'bg-warn/10 text-warn',
   user:       'bg-ink/5 text-ink-soft',
   ingredient: 'bg-warn/10 text-warn',
   task:       'bg-ok/10 text-ok',
@@ -105,7 +107,7 @@ export default function ActivityLog() {
   }
   const catLabels: Record<Category, string> = {
     all: t('activityLog.filterAll'), event: t('activityLog.filterEvents'),
-    invoice: t('activityLog.filterInvoices'), user: t('activityLog.filterUsers'),
+    invoice: t('activityLog.filterInvoices'), quotation: t('activityLog.filterQuotations'), user: t('activityLog.filterUsers'),
     ingredient: t('activityLog.filterIngredients'), task: t('activityLog.filterTasks'),
     menu: t('activityLog.filterMenu'), settings: t('activityLog.filterAll'),
   }
@@ -200,7 +202,7 @@ export default function ActivityLog() {
           ))}
         </div>
         <div className="flex gap-2 flex-wrap">
-          {(['all', 'event', 'invoice', 'user', 'ingredient', 'task', 'menu'] as Category[]).map(c => (
+          {(['all', 'event', 'invoice', 'quotation', 'user', 'ingredient', 'task', 'menu'] as Category[]).map(c => (
             <button
               key={c}
               onClick={() => setCategory(c)}

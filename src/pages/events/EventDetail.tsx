@@ -6,7 +6,7 @@ import { format } from 'date-fns'
 import {
   ArrowLeft, Sun, Moon, MapPin, Users, Calendar,
   Printer, Pencil, Trash2, CheckCircle, XCircle, RotateCcw,
-  MoreHorizontal, Receipt,
+  MoreHorizontal, Receipt, FileText,
 } from 'lucide-react'
 import {
   Button, Badge, type BadgeStatus, Input as KInput, Textarea as KTextarea,
@@ -16,6 +16,7 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { useEvent } from '@/hooks/useEvent'
+import { useQuotations } from '@/hooks/useQuotations'
 import { useHalls } from '@/hooks/useHalls'
 import { useMenuOptions } from '@/hooks/useMenuOptions'
 import { useMenuTypeItems } from '@/hooks/useMenuTypeItems'
@@ -263,6 +264,8 @@ export default function EventDetail() {
 
   const [existingInvoiceId, setExistingInvoiceId] = useState<string | null>(null)
   const [overrides, setOverrides] = useState<OverrideMap>({})
+  // Quotations for this event (admin only — kitchen has no read access to the collection)
+  const { quotations: eventQuotations } = useQuotations({ eventId: id, limit: 5, enabled: isAdmin && !!id })
 
   useEffect(() => {
     if (!id || !isAdmin) return
@@ -915,6 +918,20 @@ export default function EventDetail() {
                   : `/invoices/new?eventId=${id}`
                 )}
               />
+              <ListRow
+                leading={<FileText size={18} />}
+                label={t('quotation.newFromEvent')}
+                chevron={false}
+                onClick={() => navigate(`/quotations/new?eventId=${id}`)}
+              />
+              {eventQuotations.length > 0 && (
+                <ListRow
+                  leading={<FileText size={18} />}
+                  label={`${t('quotation.viewForEvent')} (${eventQuotations.length})`}
+                  chevron={false}
+                  onClick={() => navigate(`/quotations?eventId=${id}`)}
+                />
+              )}
               {event.status === 'upcoming' && (
                 <>
                   <ListRow

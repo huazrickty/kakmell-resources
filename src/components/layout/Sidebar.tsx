@@ -4,6 +4,7 @@ import {
   CalendarDays,
   ListChecks,
   Receipt,
+  FileText,
   CheckSquare,
   MoreHorizontal,
   LogOut,
@@ -28,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/events',    icon: CalendarDays,   labelKey: 'nav.events',    roles: ['admin'] },
   { to: '/tasks',     icon: ListChecks,     labelKey: 'nav.tasks',     roles: ['admin', 'kitchen'], taskDot: true },
   { to: '/invoices',  icon: Receipt,        labelKey: 'nav.invoices',  roles: ['admin'] },
+  { to: '/quotations', icon: FileText,      labelKey: 'nav.quotations', roles: ['admin'] },
   { to: '/checklist', icon: CheckSquare,    labelKey: 'nav.checklist', roles: ['kitchen'] },
   { to: '/more',      icon: MoreHorizontal, labelKey: 'nav.more',      roles: ['admin', 'kitchen'] },
 ]

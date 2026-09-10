@@ -15,6 +15,9 @@ import Invoices from '@/pages/Invoices'
 import NewInvoice from '@/pages/invoices/NewInvoice'
 import NewCustomInvoice from '@/pages/invoices/NewCustomInvoice'
 import InvoiceDetail from '@/pages/invoices/InvoiceDetail'
+import Quotations from '@/pages/Quotations'
+import NewQuotation from '@/pages/quotations/NewQuotation'
+import QuotationDetail from '@/pages/quotations/QuotationDetail'
 import More from '@/pages/More'
 import MoreSection from '@/pages/more/MoreSection'
 import ActivityLog from '@/pages/settings/ActivityLog'
@@ -77,6 +80,9 @@ export const router = createBrowserRouter([
           { path: '/invoices/custom/new', element: <NewCustomInvoice /> },
           { path: '/invoices/:id',        element: <InvoiceDetail /> },
           { path: '/invoices',    element: <Invoices /> },
+          { path: '/quotations/new', element: <NewQuotation /> },
+          { path: '/quotations/:id', element: <QuotationDetail /> },
+          { path: '/quotations',     element: <Quotations /> },
           { path: '/more',          element: <More /> },
           { path: '/more/:section', element: <MoreSection /> },
           // Old Settings entry point retired — everything lives under /more now

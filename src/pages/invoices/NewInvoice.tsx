@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
-import { collection, addDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore'
+import { collection, addDoc, getDocs, query, where, serverTimestamp, doc, updateDoc } from 'firebase/firestore'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { ArrowLeft, FileDown, Save } from 'lucide-react'
@@ -8,11 +8,13 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { useEvent } from '@/hooks/useEvent'
+import { useQuotation } from '@/hooks/useQuotations'
+import { quoteToInvoicePayload } from '@/lib/quotations'
 import { generateInvoicePDF, buildInvoiceFilename, fmtRM, type InvoiceDoc } from '@/lib/invoice-pdf'
 import { getLogoBase64 } from '@/lib/pdf-common'
 import { logActivity } from '@/lib/activity-logger'
 import { Button } from '@/components/ui-kit'
-import { useLineItems, isActive } from '@/hooks/useLineItems'
+import { useLineItems, isActive, type FormItem } from '@/hooks/useLineItems'
 import { LineItemsEditor } from '@/components/LineItemsEditor'
 import { getKateringUnitPrice, getGajiPekerja, getBerkatSuggestion, fmtUnitPriceInput, MAKAN_BERADAB_PRICE } from '@/lib/pricing'
 import { nextDocumentNumber } from '@/lib/document-number.firestore'
@@ -23,11 +25,13 @@ export default function NewInvoice() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const eventId  = params.get('eventId') ?? ''
+  const quotationId = params.get('quotationId') ?? ''      // convert-from-quotation prefill
   const { user, userDoc } = useAuth()
   const { t } = useLanguage()
   const isAdmin = userDoc?.role === 'admin'
 
   const { event, loading: eventLoading } = useEvent(eventId)
+  const { quotation, loading: quoteLoading } = useQuotation(quotationId || null)
   const [checkDone, setCheckDone]       = useState(false)
   const { items, setItems, updateItem, addItem, removeItem, canRemove, subtotal, toLineItems } = useLineItems()
   const [gajiPerkerja, setGajiPerkerja] = useState('')
@@ -49,7 +53,8 @@ export default function NewInvoice() {
   // Pre-populate from event once loaded
   useEffect(() => {
     if (!event || !checkDone) return
-    setItems([
+    if (quotationId && quoteLoading) return          // wait for the quote before choosing rows
+    const presets: FormItem[] = [
       {
         id: 'katering',
         description: `Katering — ${event.hall_name} — ${event.pax} pax`,
@@ -77,10 +82,12 @@ export default function NewInvoice() {
         protected: false,
         toggled: true,
       },
-    ])
+    ]
+    // From an accepted quotation → its rows (discount carried as a negative line); else pricing presets
+    setItems(quotationId && quotation ? quoteToInvoicePayload(quotation).items : presets)
     setGajiPerkerja(String(getGajiPekerja(event.pax)))
     // setItems is a useState setter (stable identity) re-exposed by useLineItems
-  }, [event, checkDone, setItems])
+  }, [event, checkDone, setItems, quotationId, quotation, quoteLoading])
 
   // Computed totals
   const gajiNum = parseFloat(gajiPerkerja) || 0
@@ -107,6 +114,20 @@ export default function NewInvoice() {
         status:       'draft',
         created_at:   serverTimestamp(),
       })
+
+      // Convert-from-quotation: link the quote to the invoice it became
+      if (quotationId && quotation) {
+        await updateDoc(doc(db, 'quotations', quotationId), { converted_invoice_id: docRef.id, updated_at: serverTimestamp() })
+        logActivity({
+          action: 'quotation_converted',
+          category: 'quotation',
+          description: `Sebut harga ${quotation.quotation_no} ditukar ke invois ${invoiceNo}`,
+          entity_id: quotationId,
+          entity_name: quotation.quotation_no,
+          performed_by: user!.uid,
+          performed_by_name: userDoc?.full_name ?? '',
+        })
+      }
 
       if (andDownload) {
         const inv: InvoiceDoc = {
@@ -191,6 +212,12 @@ export default function NewInvoice() {
         <span className="text-white/60 text-xs">{format(event.tarikh.toDate(), 'd MMM yyyy')}</span>
         <span className="text-white/60 text-xs">{event.pax} pax</span>
       </div>
+
+      {quotationId && quotation && (
+        <p className="text-xs text-ink-soft mb-4">
+          {t('quotation.fromQuotation')} <span className="font-semibold text-ink tabular-nums">{quotation.quotation_no}</span>
+        </p>
+      )}
 
       {/* Line items table */}
       <LineItemsEditor

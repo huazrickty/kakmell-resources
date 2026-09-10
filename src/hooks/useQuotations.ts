@@ -13,6 +13,8 @@ export interface UseQuotationsOptions {
   /** Scope to one event (needs the composite index event_id ASC, created_at DESC) */
   eventId?: string
   limit?: number
+  /** false → no subscription at all (e.g. non-admin viewer); returns [] and loading=false */
+  enabled?: boolean
 }
 
 /**
@@ -24,11 +26,12 @@ export function useQuotations(opts: UseQuotationsOptions = {}): {
   loading: boolean
   atLimit: boolean
 } {
-  const { eventId, limit: max = QUOTATIONS_PAGE_SIZE } = opts
+  const { eventId, limit: max = QUOTATIONS_PAGE_SIZE, enabled = true } = opts
   const [quotations, setQuotations] = useState<QuotationDoc[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!enabled) return               // derived return below
     const constraints: QueryConstraint[] = []
     if (eventId) constraints.push(where('event_id', '==', eventId))
     constraints.push(orderBy('created_at', 'desc'), limit(max))
@@ -41,8 +44,9 @@ export function useQuotations(opts: UseQuotationsOptions = {}): {
       setLoading(false)
     })
     return unsub
-  }, [eventId, max])
+  }, [eventId, max, enabled])
 
+  if (!enabled) return { quotations: [], loading: false, atLimit: false }
   return { quotations, loading, atLimit: quotations.length >= max }
 }
 

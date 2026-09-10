@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { useNavigate, useSearchParams, Navigate } from 'react-router-dom'
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore'
 import { toast } from 'sonner'
 import { ArrowLeft, FileDown, Save } from 'lucide-react'
 import { db } from '@/lib/firebase'
@@ -14,20 +14,66 @@ import { Button } from '@/components/ui-kit'
 import { nextDocumentNumber } from '@/lib/document-number.firestore'
 import { useLineItems, newBlankItem, type FormItem } from '@/hooks/useLineItems'
 import { LineItemsEditor } from '@/components/LineItemsEditor'
+import { useQuotation } from '@/hooks/useQuotations'
+import { quoteToInvoicePayload, type QuotationDoc } from '@/lib/quotations'
 
-// A row counts only when it has a description and a positive unit price
-const isFilled = (li: FormItem) => li.description.trim() !== '' && parseFloat(li.unit_price) > 0
+// A row counts only when it has a description and a positive unit price.
+// When prefilled from a quotation, a NEGATIVE discount line must also count
+// (see isFilled inside CustomInvoiceForm) — it is never dropped.
+const isPositiveRow = (li: FormItem) => li.description.trim() !== '' && parseFloat(li.unit_price) > 0
+const isNonZeroRow  = (li: FormItem) => li.description.trim() !== '' && (parseFloat(li.unit_price) || 0) !== 0
 
+interface CustomInvoiceInitial {
+  billedTo: string
+  reference: string
+  items: FormItem[]
+  /** set when prefilled from an accepted quotation (?quotationId=) */
+  quotation: QuotationDoc | null
+}
+
+const BLANK_INITIAL: CustomInvoiceInitial = {
+  billedTo: '', reference: '',
+  items: [newBlankItem('r1'), newBlankItem('r2'), newBlankItem('r3')],
+  quotation: null,
+}
+
+// Resolves ?quotationId= (convert-from-quotation) before mounting the form once,
+// so the form initialises from props and never sets state inside an effect.
 export default function NewCustomInvoice() {
+  const [params]    = useSearchParams()
+  const quotationId = params.get('quotationId') ?? ''
+  const { userDoc } = useAuth()
+  const { quotation, loading } = useQuotation(quotationId || null)
+
+  if (userDoc?.role !== 'admin') return <Navigate to="/dashboard" replace />
+
+  if (quotationId && loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-line border-t-ink" />
+      </div>
+    )
+  }
+
+  const initial: CustomInvoiceInitial = quotationId && quotation
+    ? (() => { const p = quoteToInvoicePayload(quotation); return { billedTo: p.billedTo, reference: p.reference, items: p.items, quotation } })()
+    : BLANK_INITIAL
+
+  return <CustomInvoiceForm key={quotationId} initial={initial} />
+}
+
+function CustomInvoiceForm({ initial }: { initial: CustomInvoiceInitial }) {
   const navigate          = useNavigate()
   const { user, userDoc } = useAuth()
   const { t }             = useLanguage()
   const isAdmin           = userDoc?.role === 'admin'
+  const fromQuote         = initial.quotation
+  const isFilled          = fromQuote ? isNonZeroRow : isPositiveRow
 
-  const [billedTo, setBilledTo]     = useState('')
-  const [reference, setReference]   = useState('')
+  const [billedTo, setBilledTo]     = useState(initial.billedTo)
+  const [reference, setReference]   = useState(initial.reference)
   const { items, updateItem, addItem, removeItem, canRemove, subtotal, toLineItems } = useLineItems(
-    [newBlankItem('r1'), newBlankItem('r2'), newBlankItem('r3')],
+    initial.items,
     { minItems: 1 },
   )
   const [gajiToggle, setGajiToggle] = useState(false)
@@ -64,6 +110,20 @@ export default function NewCustomInvoice() {
         status:       'draft',
         created_at:   serverTimestamp(),
       })
+
+      // Convert-from-quotation: link the quote to the invoice it became
+      if (fromQuote) {
+        await updateDoc(doc(db, 'quotations', fromQuote.id), { converted_invoice_id: docRef.id, updated_at: serverTimestamp() })
+        logActivity({
+          action: 'quotation_converted',
+          category: 'quotation',
+          description: `Sebut harga ${fromQuote.quotation_no} ditukar ke invois ${invoiceNo}`,
+          entity_id: fromQuote.id,
+          entity_name: fromQuote.quotation_no,
+          performed_by: user!.uid,
+          performed_by_name: userDoc?.full_name ?? '',
+        })
+      }
 
       if (andDownload) {
         const inv: InvoiceDoc = {
@@ -124,7 +184,11 @@ export default function NewCustomInvoice() {
         </button>
         <div>
           <h1 className="text-xl font-bold text-ink">{t('invoice.customTitle')}</h1>
-          <p className="text-sm text-ink-soft">{t('invoice.customSubtitle')}</p>
+          <p className="text-sm text-ink-soft">
+            {fromQuote
+              ? <>{t('quotation.fromQuotation')} <span className="font-semibold text-ink tabular-nums">{fromQuote.quotation_no}</span></>
+              : t('invoice.customSubtitle')}
+          </p>
         </div>
       </div>
 

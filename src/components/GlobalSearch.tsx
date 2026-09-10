@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
 import { format } from 'date-fns'
-import { Search, X, CalendarDays, Receipt } from 'lucide-react'
+import { Search, X, CalendarDays, Receipt, FileText } from 'lucide-react'
 import { db } from '@/lib/firebase'
 import { useLanguage } from '@/context/LanguageContext'
 
@@ -23,6 +23,14 @@ interface InvoiceResult {
   status: string
 }
 
+interface QuotationResult {
+  id: string
+  quotation_no: string
+  customer: { name: string }
+  total: number
+  status: string
+}
+
 interface GlobalSearchProps {
   isOpen: boolean
   onClose: () => void
@@ -36,6 +44,9 @@ const STATUS_COLORS: Record<string, string> = {
   draft:     'bg-ink/5 text-ink-soft border-line',
   sent:      'bg-warn/10 text-warn border-warn/20',
   paid:      'bg-ok/10 text-ok border-ok/20',
+  accepted:  'bg-ok/10 text-ok border-ok/20',
+  rejected:  'bg-danger/10 text-danger border-danger/20',
+  expired:   'bg-ink/5 text-ink-soft border-line',
 }
 
 function fmtRM(n: number): string {
@@ -50,9 +61,11 @@ export default function GlobalSearch({ isOpen, onClose, isAdmin }: GlobalSearchP
   const [loading, setLoading] = useState(false)
   const [events, setEvents] = useState<EventResult[]>([])
   const [invoices, setInvoices] = useState<InvoiceResult[]>([])
+  const [quotations, setQuotations] = useState<QuotationResult[]>([])
 
   const eventsCache = useRef<EventResult[] | null>(null)
   const invoicesCache = useRef<InvoiceResult[] | null>(null)
+  const quotationsCache = useRef<QuotationResult[] | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Load data once on first open
@@ -71,7 +84,12 @@ export default function GlobalSearch({ isOpen, onClose, isAdmin }: GlobalSearchP
         getDocs(collection(db, 'invoices')).then(snap => {
           invoicesCache.current = snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<InvoiceResult, 'id'>) }))
           setInvoices(invoicesCache.current)
-        })
+        }),
+        // bounded: latest 200 quotations only
+        getDocs(query(collection(db, 'quotations'), orderBy('created_at', 'desc'), limit(200))).then(snap => {
+          quotationsCache.current = snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<QuotationResult, 'id'>) }))
+          setQuotations(quotationsCache.current)
+        }),
       )
     }
     Promise.all(fetches).catch(() => {}).finally(() => setLoading(false))
@@ -104,6 +122,11 @@ export default function GlobalSearch({ isOpen, onClose, isAdmin }: GlobalSearchP
   const filteredInvoices = q.length < 2 || !isAdmin ? [] : invoices.filter(i =>
     i.invoice_no?.toLowerCase().includes(q) ||
     i.billed_to?.toLowerCase().includes(q)
+  ).slice(0, 5)
+
+  const filteredQuotations = q.length < 2 || !isAdmin ? [] : quotations.filter(qt =>
+    qt.quotation_no?.toLowerCase().includes(q) ||
+    qt.customer?.name?.toLowerCase().includes(q)
   ).slice(0, 5)
 
   if (!isOpen) return null
@@ -148,7 +171,7 @@ export default function GlobalSearch({ isOpen, onClose, isAdmin }: GlobalSearchP
             <div className="px-4 py-10 text-center text-xs text-ink-soft">
               {t('search.escToClose')}
             </div>
-          ) : filteredEvents.length === 0 && filteredInvoices.length === 0 ? (
+          ) : filteredEvents.length === 0 && filteredInvoices.length === 0 && filteredQuotations.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-ink-soft">
               {t('search.noResults')}
             </div>
@@ -204,6 +227,32 @@ export default function GlobalSearch({ isOpen, onClose, isAdmin }: GlobalSearchP
                       </div>
                       <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[inv.status] ?? 'bg-ink/5 text-ink-soft'}`}>
                         {inv.status}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Quotations group — admin only */}
+              {isAdmin && filteredQuotations.length > 0 && (
+                <div className={filteredEvents.length > 0 || filteredInvoices.length > 0 ? 'border-t border-line mt-1' : ''}>
+                  <div className="px-4 py-2 flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-ink-soft uppercase tracking-widest">{t('nav.quotations')}</span>
+                    <span className="text-[10px] text-ink-soft/50">({filteredQuotations.length})</span>
+                  </div>
+                  {filteredQuotations.map(qt => (
+                    <button
+                      key={qt.id}
+                      onClick={() => { navigate(`/quotations/${qt.id}`); onClose() }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-ink/[0.03] transition-colors text-left"
+                    >
+                      <FileText size={15} className="text-ink-soft shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-ink">{qt.quotation_no}</p>
+                        <p className="text-xs text-ink-soft truncate">{qt.customer?.name} · {fmtRM(qt.total)}</p>
+                      </div>
+                      <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[qt.status] ?? 'bg-ink/5 text-ink-soft'}`}>
+                        {qt.status}
                       </span>
                     </button>
                   ))}

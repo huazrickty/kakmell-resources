@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   UtensilsCrossed, Building2, Package, ListChecks, Users, ClipboardList,
-  Wrench, Search, LogOut, User,
+  Wrench, Search, LogOut, User, FileText,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -58,6 +58,11 @@ export default function More() {
                 leading={<ListChecks size={18} />}
                 label={t('more.taskList')}
                 onClick={() => navigate('/more/task-list')}
+              />
+              <ListRow
+                leading={<FileText size={18} />}
+                label={t('more.quotations')}
+                onClick={() => navigate('/quotations')}
               />
             </div>
           </Card>
